@@ -1,0 +1,185 @@
+﻿ISO3,country,fundregion
+ABW,Aruba,SIS
+AFG,Afghanistan,SAS
+AGO,Angola,SSA
+ALB,Albania,EEU
+ARE,United Arab Emirates,MDE
+ARG,Argentina,LAM
+ARM,Armenia,FSU
+AUS,Australia,ANZ
+AUT,Austria,WEU
+AZE,Azerbaijan,FSU
+BDI,Burundi,SSA
+BEL,Belgium,WEU
+BEN,Benin,SSA
+BFA,Burkina Faso,SSA
+BGD,Bangladesh,SAS
+BGR,Bulgaria,EEU
+BHR,Bahrain,MDE
+BHS,Bahamas,SIS
+BIH,Bosnia and Herzegovina,EEU
+BLR,Belarus,FSU
+BLZ,Belize,CAM
+BOL,Bolivia,LAM
+BRA,Brazil,LAM
+BRB,Barbados,SIS
+BRN,Brunei,SEA
+BTN,Bhutan,SAS
+BWA,Botswana,SSA
+CAF,Central African Republic,SSA
+CAN,Canada,CAN
+CHE,Switzerland,WEU
+CHL,Chile,LAM
+CHN,China,CHI
+CIV,Côte d'Ivoire,SSA
+CMR,Cameroon,SSA
+COD,"Congo, the Democratic Republic of the",SSA
+COG,Congo,SSA
+COL,Colombia,LAM
+COM,Comoros,SIS
+CPV,Cape Verde,SSA
+CRI,Costa Rica,CAM
+CUB,Cuba,SIS
+CYP,Cyprus,WEU
+CZE,Czech Republic,EEU
+DEU,Germany,WEU
+DJI,Djibouti,SSA
+DNK,Denmark,WEU
+DOM,Dominican Republic,SIS
+DZA,Algeria,MAF
+ECU,Ecuador,LAM
+EGY,Egypt,MAF
+ERI,Eritrea,SSA
+ESP,Spain,WEU
+EST,Estonia,FSU
+ETH,Ethiopia,SSA
+FIN,Finland,WEU
+FJI,Fiji,SIS
+FRA,France,WEU
+GAB,Gabon,SSA
+GBR,United Kingdom,WEU
+GEO,Georgia,FSU
+GHA,Ghana,SSA
+GIN,Guinea,SSA
+GMB,Gambia,SSA
+GNB,Guinea-Bissau,SSA
+GNQ,Equatorial Guinea,SSA
+GRC,Greece,WEU
+GTM,Guatemala,CAM
+GUY,Guyana,LAM
+HKG,Hong Kong,CHI
+HND,Honduras,CAM
+HRV,Croatia,EEU
+HTI,Haiti,SIS
+HUN,Hungary,EEU
+IDN,Indonesia,SEA
+IND,India,SAS
+IRL,Ireland,WEU
+IRN,"Iran, Islamic Republic of",MDE
+IRQ,Iraq,MDE
+ISL,Iceland,WEU
+ISR,Israel,MDE
+ITA,Italy,WEU
+JAM,Jamaica,SIS
+JOR,Jordan,MDE
+JPN,Japan,JPK
+KAZ,Kazakhstan,FSU
+KEN,Kenya,SSA
+KGZ,Kyrgyzstan,FSU
+KHM,Cambodia,SEA
+KOR,"Korea, Republic of",JPK
+KWT,Kuwait,MDE
+LAO,Lao People's Democratic Republic,SEA
+LBN,Lebanon,MDE
+LBR,Liberia,SSA
+LBY,Libya,MAF
+LCA,Saint Lucia,SIS
+LKA,Sri Lanka,SAS
+LSO,Lesotho,SSA
+LTU,Lithuania,FSU
+LUX,Luxembourg,WEU
+LVA,Latvia,FSU
+MAC,Macao,CHI
+MAR,Morocco,MAF
+MDA,"Moldova, Republic of",FSU
+MDG,Madagascar,SSA
+MDV,Maldives,SIS
+MEX,Mexico,CAM
+MKD,"Macedonia, the former Yugoslav Republic of",EEU
+MLI,Mali,SSA
+MLT,Malta,WEU
+MMR,Burma,SEA
+MNE,Montenegro,EEU
+MNG,Mongolia,CHI
+MOZ,Mozambique,SSA
+MRT,Mauritania,SSA
+MUS,Mauritius,SIS
+MWI,Malawi,SSA
+MYS,Malaysia,SEA
+NAM,Namibia,SSA
+NCL,New Caledonia,SIS
+NER,Niger,SSA
+NGA,Nigeria,SSA
+NIC,Nicaragua,CAM
+NLD,Netherlands,WEU
+NOR,Norway,WEU
+NPL,Nepal,SAS
+NZL,New Zealand,ANZ
+OMN,Oman,MDE
+PAK,Pakistan,SAS
+PAN,Panama,CAM
+PER,Peru,LAM
+PHL,Philippines,SEA
+PNG,Papua New Guinea,SEA
+POL,Poland,EEU
+PRI,Puerto Rico,CAM
+PRT,Portugal,WEU
+PRY,Paraguay,LAM
+PSE,"Palestinian Territory, Occupied",MDE
+PYF,French Polynesia,SIS
+QAT,Qatar,MDE
+ROU,Romania,EEU
+RUS,Russia,FSU
+RWA,Rwanda,SSA
+SAU,Saudi Arabia,MDE
+SDN,Sudan,SSA
+SEN,Senegal,SSA
+SGP,Singapore,SEA
+SLB,Solomon Islands,SIS
+SLE,Sierra Leone,SSA
+SLV,El Salvador,CAM
+SOM,Somalia,SSA
+SRB,Serbia,EEU
+STP,Sao Tome and Principe,SIS
+SUR,Suriname,LAM
+SVK,Slovakia,EEU
+SVN,Slovenia,EEU
+SWE,Sweden,WEU
+SWZ,Swaziland,SSA
+SYR,Syrian Arab Republic,MDE
+TCD,Chad,SSA
+TGO,Togo,SSA
+THA,Thailand,SEA
+TJK,Tajikistan,FSU
+TKM,Turkmenistan,FSU
+TLS,Timor-Leste,SEA
+TON,Tonga,SIS
+TTO,Trinidad and Tobago,SIS
+TUN,Tunisia,MAF
+TUR,Turkey,MDE
+TWN,Taiwan,SEA
+TZA,"Tanzania, United Republic of",SSA
+UGA,Uganda,SSA
+UKR,Ukraine,FSU
+URY,Uruguay,LAM
+USA,United States,USA
+UZB,Uzbekistan,FSU
+VCT,Saint Vincent & the Grenadines,SIS
+VEN,Venezuela,LAM
+VNM,Viet Nam,SEA
+VUT,Vanuatu,SIS
+WSM,Samoa,SIS
+YEM,Yemen,MDE
+ZAF,South Africa,SSA
+ZMB,Zambia,SSA
+ZWE,Zimbabwe,SSA

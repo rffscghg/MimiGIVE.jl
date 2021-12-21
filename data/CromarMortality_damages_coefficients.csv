@@ -1,0 +1,11 @@
+Health Outcome,Cromar Region Name,Pooled Beta,Pooled SE,Pooled Estimate,Pooled CI Lower,Pooled CI Upper
+General Mortality,Latin_America,0.00179,0.00054,1.002,1.001,1.003
+General Mortality,Europe,0.0011,0.00028,1.001,1.001,1.002
+General Mortality,Africa,0.00238,0.00076,1.002,1.001,1.004
+General Mortality,South_Asia,0.00391,0.00467,1.004,0.995,1.013
+General Mortality,Eastern_Europe,0.00455,0.00073,1.005,1.003,1.006
+General Mortality,USA,0.00464,0.00204,1.005,1.001,1.009
+General Mortality,Southeast_Asia,0.00431,0.00182,1.004,1.001,1.008
+General Mortality,Australia,0.00452,0.00133,1.005,1.002,1.007
+General Mortality,China_East_Asia,0.00535,0.00068,1.005,1.004,1.007
+General Mortality,Middle_East_North_Africa,0.01103,0.00829,1.011,0.995,1.028

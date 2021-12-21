@@ -1,0 +1,185 @@
+ISO3,country,cromar_region
+ABW,Aruba,Latin_America
+AFG,Afghanistan,South_Asia
+AGO,Angola,Africa
+ALB,Albania,Europe
+ARE,United Arab Emirates,Middle_East_North_Africa
+ARG,Argentina,Latin_America
+ARM,Armenia,South_Asia
+AUS,Australia,Australia
+AUT,Austria,Europe
+AZE,Azerbaijan,South_Asia
+BDI,Burundi,Africa
+BEL,Belgium,Europe
+BEN,Benin,Africa
+BFA,Burkina Faso,Africa
+BGD,Bangladesh,South_Asia
+BGR,Bulgaria,Eastern_Europe
+BHR,Bahrain,Middle_East_North_Africa
+BHS,Bahamas,Latin_America
+BIH,Bosnia and Herzegovina,Europe
+BLR,Belarus,Eastern_Europe
+BLZ,Belize,Latin_America
+BOL,Bolivia,Latin_America
+BRA,Brazil,Latin_America
+BRB,Barbados,Latin_America
+BRN,Brunei,Southeast_Asia
+BTN,Bhutan,South_Asia
+BWA,Botswana,Africa
+CAF,Central African Republic,Africa
+CAN,Canada,USA
+CHE,Switzerland,Europe
+CHL,Chile,Latin_America
+CHN,China,China_East_Asia
+CIV,Côte d'Ivoire,Africa
+CMR,Cameroon,Africa
+COD,"Congo, the Democratic Republic of the",Africa
+COG,Congo,Africa
+COL,Colombia,Latin_America
+COM,Comoros,Africa
+CPV,Cape Verde,Africa
+CRI,Costa Rica,Latin_America
+CUB,Cuba,Latin_America
+CYP,Cyprus,Eastern_Europe
+CZE,Czech Republic,Eastern_Europe
+DEU,Germany,Europe
+DJI,Djibouti,Africa
+DNK,Denmark,Europe
+DOM,Dominican Republic,Latin_America
+DZA,Algeria,Middle_East_North_Africa
+ECU,Ecuador,Latin_America
+EGY,Egypt,Middle_East_North_Africa
+ERI,Eritrea,Africa
+ESP,Spain,Europe
+EST,Estonia,Eastern_Europe
+ETH,Ethiopia,Africa
+FIN,Finland,Europe
+FJI,Fiji,Southeast_Asia
+FRA,France,Europe
+GAB,Gabon,Africa
+GBR,United Kingdom,Europe
+GEO,Georgia,South_Asia
+GHA,Ghana,Africa
+GIN,Guinea,Africa
+GMB,Gambia,Africa
+GNB,Guinea-Bissau,Africa
+GNQ,Equatorial Guinea,Africa
+GRC,Greece,Europe
+GTM,Guatemala,Latin_America
+GUY,Guyana,Latin_America
+HKG,Hong Kong,China_East_Asia
+HND,Honduras,Latin_America
+HRV,Croatia,Europe
+HTI,Haiti,Latin_America
+HUN,Hungary,Eastern_Europe
+IDN,Indonesia,Southeast_Asia
+IND,India,South_Asia
+IRL,Ireland,Europe
+IRN,"Iran, Islamic Republic of",Middle_East_North_Africa
+IRQ,Iraq,Middle_East_North_Africa
+ISL,Iceland,Europe
+ISR,Israel,Middle_East_North_Africa
+ITA,Italy,Europe
+JAM,Jamaica,Latin_America
+JOR,Jordan,Middle_East_North_Africa
+JPN,Japan,Australia
+KAZ,Kazakhstan,South_Asia
+KEN,Kenya,Africa
+KGZ,Kyrgyzstan,South_Asia
+KHM,Cambodia,Southeast_Asia
+KOR,"Korea, Republic of",Australia
+KWT,Kuwait,Middle_East_North_Africa
+LAO,Lao People's Democratic Republic,Southeast_Asia
+LBN,Lebanon,Middle_East_North_Africa
+LBR,Liberia,Africa
+LBY,Libya,Middle_East_North_Africa
+LCA,Saint Lucia,Latin_America
+LKA,Sri Lanka,South_Asia
+LSO,Lesotho,Africa
+LTU,Lithuania,Eastern_Europe
+LUX,Luxembourg,Europe
+LVA,Latvia,Eastern_Europe
+MAC,Macao,China_East_Asia
+MAR,Morocco,Middle_East_North_Africa
+MDA,"Moldova, Republic of",Eastern_Europe
+MDG,Madagascar,Africa
+MDV,Maldives,South_Asia
+MEX,Mexico,Latin_America
+MKD,"Macedonia, the former Yugoslav Republic of",Europe
+MLI,Mali,Africa
+MLT,Malta,Eastern_Europe
+MMR,Burma,Southeast_Asia
+MNE,Montenegro,Europe
+MNG,Mongolia,South_Asia
+MOZ,Mozambique,Africa
+MRT,Mauritania,Africa
+MUS,Mauritius,Africa
+MWI,Malawi,Africa
+MYS,Malaysia,Southeast_Asia
+NAM,Namibia,Africa
+NCL,New Caledonia,Southeast_Asia
+NER,Niger,Africa
+NGA,Nigeria,Africa
+NIC,Nicaragua,Latin_America
+NLD,Netherlands,Europe
+NOR,Norway,Europe
+NPL,Nepal,South_Asia
+NZL,New Zealand,Australia
+OMN,Oman,Middle_East_North_Africa
+PAK,Pakistan,South_Asia
+PAN,Panama,Latin_America
+PER,Peru,Latin_America
+PHL,Philippines,Southeast_Asia
+PNG,Papua New Guinea,Southeast_Asia
+POL,Poland,Eastern_Europe
+PRI,Puerto Rico,USA
+PRT,Portugal,Europe
+PRY,Paraguay,Latin_America
+PSE,"Palestinian Territory, Occupied",Middle_East_North_Africa
+PYF,French Polynesia,Southeast_Asia
+QAT,Qatar,Middle_East_North_Africa
+ROU,Romania,Eastern_Europe
+RUS,Russia,Eastern_Europe
+RWA,Rwanda,Africa
+SAU,Saudi Arabia,Middle_East_North_Africa
+SDN,Sudan,Africa
+SEN,Senegal,Africa
+SGP,Singapore,Southeast_Asia
+SLB,Solomon Islands,Southeast_Asia
+SLE,Sierra Leone,Africa
+SLV,El Salvador,Latin_America
+SOM,Somalia,Africa
+SRB,Serbia,Europe
+STP,Sao Tome and Principe,Africa
+SUR,Suriname,Latin_America
+SVK,Slovakia,Eastern_Europe
+SVN,Slovenia,Eastern_Europe
+SWE,Sweden,Europe
+SWZ,Swaziland,Africa
+SYR,Syrian Arab Republic,Middle_East_North_Africa
+TCD,Chad,Africa
+TGO,Togo,Africa
+THA,Thailand,Southeast_Asia
+TJK,Tajikistan,South_Asia
+TKM,Turkmenistan,South_Asia
+TLS,Timor-Leste,Southeast_Asia
+TON,Tonga,Southeast_Asia
+TTO,Trinidad and Tobago,Latin_America
+TUN,Tunisia,Middle_East_North_Africa
+TUR,Turkey,Europe
+TWN,Taiwan,China_East_Asia
+TZA,"Tanzania, United Republic of",Africa
+UGA,Uganda,Africa
+UKR,Ukraine,Eastern_Europe
+URY,Uruguay,Latin_America
+USA,United States,USA
+UZB,Uzbekistan,South_Asia
+VCT,Saint Vincent & the Grenadines,Latin_America
+VEN,Venezuela,Latin_America
+VNM,Viet Nam,Southeast_Asia
+VUT,Vanuatu,Southeast_Asia
+WSM,Samoa,Southeast_Asia
+YEM,Yemen,Middle_East_North_Africa
+ZAF,South Africa,Africa
+ZMB,Zambia,Africa
+ZWE,Zimbabwe,Africa
