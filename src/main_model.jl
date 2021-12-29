@@ -447,8 +447,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # --------------------------------------------------------------------------
     
     # TempNorm_1880 - Normalize temperature to deviation from 1880 for Howard and Sterner damage function
-    update_param!(m, :TempNorm_1880, :norm_range_start, 1800)
-    update_param!(m, :TempNorm_1880, :norm_range_end, 1800)
+    update_param!(m, :TempNorm_1880, :norm_range_start, 1880)
+    update_param!(m, :TempNorm_1880, :norm_range_end, 1880)
     connect_param!(m, :TempNorm_1880 => :global_temperature, :temperature => :T)
 
     # TempNorm_1900 - Normalize temperature to deviation from 1900 for DICE2016 damage function
