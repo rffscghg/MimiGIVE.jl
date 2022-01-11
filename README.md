@@ -163,7 +163,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
-- `save_slr_damages`(default is false) - save the raw sea level rise damages from CIAM to disk
+- `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop the 100 trials from the upper and lower 1% of the GDP per capita income distribution in the year 2300 (200 trials dropped in total)
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global

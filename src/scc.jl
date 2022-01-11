@@ -72,7 +72,7 @@ entered as a vector of Tuples (:component_name, :variable_name)
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
-- `save_slr_damages`(default is false) - save the raw sea level rise damages from CIAM to disk
+- `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop 
 the 100 trials from the upper and lower 1% of the GDP per capita income distribution 
 in the year 2300 (200 trials dropped in total)
@@ -516,7 +516,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_modified_domestic = vec(sum(OptimalCost_modified[:,_domestic_segments],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Convert from billion USD to billion USD
+    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Convert from billion USD to USD
 
     # global
     damages_base = vec(sum(OptimalCost_base,dims=2))
