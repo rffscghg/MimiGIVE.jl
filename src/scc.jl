@@ -33,23 +33,26 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
                                         :HFC245fa => 1e3) # kt to t
 """
     compute_scc(m::Model=get_model(); 
-        year::Union{Int, Nothing} = nothing, 
-        last_year::Int = _model_years[end], 
-        prtp::Union{Float64,Nothing} = 0.015, 
-        eta::Union{Float64,Nothing}=1.45,
-        discount_rates=nothing,
-        fair_parameter_set::Symbol = :random,
-        rffsp_sampling::Symbol = :random,
-        n=0, 
-        gas::Symbol = :CO2,
-        save_list::Vector = [],
-        output_dir::Union{String, Nothing} = nothing,
-        drop_rffsp_outliers::Bool = false,
-        compute_sectoral_values::Bool = false,
-        compute_domestic_values::Bool = false,
-        CIAM_foresight::Symbol = :limited
+            year::Union{Int, Nothing} = nothing,
+            last_year::Int = _model_years[end],
+            prtp::Union{Float64,Nothing} = 0.015,
+            eta::Union{Float64,Nothing}=1.45,
+            discount_rates=nothing,
+            fair_parameter_set::Symbol = :random,
+            rffsp_sampling::Symbol = :random,
+            n=0,
+            gas::Symbol = :CO2,
+            save_list::Vector = [],
+            output_dir::Union{String, Nothing} = nothing,
+            save_md::Bool = false,
+            save_cpc::Bool = false,
+            save_slr_damages::Bool = false,
+            drop_rffsp_outliers::Bool = false,
+            compute_sectoral_values::Bool = false,
+            compute_domestic_values::Bool = false,
+            CIAM_foresight::Symbol = :limited,
+            post_mcs_creation_function=nothing
         )
-    )
 
 Compute the SC of a gas for the GIVE in USD \$2005
 
@@ -69,6 +72,7 @@ entered as a vector of Tuples (:component_name, :variable_name)
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
+- `save_slr_damages`(default is false) - save the raw sea level rise damages from CIAM to disk
 - `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop 
 the 100 trials from the upper and lower 1% of the GDP per capita income distribution 
 in the year 2300 (200 trials dropped in total)
@@ -91,6 +95,7 @@ function compute_scc(m::Model=get_model();
             output_dir::Union{String, Nothing} = nothing,
             save_md::Bool = false,
             save_cpc::Bool = false,
+            save_slr_damages::Bool = false,
             drop_rffsp_outliers::Bool = false,
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
@@ -138,6 +143,7 @@ function compute_scc(m::Model=get_model();
                                 output_dir = output_dir,
                                 save_md = save_md,
                                 save_cpc = save_cpc,
+                                save_slr_damages = save_slr_damages,
                                 drop_rffsp_outliers = drop_rffsp_outliers,
                                 compute_sectoral_values = compute_sectoral_values,
                                 compute_domestic_values = compute_domestic_values,
@@ -212,7 +218,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -290,6 +296,17 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         end
     end
 
+    # Save slr damages
+    if options.save_slr_damages
+        if include_slr
+            slr_damages[:base][trialnum,:] = ciam_mds.damages_base[_damages_idxs]
+            slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
+        else
+            slr_damages[:base][trialnum,:] .= 0.
+            slr_damages[:modified][trialnum,:] .= 0.
+        end
+    end
+
     # Get per capita consumption
     # We don't care about units here because we are only going to use ratios
     cpc = base[:global_netconsumption, :net_cpc]
@@ -357,6 +374,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             output_dir::String,
                             save_md::Bool,
                             save_cpc::Bool,
+                            save_slr_damages::Bool,
                             drop_rffsp_outliers::Bool,
                             compute_sectoral_values::Bool,
                             compute_domestic_values::Bool,
@@ -392,6 +410,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
+    slr_damages = save_slr_damages ? Dict(key => Array{Float64}(undef, n, length(_damages_years)) for key in [:base, :modified]) : nothing
 
     ciam_base, segment_fingerprints = get_ciam(mm.base)
     ciam_modified, _ = get_ciam(mm.base)
@@ -404,9 +423,10 @@ function _compute_scc_mcs(mm::MarginalModel,
                 compute_domestic_values=compute_domestic_values,
                 save_md=save_md,
                 save_cpc=save_cpc,
+                save_slr_damages=save_slr_damages,
                 CIAM_foresight=CIAM_foresight)
 
-    payload = [scc_values, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -421,8 +441,26 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, md_values, cpc_values, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
     
+    # Write out the slr damages to disk in the same place that variables from the save_list would be written out
+    isdir("$output_dir/results/model_1") || mkpath("$output_dir/results/model_1")
+    isdir("$output_dir/results/model_2") || mkpath("$output_dir/results/model_2")
+
+    df = DataFrame(slr_damages[:base], :auto) |> 
+        i -> rename!(i, Symbol.(_damages_years)) |> 
+        i -> insertcols!(i, 1, :trial => 1:n) |> 
+        i -> stack(i, Not(:trial)) |>
+        i -> rename!(i, [:trial, :time, :slr_damages]) |>
+        save("$output_dir/results/model_1/slr_damages.csv")
+
+    df = DataFrame(slr_damages[:modified], :auto) |> 
+        i -> rename!(i, Symbol.(_damages_years)) |> 
+        i -> insertcols!(i, 1, :trial => 1:n) |> 
+        i -> stack(i, Not(:trial)) |>
+        i -> rename!(i, [:trial, :time, :slr_damages]) |>
+        save("$output_dir/results/model_2/slr_damages.csv")
+
     # Construct the returned result object
     result = Dict()
 
@@ -474,11 +512,11 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     end
 
     # domestic 
-    damages_base_domestic = vec(sum(OptimalCost_base[:,_domestic_segments],dims=2))
-    damages_modified_domestic = vec(sum(OptimalCost_modified[:,_domestic_segments],dims=2))
+    damages_base_domestic = vec(sum(OptimalCost_base[:,_domestic_segments],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_modified_domestic = vec(sum(OptimalCost_modified[:,_domestic_segments],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal_domestic = damages_marginal_domestic .* 1e9 .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, we convert to just USD and $2005 here for consistency
+    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Convert from billion USD to billion USD
 
     # global
     damages_base = vec(sum(OptimalCost_base,dims=2))
@@ -489,9 +527,11 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
 
     # CIAM starts in 2020
     # Repeat each element 10 times because CIAM runs on a 10 year timestep
-    return (globe = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal[1:end-1], inner=10); damages_marginal[end]], 
-            domestic = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal_domestic[1:end-1], inner=10); damages_marginal_domestic[end]])
-
+    return (globe               = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal[1:end-1], inner=10); damages_marginal[end]],
+            domestic            = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal_domestic[1:end-1], inner=10); damages_marginal_domestic[end]],
+            damages_base        = [fill(0., 2020 - _model_years[1]); repeat(damages_base[1:end-1], inner=10); damages_base[end]],
+            damages_modified    = [fill(0., 2020 - _model_years[1]); repeat(damages_modified[1:end-1], inner=10); damages_modified[end]]
+    )
 end
 
 """
