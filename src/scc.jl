@@ -78,7 +78,7 @@ the 100 trials from the upper and lower 1% of the GDP per capita income distribu
 in the year 2300 (200 trials dropped in total)
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
-- CIAM_foresight(default is :limited) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
+- CIAM_foresight(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 
 """
 function compute_scc(m::Model=get_model(); 
@@ -99,7 +99,7 @@ function compute_scc(m::Model=get_model();
             drop_rffsp_outliers::Bool = false,
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
-            CIAM_foresight::Symbol = :limited,
+            CIAM_foresight::Symbol = :perfect,
             post_mcs_creation_function=nothing
         )
 
