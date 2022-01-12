@@ -50,7 +50,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             drop_rffsp_outliers::Bool = false,
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
-            CIAM_foresight::Symbol = :limited,
+            CIAM_foresight::Symbol = :perfect,
             post_mcs_creation_function=nothing
         )
 
