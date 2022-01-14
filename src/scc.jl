@@ -444,23 +444,26 @@ function _compute_scc_mcs(mm::MarginalModel,
     scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
     
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
-    isdir("$output_dir/results/model_1") || mkpath("$output_dir/results/model_1")
-    isdir("$output_dir/results/model_2") || mkpath("$output_dir/results/model_2")
 
-    df = DataFrame(slr_damages[:base], :auto) |> 
-        i -> rename!(i, Symbol.(_damages_years)) |> 
-        i -> insertcols!(i, 1, :trial => 1:n) |> 
-        i -> stack(i, Not(:trial)) |>
-        i -> rename!(i, [:trial, :time, :slr_damages]) |>
-        save("$output_dir/results/model_1/slr_damages.csv")
+    if save_slr_damages
+        isdir("$output_dir/results/model_1") || mkpath("$output_dir/results/model_1")
+        isdir("$output_dir/results/model_2") || mkpath("$output_dir/results/model_2")
 
-    df = DataFrame(slr_damages[:modified], :auto) |> 
-        i -> rename!(i, Symbol.(_damages_years)) |> 
-        i -> insertcols!(i, 1, :trial => 1:n) |> 
-        i -> stack(i, Not(:trial)) |>
-        i -> rename!(i, [:trial, :time, :slr_damages]) |>
-        save("$output_dir/results/model_2/slr_damages.csv")
+        df = DataFrame(slr_damages[:base], :auto) |> 
+            i -> rename!(i, Symbol.(_damages_years)) |> 
+            i -> insertcols!(i, 1, :trial => 1:n) |> 
+            i -> stack(i, Not(:trial)) |>
+            i -> rename!(i, [:trial, :time, :slr_damages]) |>
+            save("$output_dir/results/model_1/slr_damages.csv")
 
+        df = DataFrame(slr_damages[:modified], :auto) |> 
+            i -> rename!(i, Symbol.(_damages_years)) |> 
+            i -> insertcols!(i, 1, :trial => 1:n) |> 
+            i -> stack(i, Not(:trial)) |>
+            i -> rename!(i, [:trial, :time, :slr_damages]) |>
+            save("$output_dir/results/model_2/slr_damages.csv")
+    end
+    
     # Construct the returned result object
     result = Dict()
 
