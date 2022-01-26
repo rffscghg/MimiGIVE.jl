@@ -519,21 +519,21 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_modified_domestic = vec(sum(OptimalCost_modified[:,_domestic_segments],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Convert from billion USD to USD
+    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to just USD here
 
     # global
-    damages_base = vec(sum(OptimalCost_base,dims=2))
-    damages_modified = vec(sum(OptimalCost_modified,dims=2))
+    damages_base = vec(sum(OptimalCost_base,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_modified = vec(sum(OptimalCost_modified,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal = damages_marginal .* 1e9 .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, we convert to just USD and $2005 here for consistency
+    damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
     # CIAM starts in 2020
     # Repeat each element 10 times because CIAM runs on a 10 year timestep
-    return (globe               = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal[1:end-1], inner=10); damages_marginal[end]],
-            domestic            = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal_domestic[1:end-1], inner=10); damages_marginal_domestic[end]],
-            damages_base        = [fill(0., 2020 - _model_years[1]); repeat(damages_base[1:end-1], inner=10); damages_base[end]],
-            damages_modified    = [fill(0., 2020 - _model_years[1]); repeat(damages_modified[1:end-1], inner=10); damages_modified[end]]
+    return (globe               = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal[1:end-1], inner=10); damages_marginal[end]], # billion USD $2005
+            domestic            = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal_domestic[1:end-1], inner=10); damages_marginal_domestic[end]], # billion USD $2005
+            damages_base        = [fill(0., 2020 - _model_years[1]); repeat(damages_base[1:end-1], inner=10); damages_base[end]], # billion USD $2005
+            damages_modified    = [fill(0., 2020 - _model_years[1]); repeat(damages_modified[1:end-1], inner=10); damages_modified[end]] # billion USD $2005
     )
 end
 

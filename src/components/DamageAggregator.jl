@@ -26,14 +26,14 @@ using Mimi
     total_damage_domestic = Variable(index=[time], unit="US\$2005/yr")
 
     ## global annual aggregates - for interim model outputs and partial SCCs
-    cromar_mortality_damage         = Variable(index=[time], unit="billion US\$2005/yr")
-    agriculture_damage              = Variable(index=[time], unit="billion US\$2005/yr")
-    energy_damage                   = Variable(index=[time], unit="billion US\$2005/yr")
+    cromar_mortality_damage         = Variable(index=[time], unit="US\$2005/yr")
+    agriculture_damage              = Variable(index=[time], unit="US\$2005/yr")
+    energy_damage                   = Variable(index=[time], unit="US\$2005/yr")
 
     ## domestic annual aggregates - for interim model outputs and partial SCCs
-    cromar_mortality_damage_domestic         = Variable(index=[time], unit="billion US\$2005/yr")
-    agriculture_damage_domestic              = Variable(index=[time], unit="billion US\$2005/yr")
-    energy_damage_domestic                   = Variable(index=[time], unit="billion US\$2005/yr")
+    cromar_mortality_damage_domestic         = Variable(index=[time], unit="US\$2005/yr")
+    agriculture_damage_domestic              = Variable(index=[time], unit="US\$2005/yr")
+    energy_damage_domestic                   = Variable(index=[time], unit="US\$2005/yr")
   
     function run_timestep(p, v, d, t)
 
