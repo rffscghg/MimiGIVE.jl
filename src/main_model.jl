@@ -79,9 +79,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     RCP_options = ["RCP1.9", "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5"]
 
     SSPmodel in SSPmodel_options ? nothing : error("The SSPmodel must be one of $(SSPmodel_options)")
-    SSP in SSP_options ? nothing : error("The SSPmodel must be one of $(SSP_options)")
-    RCPmodel in RCPmodel_options ? nothing : error("The SSPmodel must be one of $(RCPmodel_options)")
-    RCP in RCP_options ? nothing : error("The SSPmodel must be one of $(RCP_options)")
+    SSP in SSP_options ? nothing : error("The SSP must be one of $(SSP_options)")
+    RCPmodel in RCPmodel_options ? nothing : error("The RCPmodel must be one of $(RCPmodel_options)")
+    RCP in RCP_options ? nothing : error("The RCP must be one of $(RCP_options)")
 
     # --------------------------------------------------------------------------
     # MODEL - Model Data and Settings
