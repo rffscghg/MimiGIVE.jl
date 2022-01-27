@@ -75,7 +75,7 @@ The relevant arguments above are described as:
 
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
-    * Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPmodel and RCP for MimiSSPs is not consequential but done for consistency.
+    _Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPmodel and RCP for MimiSSPs is not consequential but done for consistency._
 
 * RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose the sample for which to run the RFF SSP. See the RFFSPs component here: https://github.com/rffscghg/MimiRFFSPs.jl
 

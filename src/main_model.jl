@@ -22,7 +22,8 @@ See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for optio
 
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
-    * Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPModel and RCP for MimiSSPs is not consequential but done for consistency.
+    Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPModel and RCP for MimiSSPs is not consequential but done for consistency.
+
 - RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
     the sample for which to run the RFF SSP
 
@@ -50,7 +51,7 @@ See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for optio
 function get_model(; Agriculture_gtap::String = "midDF",
                     socioeconomics_source::Symbol = :RFF,
                     SSPmodel::Union{Nothing, String} = "Benveniste",
-                    SSP::Union{Nothing, String} = "SSP2",                    
+                    SSP::Union{Nothing, String} = "SSP2",          
                     RCPmodel::Union{Nothing, String} = "Leach",
                     RCP::Union{Nothing, String} = "RCP4.5",
                     RFFSPsample::Union{Nothing, Int} = nothing,
@@ -62,9 +63,11 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # --------------------------------------------------------------------------
     # MODEL - Check Arguments
     # --------------------------------------------------------------------------    
+
     if socioeconomics_source == :SSP && (isnothing(SSPmodel) || isnothing(SSP) || isnothing(RCPmodel) || isnothing(RCP))
         error("The socioeconomics_source argument :SSP requires setting all of SSPmodel, SSP, RCPmodel, and RCP")
     end    
+    
     # Restrictions on arguments
     socioeconomics_source_options = [:SSP, :RFF]
     socioeconomics_source in socioeconomics_source_options ? nothing : error("The socioeconomics_source must be one of $(socioeconomics_source_options)")
