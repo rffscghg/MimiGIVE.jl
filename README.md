@@ -26,11 +26,10 @@ The model uses the Mimi framework and it is highly recommended to read the Mimi 
 using Mimi 
 using MimiGIVE
 
-# Create the a model using the SSPs socioeconomics and RCP emissions
+# Create the a model using the SSPs socioeconomics and FAIR's RCP 4.5 emissions
 m = MimiGIVE.get_model(socioeconomics_source = :SSP,
                        SSPmodel = "Benveniste",
                        SSP = "SSP2",
-                       RCPmodel = "Leach",
                        RCP = "RCP4.5")
 
 # Run the model
@@ -65,21 +64,20 @@ The relevant arguments above are described as:
 * socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
-* SSPmodel, SSP, RCPmodel, RCP (default "Benveniste", "SSP2", "Leach", "RCP4.5") - These settings 
-    are required if and only if one is using the SSPs as the socioeconomics_source.  
-    See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for options.
+
+* RCP (default "RCP4.5") -  The current options for RCP: "RCP1.9", "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5", and this will be used to choose the ar6 data for FAIR v1.6.2.
+
+* SSPmodel, SSP, RCPmodel (default "Benveniste", "SSP2", "Leach) - These settings  are required if and only if one is using the SSPs as the socioeconomics_source.  See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for options.
  
     Current Options for SSPmodel: "Benveniste"
     Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
     Current Options for RCPmodel: "Leach"
-    Current Options for RCP:  "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5"
 
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
-* RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
-    the sample for which to run the RFF SSP
+    _Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPmodel and RCP for MimiSSPs is not consequential but done for consistency._
 
-    See the RFFSPs component here: https://github.com/rffscghg/MimiRFFSPs.jl
+* RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose the sample for which to run the RFF SSP. See the RFFSPs component here: https://github.com/rffscghg/MimiRFFSPs.jl
 
 **Agriculture**
 
