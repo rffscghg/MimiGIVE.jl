@@ -303,13 +303,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         if include_slr
             slr_damages[:base][trialnum,:] = ciam_mds.damages_base[_damages_idxs]
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
-            slr_damages[:base_lim_cnt][trialnum] = ciam_mds.base_lim_cnt
-            slr_damages[:modified_lim_cnt][trialnum] = ciam_mds.modified_lim_cnt
+            slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
+            slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
         else
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
-            slr_damages[:base_lim_cnt][trialnum] = 0.
-            slr_damages[:modified_lim_cnt][trialnum] = 0.
+            slr_damages[:base_lim_cnt][trialnum,:,:] = 0.
+            slr_damages[:modified_lim_cnt][trialnum,:,:] = 0.
         end
     end
 
@@ -421,8 +421,8 @@ function _compute_scc_mcs(mm::MarginalModel,
         slr_damages = Dict(
             :base               => Array{Float64}(undef, n, length(_damages_years)),
             :modified           => Array{Float64}(undef, n, length(_damages_years)),
-            :base_lim_cnt       => Array{Float64}(undef, n),
-            :modified_lim_cnt   => Array{Float64}(undef, n)
+            :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
+            :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
         )
     else
         slr_damages = nothing
@@ -480,15 +480,36 @@ function _compute_scc_mcs(mm::MarginalModel,
             i -> rename!(i, [:trial, :time, :slr_damages]) |>
             save("$output_dir/results/model_2/slr_damages.csv")
 
-        # counts in units of countries
-        df = DataFrame(
-                :trial => 1:n,
-                :base_lim_cnt => slr_damages[:base_lim_cnt], 
-                :modified_lim_cnt => slr_damages[:modified_lim_cnt]
-            ) |>
-            save("$output_dir/results/slr_damages_lim_counts.csv")
+        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
+
+        df = DataFrame(:time => [], :country => [], :capped_flag => [])
+        for trial in 1:n # loop over trials
+            trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
+                i -> rename!(i, ciam_country_names) |>
+                i -> insertcols!(i, 1, :time => _damages_years) |> 
+                i -> stack(i, Not(:time)) |>
+                i -> rename!(i, [:time, :country, :capped_flag]) |>
+                i -> @filter(i, _.capped_flag == 1) |>
+                DataFrame
+            append!(df, trial_df)
+        end
+        df |> save("$output_dir/results/slr_damages_base_lim_counts.csv")
+
+        df = DataFrame(:time => [], :country => [], :capped_flag => [])
+        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
+        for trial in 1:n # loop over trials
+            trial_df = DataFrame(slr_damages[:modified_lim_cnt][trial,:,:], :auto) |>
+                i -> rename!(i, ciam_country_names) |>
+                i -> insertcols!(i, 1, :time => _damages_years) |> 
+                i -> stack(i, Not(:time)) |>
+                i -> rename!(i, [:time, :country, :capped_flag]) |>
+                i -> @filter(i, _.capped_flag == 1) |>
+                DataFrame
+            append!(df, trial_df)
+        end
+        df |> save("$output_dir/results/slr_damages_modified_lim_counts.csv")
     end
-    
+
     # Construct the returned result object
     result = Dict()
 
@@ -569,14 +590,14 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         # Obtain annual country-level GDP, select 2020:2300 and CIAM countries, convert from $2005 to $2010 to match CIAM
         gdp = base[:Socioeconomic, :gdp][_damages_idxs, indexin(dim_keys(ciam_base, :ciam_country), dim_keys(base, :country))] .* 1 / pricelevel_2010_to_2005
 
-        base_lim_cnt = sum(sum(OptimalCost_base_country .> gdp, dims = 1) .> 0)
-        modified_lim_cnt = sum(sum(OptimalCost_modified_country .> gdp, dims = 1) .> 0)
+        base_lim_cnt = Int64.(OptimalCost_base_country .> gdp)
+        modified_lim_cnt = Int64.(OptimalCost_modified_country .> gdp)
 
         OptimalCost_base_country = min.(OptimalCost_base_country, gdp)
         OptimalCost_modified_country = min.(OptimalCost_modified_country, gdp)
     else
-        base_lim_cnt = 0.
-        modified_lim_cnt = 0.
+        base_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
+        modified_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
     end
 
     # domestic 
@@ -598,8 +619,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
-            base_lim_cnt        = base_lim_cnt, # number of countries
-            modified_lim_cnt    = modified_lim_cnt # number of countries
+            base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
+            modified_lim_cnt    = modified_lim_cnt # 2020:2300 x countries
     )
 end
 
