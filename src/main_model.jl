@@ -8,15 +8,21 @@ Get a GIVE Model with the given argument Settings
 - socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
-- SSPmodel, SSP, RCPmodel, RCP (default "Benveniste", "SSP2", "Leach", "RCP4.5") - These settings 
-    are required if and only if one is using the SSPs as the socioeconomics_source.  
+    
+- RCP (default "RCP4.5") -  The current options for RCP: "RCP1.9", "RCP2.6", "RCP4.5", 
+"RCP7.0", "RCP8.5", and this will be used to choose the ar6 data for FAIR v1.6.2.
 
+- SSPmodel, SSP, RCPmodel (default "Benveniste", "SSP2", "Leach) - These settings 
+are required if and only if one is using the SSPs as the socioeconomics_source.  
+See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for options.
+ 
     Current Options for SSPmodel: "Benveniste"
     Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
     Current Options for RCPmodel: "Leach"
-    Current Options for RCP:  "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5"
 
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
+    
+    Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPModel and RCP for MimiSSPs is not consequential but done for consistency.
 
 - RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
     the sample for which to run the RFF SSP
@@ -45,7 +51,7 @@ Get a GIVE Model with the given argument Settings
 function get_model(; Agriculture_gtap::String = "midDF",
                     socioeconomics_source::Symbol = :RFF,
                     SSPmodel::Union{Nothing, String} = "Benveniste",
-                    SSP::Union{Nothing, String} = "SSP2",
+                    SSP::Union{Nothing, String} = "SSP2",          
                     RCPmodel::Union{Nothing, String} = "Leach",
                     RCP::Union{Nothing, String} = "RCP4.5",
                     RFFSPsample::Union{Nothing, Int} = nothing,
@@ -60,8 +66,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     if socioeconomics_source == :SSP && (isnothing(SSPmodel) || isnothing(SSP) || isnothing(RCPmodel) || isnothing(RCP))
         error("The socioeconomics_source argument :SSP requires setting all of SSPmodel, SSP, RCPmodel, and RCP")
-    end
-
+    end    
+    
     # Restrictions on arguments
     socioeconomics_source_options = [:SSP, :RFF]
     socioeconomics_source in socioeconomics_source_options ? nothing : error("The socioeconomics_source must be one of $(socioeconomics_source_options)")
@@ -70,7 +76,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     SSPmodel_options = [nothing, "Benveniste"]
     SSP_options = [nothing, "SSP1", "SSP2", "SSP3", "SSP5"]
     RCPmodel_options = [nothing, "Leach"]
-    RCP_options = [nothing, "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5"]
+    RCP_options = ["RCP1.9", "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5"]
 
     SSPmodel in SSPmodel_options ? nothing : error("The SSPmodel must be one of $(SSPmodel_options)")
     SSP in SSP_options ? nothing : error("The SSP must be one of $(SSP_options)")
@@ -116,7 +122,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     if socioeconomics_source == :RFF
         ar6_scenario = "ssp245" # use SSP2, RCP 4.5 as the basis for trace gases for RFF SP
     elseif socioeconomics_source == :SSP
-        if      RCP == "RCP2.6" ar6_scenario = "ssp126"
+        if      RCP == "RCP1.9" ar6_scenario = "ssp119"
+        elseif  RCP == "RCP2.6" ar6_scenario = "ssp126"
         elseif  RCP == "RCP4.5" ar6_scenario = "ssp245"
         elseif  RCP == "RCP7.0" ar6_scenario = "ssp370"
         elseif  RCP == "RCP8.5" ar6_scenario = "ssp585"
@@ -379,6 +386,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     if socioeconomics_source == :SSP
         update_param!(m, :Socioeconomic, :SSPmodel, SSPmodel)
         update_param!(m, :Socioeconomic, :SSP, SSP)
+
+        # We must set parameters for MimiSSPs RCP data however this will not be
+        # used, as emissions data comes directly from MimiFAIRv1_6_2
         update_param!(m, :Socioeconomic, :RCPmodel, RCPmodel)
         update_param!(m, :Socioeconomic, :RCP, RCP)
     elseif socioeconomics_source == :RFF
