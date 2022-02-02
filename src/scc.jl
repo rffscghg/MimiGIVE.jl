@@ -541,27 +541,26 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
 
     # Aggregate to Country-Level Damages
     
-    # Obtain a key mapping segment ids to region ids, both of which
+    # Obtain a key mapping segment ids to ciam country ids, both of which
     # line up with the orders of dim_keys of ciam_base
     xsc = ciam_base[:slrcost, :xsc]
-    region_mapping = DataFrame(:segment_id => collect(keys(xsc)), :region_id => first.(collect(values(xsc))))
+    ciam_country_mapping = DataFrame(:segment_id => collect(keys(xsc)), :ciam_country_id => first.(collect(values(xsc))))
     
-    unique_region_ids = 1:141# 141 consecutive Region IDs mapping to the 141 countries in ciam_base dimension ciam_country
-    num_regions = length(unique_region_ids)
+    num_ciam_countries = length(dim_keys(ciam_base, :ciam_country))
 
-    OptimalCost_base_country = Array{Float64}(undef, length(_damages_years), num_regions)
-    OptimalCost_modified_country = Array{Float64}(undef, length(_damages_years), num_regions)
+    OptimalCost_base_country = Array{Float64}(undef, length(_damages_years), num_ciam_countries)
+    OptimalCost_modified_country = Array{Float64}(undef, length(_damages_years), num_ciam_countries)
 
-    for region in unique_region_ids
+    for country in 1:num_ciam_countries # 141 consecutive Region IDs mapping to the 141 countries in ciam_base dimension ciam_country
 
-        rows = findall(i -> i == region, region_mapping.region_id) # rows of the mapping DataFrame that have this region
-        matching_segment_ids = region_mapping.segment_id[rows] # the actual segment IDs that map to this region
+        rows = findall(i -> i == country, ciam_country_mapping.ciam_country_id) # rows of the mapping DataFrame that have this ciam country
+        matching_segment_ids = ciam_country_mapping.segment_id[rows] # the actual segment IDs that map to this ciam country
 
         base_damages = sum(OptimalCost_base[:, matching_segment_ids], dims=2)
-        OptimalCost_base_country[:, region] = [repeat(base_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
+        OptimalCost_base_country[:, country] = [repeat(base_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
 
         modified_damages = sum(OptimalCost_modified[:, matching_segment_ids], dims=2)
-        OptimalCost_modified_country[:, region] = [repeat(modified_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
+        OptimalCost_modified_country[:, country] = [repeat(modified_damages[1:end-1], inner=10); modified_damages[end]] # repeat to annual from decadal
     end
 
     # Limit Country-Level Sea Level Rise Damages to Country-Level GDP
