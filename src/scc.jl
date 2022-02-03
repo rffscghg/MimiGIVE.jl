@@ -482,27 +482,29 @@ function _compute_scc_mcs(mm::MarginalModel,
 
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
 
-        df = DataFrame(:time => [], :country => [], :capped_flag => [])
+        df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
                 i -> rename!(i, ciam_country_names) |>
                 i -> insertcols!(i, 1, :time => _damages_years) |> 
                 i -> stack(i, Not(:time)) |>
-                i -> rename!(i, [:time, :country, :capped_flag]) |>
+                i -> insertcols!(i, 1, :trial => fill(trial, length(_damages_years) * 141)) |>
+                i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
                 i -> @filter(i, _.capped_flag == 1) |>
                 DataFrame
             append!(df, trial_df)
         end
         df |> save("$output_dir/results/slr_damages_base_lim_counts.csv")
 
-        df = DataFrame(:time => [], :country => [], :capped_flag => [])
+        df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:modified_lim_cnt][trial,:,:], :auto) |>
                 i -> rename!(i, ciam_country_names) |>
                 i -> insertcols!(i, 1, :time => _damages_years) |> 
                 i -> stack(i, Not(:time)) |>
-                i -> rename!(i, [:time, :country, :capped_flag]) |>
+                i -> insertcols!(i, 1, :trial => fill(trial, length(_damages_years) * 141)) |>
+                i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
                 i -> @filter(i, _.capped_flag == 1) |>
                 DataFrame
             append!(df, trial_df)
