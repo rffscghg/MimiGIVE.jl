@@ -566,7 +566,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     
     # Obtain a key mapping segment ids to ciam country ids, both of which
     # line up with the orders of dim_keys of ciam_base
-    xsc = ciam_base[:slrcost, :xsc]
+    xsc = ciam_base[:slrcost, :xsc]::Dict{Int, Tuple{Int, Int, Int}} 
     ciam_country_mapping = DataFrame(:segment_id => collect(keys(xsc)), :ciam_country_id => first.(collect(values(xsc))))
     
     num_ciam_countries = length(dim_keys(ciam_base, :ciam_country))
@@ -576,8 +576,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
 
     for country in 1:num_ciam_countries # 141 consecutive Region IDs mapping to the 141 countries in ciam_base dimension ciam_country
 
-        rows = findall(i -> i == country, ciam_country_mapping.ciam_country_id) # rows of the mapping DataFrame that have this ciam country
-        matching_segment_ids = ciam_country_mapping.segment_id[rows] # the actual segment IDs that map to this ciam country
+        rows = [findall(i -> i == country, ciam_country_mapping.ciam_country_id)...] # rows of the mapping DataFrame that have this ciam country
+        matching_segment_ids = [ciam_country_mapping.segment_id[rows]...] # the actual segment IDs that map to this ciam country
 
         base_damages = sum(OptimalCost_base[:, matching_segment_ids], dims=2)
         OptimalCost_base_country[:, country] = [repeat(base_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
