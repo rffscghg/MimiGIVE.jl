@@ -4,10 +4,6 @@ const _model_years = collect(1750:2300)
 const _damages_years = collect(2020:2300)
 const _damages_idxs = indexin(_damages_years, _model_years)
 
-# find the indices of USA segments in the CIAM model
-segments = load(joinpath(@__DIR__,"..","data","CIAM", "xsc_ciam_countries.csv")) |> DataFrame
-const _domestic_segments = findall(i -> i == "USA", segments.rgn)
-
 const scc_gas_molecular_conversions = Dict(:CO2 => 12/44, # C to CO2
                                             :N2O => 28/44, # N2 to N2O,
                                             :CH4 => 1., # CH4 to CH4
@@ -51,6 +47,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
+            CIAM_GDPcap::Bool = false,
             post_mcs_creation_function=nothing
         )
 
@@ -79,7 +76,7 @@ in the year 2300 (200 trials dropped in total)
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - CIAM_foresight(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
-
+- CIAM_GDPcap (default is false) - Limit SLR damages to country-level annual GDP
 """
 function compute_scc(m::Model=get_model(); 
             year::Union{Int, Nothing} = nothing, 
@@ -100,6 +97,7 @@ function compute_scc(m::Model=get_model();
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
+            CIAM_GDPcap::Bool = false,
             post_mcs_creation_function=nothing
         )
 
@@ -123,7 +121,9 @@ function compute_scc(m::Model=get_model();
                             eta=eta, 
                             discount_rates=discount_rates, 
                             gas=gas, domestic=compute_domestic_values, 
-                            CIAM_foresight = CIAM_foresight)
+                            CIAM_foresight = CIAM_foresight,
+                            CIAM_GDPcap = CIAM_GDPcap
+                        )
     else
         isnothing(discount_rates) ? error("To run the Monte Carlo compute_scc function (n != 0), please use the `discount_rates` argument.") : nothing
         
@@ -148,6 +148,7 @@ function compute_scc(m::Model=get_model();
                                 compute_sectoral_values = compute_sectoral_values,
                                 compute_domestic_values = compute_domestic_values,
                                 CIAM_foresight = CIAM_foresight,
+                                CIAM_GDPcap = CIAM_GDPcap,
                                 post_mcs_creation_function = post_mcs_creation_function
                             )
     end
@@ -162,7 +163,8 @@ function _compute_scc(mm::MarginalModel;
                         discount_rates, 
                         gas::Symbol,
                         domestic::Bool,
-                        CIAM_foresight::Symbol
+                        CIAM_foresight::Symbol,
+                        CIAM_GDPcap::Bool
                     )
                     
     # Run all model years even if taking a shorter last_year - running unnecessary 
@@ -182,10 +184,10 @@ function _compute_scc(mm::MarginalModel;
     #   ciam_marginal_damages: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
     if domestic
         main_marginal_damages = mm[:DamageAggregator, :total_damage_domestic] .* scc_gas_molecular_conversions[gas] 
-        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight).domestic : fill(0., length(_model_years)) 
+        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap).domestic : fill(0., length(_model_years)) 
     else
         main_marginal_damages = mm[:DamageAggregator, :total_damage] .* scc_gas_molecular_conversions[gas] 
-        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight).globe : fill(0., length(_model_years)) 
+        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap).globe : fill(0., length(_model_years)) 
     end
 
     marginal_damages = main_marginal_damages .+ ciam_marginal_damages
@@ -242,7 +244,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     include_slr = base[:DamageAggregator, :include_slr]
 
     if include_slr
-        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight) # NamedTuple with globe and domestic
+        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap) # NamedTuple with globe and domestic
         # zero out the CIAM marginal damages from start year (2020) through emissions
         # year - they will be non-zero due to foresight but saved marginal damages
         # should be zeroed out pre-emissions year
@@ -301,9 +303,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         if include_slr
             slr_damages[:base][trialnum,:] = ciam_mds.damages_base[_damages_idxs]
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
+            slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
+            slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
         else
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
+            slr_damages[:base_lim_cnt][trialnum,:,:] = 0.
+            slr_damages[:modified_lim_cnt][trialnum,:,:] = 0.
         end
     end
 
@@ -379,6 +385,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             compute_sectoral_values::Bool,
                             compute_domestic_values::Bool,
                             CIAM_foresight::Symbol,
+                            CIAM_GDPcap::Bool,
                             post_mcs_creation_function
                         )
                         
@@ -410,8 +417,16 @@ function _compute_scc_mcs(mm::MarginalModel,
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
-    slr_damages = save_slr_damages ? Dict(key => Array{Float64}(undef, n, length(_damages_years)) for key in [:base, :modified]) : nothing
-
+    if save_slr_damages
+        slr_damages = Dict(
+            :base               => Array{Float64}(undef, n, length(_damages_years)),
+            :modified           => Array{Float64}(undef, n, length(_damages_years)),
+            :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
+            :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
+        )
+    else
+        slr_damages = nothing
+    end
     ciam_base, segment_fingerprints = get_ciam(mm.base)
     ciam_modified, _ = get_ciam(mm.base)
 
@@ -424,7 +439,9 @@ function _compute_scc_mcs(mm::MarginalModel,
                 save_md=save_md,
                 save_cpc=save_cpc,
                 save_slr_damages=save_slr_damages,
-                CIAM_foresight=CIAM_foresight)
+                CIAM_foresight=CIAM_foresight,
+                CIAM_GDPcap=CIAM_GDPcap
+            )
 
     payload = [scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
 
@@ -462,8 +479,39 @@ function _compute_scc_mcs(mm::MarginalModel,
             i -> stack(i, Not(:trial)) |>
             i -> rename!(i, [:trial, :time, :slr_damages]) |>
             save("$output_dir/results/model_2/slr_damages.csv")
+
+        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
+
+        df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
+        for trial in 1:n # loop over trials
+            trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
+                i -> rename!(i, ciam_country_names) |>
+                i -> insertcols!(i, 1, :time => _damages_years) |> 
+                i -> stack(i, Not(:time)) |>
+                i -> insertcols!(i, 1, :trial => fill(trial, length(_damages_years) * 141)) |>
+                i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
+                i -> @filter(i, _.capped_flag == 1) |>
+                DataFrame
+            append!(df, trial_df)
+        end
+        df |> save("$output_dir/results/slr_damages_base_lim_counts.csv")
+
+        df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
+        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
+        for trial in 1:n # loop over trials
+            trial_df = DataFrame(slr_damages[:modified_lim_cnt][trial,:,:], :auto) |>
+                i -> rename!(i, ciam_country_names) |>
+                i -> insertcols!(i, 1, :time => _damages_years) |> 
+                i -> stack(i, Not(:time)) |>
+                i -> insertcols!(i, 1, :trial => fill(trial, length(_damages_years) * 141)) |>
+                i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
+                i -> @filter(i, _.capped_flag == 1) |>
+                DataFrame
+            append!(df, trial_df)
+        end
+        df |> save("$output_dir/results/slr_damages_modified_lim_counts.csv")
     end
-    
+
     # Construct the returned result object
     result = Dict()
 
@@ -496,7 +544,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     return result
 end
 
-function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight)
+function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight, CIAM_GDPcap)
     update_ciam!(ciam_base, base, segment_fingerprints)
     update_ciam!(ciam_modified, modified, segment_fingerprints)
 
@@ -514,26 +562,67 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         error("CIAM_foresight must be either :limited or :perfect.")
     end
 
+    # Aggregate to Country-Level Damages
+    
+    # Obtain a key mapping segment ids to ciam country ids, both of which
+    # line up with the orders of dim_keys of ciam_base
+    xsc = ciam_base[:slrcost, :xsc]::Dict{Int, Tuple{Int, Int, Int}} 
+    ciam_country_mapping = DataFrame(:segment_id => collect(keys(xsc)), :ciam_country_id => first.(collect(values(xsc))))
+    
+    num_ciam_countries = length(dim_keys(ciam_base, :ciam_country))
+
+    OptimalCost_base_country = Array{Float64}(undef, length(_damages_years), num_ciam_countries)
+    OptimalCost_modified_country = Array{Float64}(undef, length(_damages_years), num_ciam_countries)
+
+    for country in 1:num_ciam_countries # 141 consecutive Region IDs mapping to the 141 countries in ciam_base dimension ciam_country
+
+        rows = [findall(i -> i == country, ciam_country_mapping.ciam_country_id)...] # rows of the mapping DataFrame that have this ciam country
+        matching_segment_ids = [ciam_country_mapping.segment_id[rows]...] # the actual segment IDs that map to this ciam country
+
+        base_damages = sum(OptimalCost_base[:, matching_segment_ids], dims=2)
+        OptimalCost_base_country[:, country] = [repeat(base_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
+
+        modified_damages = sum(OptimalCost_modified[:, matching_segment_ids], dims=2)
+        OptimalCost_modified_country[:, country] = [repeat(modified_damages[1:end-1], inner=10); modified_damages[end]] # repeat to annual from decadal
+    end
+
+    # Limit Country-Level Sea Level Rise Damages to Country-Level GDP
+
+    if CIAM_GDPcap
+        # Obtain annual country-level GDP, select 2020:2300 and CIAM countries, convert from $2005 to $2010 to match CIAM
+        gdp = base[:Socioeconomic, :gdp][_damages_idxs, indexin(dim_keys(ciam_base, :ciam_country), dim_keys(base, :country))] .* 1 / pricelevel_2010_to_2005
+
+        base_lim_cnt = Int64.(OptimalCost_base_country .> gdp)
+        modified_lim_cnt = Int64.(OptimalCost_modified_country .> gdp)
+
+        OptimalCost_base_country = min.(OptimalCost_base_country, gdp)
+        OptimalCost_modified_country = min.(OptimalCost_modified_country, gdp)
+    else
+        base_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
+        modified_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
+    end
+
     # domestic 
-    damages_base_domestic = vec(sum(OptimalCost_base[:,_domestic_segments],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
-    damages_modified_domestic = vec(sum(OptimalCost_modified[:,_domestic_segments],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_base_domestic = vec(sum(OptimalCost_base_country[:,134],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,134],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to just USD here
 
     # global
-    damages_base = vec(sum(OptimalCost_base,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
-    damages_modified = vec(sum(OptimalCost_modified,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_base = vec(sum(OptimalCost_base_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_modified = vec(sum(OptimalCost_modified_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
     # CIAM starts in 2020
-    # Repeat each element 10 times because CIAM runs on a 10 year timestep
-    return (globe               = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal[1:end-1], inner=10); damages_marginal[end]], # billion USD $2005
-            domestic            = [fill(0., 2020 - _model_years[1]); repeat(damages_marginal_domestic[1:end-1], inner=10); damages_marginal_domestic[end]], # billion USD $2005
-            damages_base        = [fill(0., 2020 - _model_years[1]); repeat(damages_base[1:end-1], inner=10); damages_base[end]], # billion USD $2005
-            damages_modified    = [fill(0., 2020 - _model_years[1]); repeat(damages_modified[1:end-1], inner=10); damages_modified[end]] # billion USD $2005
+    return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
+            domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
+            damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
+            damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
+            base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
+            modified_lim_cnt    = modified_lim_cnt # 2020:2300 x countries
     )
 end
 

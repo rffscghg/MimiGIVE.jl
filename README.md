@@ -166,6 +166,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight` (default :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
+- `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
 
 **Discount Rate Note**: 
 In scc.jl , the rate of pure time preference `prtp` is treated as a discrete variable, such that `prtp` is applied in the discrete form `1/(1+prtp)^(t-year)`. Note that if using a `prtp` value calculated as a continuous time rate, like those in Rennert et al. (2021), one must transform this discount factor with `prtp_discrete = exp(prtp)-1)`.  Please be in touch with the developers if you need assistance or further explanation!
