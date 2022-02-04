@@ -6,9 +6,9 @@ import Mimi: SampleStore, add_RV!, add_transform!, add_save!
         socioeconomics_source::Symbol = :RFF, 
         mcs_years = 1750:2300, 
         fair_parameter_set::Symbol = :random,
-        fair_parameter_set_ids::Union{Vector, Nothing} = nothing,
+        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
         rffsp_sampling::Symbol = :random,
-        rffsp_sampling_ids::Union{Vector, Nothing} = nothing,
+        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
         save_list::Vector = [],
     )
 
@@ -34,9 +34,9 @@ function get_mcs(trials;
                     socioeconomics_source::Symbol = :RFF, 
                     mcs_years = 1750:2300, 
                     fair_parameter_set::Symbol = :random,
-                    fair_parameter_set_ids::Union{Vector, Nothing} = nothing,
+                    fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
-                    rffsp_sampling_ids::Union{Vector, Nothing} = nothing,
+                    rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
                     save_list::Vector = []              
         )
 
@@ -278,9 +278,9 @@ end
         output_dir::Union{String, Nothing} = nothing, 
         save_trials::Bool = false,
         fair_parameter_set::Symbol = :random,
-        fair_parameter_set_ids::Union{Vector, Nothing} = nothing,
+        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
         rffsp_sampling::Symbol = :random,
-        rffsp_sampling_ids::Union{Vector, Nothing} = nothing,
+        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
         m::Mimi.Model = get_model(),
         results_in_memory::Bool = true,
     )
@@ -313,9 +313,9 @@ function run_mcs(;trials::Int64 = 10000,
                     output_dir::Union{String, Nothing} = nothing, 
                     save_trials::Bool = false,
                     fair_parameter_set::Symbol = :random,
-                    fair_parameter_set_ids::Union{Vector, Nothing} = nothing,
+                    fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
-                    rffsp_sampling_ids::Union{Vector, Nothing} = nothing,
+                    rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
                     m::Mimi.Model = get_model(), 
                     save_list::Vector = [],
                     results_in_memory::Bool = true,
@@ -363,7 +363,7 @@ function run_mcs(;trials::Int64 = 10000,
 end
 
 """
-    get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector})
+    get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
 
 Return the FAIR mcs parameters mapped from parameter name to string name, and a dictionary
 using the parameter names as keys and a DataFrame holding the values as a value.
@@ -371,7 +371,7 @@ If fair_parameter_set is :random (default), then FAIR mcs samples will be chosen
 randomly from the provided sets. If it set to :deterministic they will be the vector
 provided by fair_parameter_set_ids.
 """
-function get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector})
+function get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
 
     # check some argument conditions
     if fair_parameter_set == :deterministic 
