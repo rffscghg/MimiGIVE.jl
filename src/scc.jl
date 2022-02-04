@@ -579,10 +579,10 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         rows = [findall(i -> i == country, ciam_country_mapping.ciam_country_id)...] # rows of the mapping DataFrame that have this ciam country
         matching_segment_ids = [ciam_country_mapping.segment_id[rows]...] # the actual segment IDs that map to this ciam country
 
-        base_damages = sum(OptimalCost_base[:, matching_segment_ids], dims=2)
+        base_damages = sum(view(OptimalCost_base, :, matching_segment_ids), dims=2)
         OptimalCost_base_country[:, country] = [repeat(base_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
 
-        modified_damages = sum(OptimalCost_modified[:, matching_segment_ids], dims=2)
+        modified_damages = sum(view(OptimalCost_modified, :, matching_segment_ids), dims=2)
         OptimalCost_modified_country[:, country] = [repeat(modified_damages[1:end-1], inner=10); modified_damages[end]] # repeat to annual from decadal
     end
 
