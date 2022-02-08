@@ -108,11 +108,14 @@ using MimiGIVE
 # Create the a model using RFF socioeconomics and emissions (default)
 m = MimiGIVE.get_model()
 
+# Get the CIAM model
+segment_fingerprints, m_ciam = MimiGIVE.get_ciam(m)
+
 # Run the model
 run(m)
 
-# Get the CIAM model
-m_ciam = get_ciam(m)
+# Update the CIAM model with MimiGIVE specific parameters
+MimiGIVE.update_ciam!(m_ciam, m, segment_fingerprints)
 
 # Run the CIAM model
 run(m_ciam)
@@ -133,7 +136,9 @@ function compute_scc(m::Model=get_model();
         eta::Union{Float64,Nothing}=1.45,
         discount_rates=nothing,
         fair_parameter_set::Symbol = :random,
+        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
         rffsp_sampling::Symbol = :random, 
+        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
         n=0, 
         gas::Symbol = :CO2,
         save_list::Vector = [],
@@ -141,7 +146,6 @@ function compute_scc(m::Model=get_model();
         save_md::Bool = false,
         save_cpc::Bool = false,
         save_slr_damages::Bool = false,
-        drop_rffsp_outliers::Bool = false,
         compute_sectoral_values::Bool = false,
         compute_domestic_values::Bool = false,
         CIAM_foresight::Symbol = :perfect
@@ -153,8 +157,10 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `m` (default get_model()) - If no model is provided, the default model from MimiGIVE.get_model() is used. 
 - `prtp` (default 0.015) and `eta` (1.45) - Ramsey discounting parameterization
 - `discount_rates` (default nothing) - a vector of Named Tuples ie. [(label = "Ramsey", prtp = 0.03., eta = 1.45), (label = "Constant 2%", prtp = 0.015, eta = 0.)] - required if running n > 1
-- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be chosen as 1:n (and n must be less than 2237). 
-- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be chosen as 1:n (and n must be less than 10_000, or 9800 if outliers are dropped). 
+- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
+- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set to :deterministic, this `n` element vector provides the fair parameter set ids that will be run, otherwise it is set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, this `n` element vector provides the RFF SP ids that will be run, otherwise it is set to `nothing` and ignored.
 - `n` (default 0) - If `n` is 0, the deterministic version will be run, otherwise, a monte carlo simulation will be run. 
 - `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O. 
 - `save_list` (default []) - which parameters and varaibles to save for each trial, entered as a vector of Tuples (:component_name, :variable_name)
@@ -162,7 +168,6 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
-- `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop the 100 trials from the upper and lower 1% of the GDP per capita income distribution in the year 2300 (200 trials dropped in total)
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight` (default :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
@@ -277,11 +282,12 @@ function run_mcs(;trials::Int64 = 10000,
                     output_dir::Union{String, Nothing} = nothing, 
                     save_trials::Bool = false,
                     fair_parameter_set::Symbol = :random,
+                    fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random, 
+                    rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
                     m::Mimi.Model = get_model(), 
                     save_list::Vector = [],
-                    results_in_memory::Bool = true,
-                    drop_rffsp_outliers::Bool = false
+                    results_in_memory::Bool = true
     )
 ```
 
@@ -290,12 +296,13 @@ This function returns the results of a Monte Carlo Simulation with the defined n
 - `trials` (required) - number of trials to be run, used for presampling
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_trials` (default false) - whether to save all random variables for all trials to trials.csv 
-- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be chosen as 1:n (and n must be less than 2237). 
-- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be chosen as 1:n (and n must be less than 10_000, or 9800 if outliers are dropped). 
+- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
+- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set to :deterministic, this `n` element vector provides the fair parameter set ids that will be run, otherwise it is set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, this `n` element vector provides the RFF SP ids that will be run, otherwise it is set to `nothing` and ignored.
 - `m` (default get_model()) - the model to run the simulation for
 - `save_list` (default []) - which parameters and variables to save for each trial, entered as a vector of Tuples (:component_name, :variable_name)
 - `results_in_memory` (default true) - this should be turned off if you are running into memory problems, data will be streamed out to disk but not saved in memory to the mcs object
-- `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop the 100 trials from the upper and lower 1% of the GDP per capita income distribution in the year 2300 (200 trials dropped in total)
 
 Try exploring some saved values like temperature `T` and co2 total emissions `co2`, with 
 
