@@ -108,11 +108,11 @@ using MimiGIVE
 # Create the a model using RFF socioeconomics and emissions (default)
 m = MimiGIVE.get_model()
 
-# Run the model
-run(m)
-
 # Get the CIAM model
 segment_fingerprints, m_ciam = MimiGIVE.get_ciam(m)
+
+# Run the model
+run(m)
 
 # Update the CIAM model with MimiGIVE specific parameters
 MimiGIVE.update_ciam!(m_ciam, m, segment_fingerprints)
