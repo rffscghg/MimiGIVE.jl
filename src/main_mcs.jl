@@ -6,9 +6,10 @@ import Mimi: SampleStore, add_RV!, add_transform!, add_save!
         socioeconomics_source::Symbol = :RFF, 
         mcs_years = 1750:2300, 
         fair_parameter_set::Symbol = :random,
-        rffsp_sampling::Symbol = :random, 
+        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
+        rffsp_sampling::Symbol = :random,
+        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
         save_list::Vector = [],
-        drop_rffsp_outliers::Bool = false
     )
 
 Return a Monte Carlo Simulation definition of type Mimi.SimulationDefinition that
@@ -17,105 +18,112 @@ pairs, that will be used in a Monte Carlo Simulation.
 
 - `trials` (required) - number of trials to be run, used for presampling
 - `socioeconomics_source` (default :RFF) - which source the Socioeconomics component uses
-- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
-chosen randomly from the provided sets, while :deterministic means they will be 
-chosen as 1:n (and n must be less than 2237). 
-- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF
+- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
+to :deterministic, this `n` element vector provides the fair parameter set ids 
+that will be run, otherwise it is set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
 SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
-will be chosen as 1:n (and n must be less than 10_000, or 9800 if outliers are dropped). 
+will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
+this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
+set to `nothing` and ignored.
 - `save_list` (default []) - which parameters and varaibles to save for each trial,
 entered as a vector of Tuples (:component_name, :variable_name)
-- `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop 
-the 100 trials from the upper and lower 1% of the GDP per capita income distribution 
-in the year 2300 (200 trials dropped in total)
 """
 function get_mcs(trials; 
                     socioeconomics_source::Symbol = :RFF, 
                     mcs_years = 1750:2300, 
-                    fair_parameter_set::Symbol = :random, 
+                    fair_parameter_set::Symbol = :random,
+                    fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
-                    save_list::Vector = [],
-                    drop_rffsp_outliers::Bool = false                 
-                    )
+                    rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
+                    save_list::Vector = []              
+        )
 
+    # check some argument conditions
+    if fair_parameter_set == :deterministic 
+        isnothing(fair_parameter_set_ids) && error("If `fair_parameter_set` is :determinsitic, must provide a `fair_parameter_set_ids` vector.")
+        length(fair_parameter_set_ids) !== trials && error("The length of the provided `fair_parameter_set_ids` vector must be equal to the number of trials ($trials) run.")
+        sum(fair_parameter_set_ids .> 2237) > 0. || sum(fair_parameter_set_ids .< 1) > 0. && error("FAIR parameter set ids must be between 1 and 2237, inclusive.")
+    end
+
+    if rffsp_sampling == :deterministic 
+        isnothing(rffsp_sampling_ids) && error("If `rffsp_sampling` is :determinsitic, must provide a `rffsp_sampling_ids` vector.")
+        length(rffsp_sampling_ids) !== trials && error("The length of the provided `rffsp_sampling_ids` vector must be equal to the number of trials ($trials) run.")
+        sum(rffsp_sampling_ids .> 10_000) > 0. || sum(rffsp_sampling_ids .< 1) > 0. && error("RFF SP sample ids must be between 1 and 10,000, inclusive.")
+    end   
+    
     # define the Monte Carlo Simulation and add some simple random variables
     mcs = @defsim begin
         dice2016R2_damage.a2 = Normal(0.00236, 0.00236/2) # Nordhaus (2017, PNAS) DICE2016 RV 
     end
 
     # Howard and Sterner (2017) Damage specification table 2 column 3
-            hs_μ_3 = [ 0.595382733860703;  0.259851128136597]
-            hs_σ_3 = [ 0.0322523508274087 -0.0373892045213768
-                      -0.0373892045213768  0.063496518648112]
-            hs_distribution_3 = MvNormal(hs_μ_3, hs_σ_3)
-            hs_coefficients_3 = rand(hs_distribution_3, trials)
-            
-            add_RV!(mcs, :rv_hs_damage_t2_base_3, SampleStore(hs_coefficients_3[1,:]))
-            add_transform!(mcs,  :hs_damage, :t2_base_3, :(=), :rv_hs_damage_t2_base_3)
+    hs_μ_3 = [ 0.595382733860703;  0.259851128136597]
+    hs_σ_3 = [ 0.0322523508274087 -0.0373892045213768
+                -0.0373892045213768  0.063496518648112]
+    hs_distribution_3 = MvNormal(hs_μ_3, hs_σ_3)
+    hs_coefficients_3 = rand(hs_distribution_3, trials)
+    
+    add_RV!(mcs, :rv_hs_damage_t2_base_3, SampleStore(hs_coefficients_3[1,:]))
+    add_transform!(mcs,  :hs_damage, :t2_base_3, :(=), :rv_hs_damage_t2_base_3)
 
-            add_RV!(mcs, :rv_hs_damage_t2_cat_3, SampleStore(hs_coefficients_3[2,:]))
-            add_transform!(mcs,  :hs_damage, :t2_cat_3, :(=), :rv_hs_damage_t2_cat_3)
+    add_RV!(mcs, :rv_hs_damage_t2_cat_3, SampleStore(hs_coefficients_3[2,:]))
+    add_transform!(mcs,  :hs_damage, :t2_cat_3, :(=), :rv_hs_damage_t2_cat_3)
 
     # Howard and Sterner (2017) Damage specification table 2 column 4
-            hs_μ_4 = [ 0.595382733860703;    0.259851128136597;  0.113324887895228]
-            hs_σ_4 = [ 0.0362838946808348   -0.0420628550865489  0.
-                      -0.0420628550865489    0.0714335834791260  0.
-                       0.                    0.                  0.0157459807497214]
-            hs_distribution_4 = MvNormal(hs_μ_4, hs_σ_4)
-            hs_coefficients_4 = rand(hs_distribution_4, trials)
-            add_RV!(mcs, :rv_hs_damage_t2_base_4, SampleStore(hs_coefficients_4[1,:]))
-            add_transform!(mcs,  :hs_damage, :t2_base_4, :(=), :rv_hs_damage_t2_base_4)
+    hs_μ_4 = [ 0.595382733860703;    0.259851128136597;  0.113324887895228]
+    hs_σ_4 = [ 0.0362838946808348   -0.0420628550865489  0.
+                -0.0420628550865489    0.0714335834791260  0.
+                0.                    0.                  0.0157459807497214]
+    hs_distribution_4 = MvNormal(hs_μ_4, hs_σ_4)
+    hs_coefficients_4 = rand(hs_distribution_4, trials)
+    add_RV!(mcs, :rv_hs_damage_t2_base_4, SampleStore(hs_coefficients_4[1,:]))
+    add_transform!(mcs,  :hs_damage, :t2_base_4, :(=), :rv_hs_damage_t2_base_4)
 
-            add_RV!(mcs, :rv_hs_damage_t2_cat_4, SampleStore(hs_coefficients_4[2,:]))
-            add_transform!(mcs,  :hs_damage, :t2_cat_4, :(=), :rv_hs_damage_t2_cat_4)
-            
-            add_RV!(mcs, :rv_hs_damage_t2_prod_4, SampleStore(hs_coefficients_4[3,:]))
-            add_transform!(mcs,  :hs_damage, :t2_prod_4, :(=), :rv_hs_damage_t2_prod_4)
+    add_RV!(mcs, :rv_hs_damage_t2_cat_4, SampleStore(hs_coefficients_4[2,:]))
+    add_transform!(mcs,  :hs_damage, :t2_cat_4, :(=), :rv_hs_damage_t2_cat_4)
+    
+    add_RV!(mcs, :rv_hs_damage_t2_prod_4, SampleStore(hs_coefficients_4[3,:]))
+    add_transform!(mcs,  :hs_damage, :t2_prod_4, :(=), :rv_hs_damage_t2_prod_4)
 
     # Howard and Sterner (2017) Damage specification table 2 column 7
-            hs_μ_7 = [ 0.318149737017145;   0.362274271711041]
-            hs_σ_7 = [ 0.00953254601993184 -0.00956576259414058
-                      -0.00956576259414058  0.00970956896549987]
-            hs_distribution_7 = MvNormal(hs_μ_7, hs_σ_7)
-            hs_coefficients_7 = rand(hs_distribution_7, trials)
+    hs_μ_7 = [ 0.318149737017145;   0.362274271711041]
+    hs_σ_7 = [ 0.00953254601993184 -0.00956576259414058
+                -0.00956576259414058  0.00970956896549987]
+    hs_distribution_7 = MvNormal(hs_μ_7, hs_σ_7)
+    hs_coefficients_7 = rand(hs_distribution_7, trials)
 
-            add_RV!(mcs, :rv_hs_damage_t2_base_7, SampleStore(hs_coefficients_7[1,:]))
-            add_transform!(mcs,  :hs_damage, :t2_base_7, :(=), :rv_hs_damage_t2_base_7)
+    add_RV!(mcs, :rv_hs_damage_t2_base_7, SampleStore(hs_coefficients_7[1,:]))
+    add_transform!(mcs,  :hs_damage, :t2_base_7, :(=), :rv_hs_damage_t2_base_7)
 
-            add_RV!(mcs, :rv_hs_damage_t2_cat_7, SampleStore(hs_coefficients_7[2,:]))
-            add_transform!(mcs,  :hs_damage, :t2_cat_7, :(=), :rv_hs_damage_t2_cat_7)
+    add_RV!(mcs, :rv_hs_damage_t2_cat_7, SampleStore(hs_coefficients_7[2,:]))
+    add_transform!(mcs,  :hs_damage, :t2_cat_7, :(=), :rv_hs_damage_t2_cat_7)
 
     # Howard and Sterner (2017) Damage specification table 2 column 8
-            hs_μ_8 = [ 0.318149737017145;    0.362274271711041;   0.398230480262918]
-            hs_σ_8 = [ 0.0104404075456397   -0.0104767876031064   0.
-                      -0.0104767876031064    0.010634289819357    0.
-                       0.                    0.                   0.0563560833680617]
-            hs_distribution_8 = MvNormal(hs_μ_8, hs_σ_8)
-            hs_coefficients_8 = rand(hs_distribution_8, trials)
+    hs_μ_8 = [ 0.318149737017145;    0.362274271711041;   0.398230480262918]
+    hs_σ_8 = [ 0.0104404075456397   -0.0104767876031064   0.
+                -0.0104767876031064    0.010634289819357    0.
+                0.                    0.                   0.0563560833680617]
+    hs_distribution_8 = MvNormal(hs_μ_8, hs_σ_8)
+    hs_coefficients_8 = rand(hs_distribution_8, trials)
 
-            add_RV!(mcs, :rv_hs_damage_t2_base_8, SampleStore(hs_coefficients_8[1,:]))
-            add_transform!(mcs,  :hs_damage, :t2_base_8, :(=), :rv_hs_damage_t2_base_8)
+    add_RV!(mcs, :rv_hs_damage_t2_base_8, SampleStore(hs_coefficients_8[1,:]))
+    add_transform!(mcs,  :hs_damage, :t2_base_8, :(=), :rv_hs_damage_t2_base_8)
 
-            add_RV!(mcs, :rv_hs_damage_t2_cat_8, SampleStore(hs_coefficients_8[2,:]))
-            add_transform!(mcs,  :hs_damage, :t2_cat_8, :(=), :rv_hs_damage_t2_cat_8)
-            
-            add_RV!(mcs, :rv_hs_damage_t2_prod_8, SampleStore(hs_coefficients_8[3,:]))
-            add_transform!(mcs,  :hs_damage, :t2_prod_8, :(=), :rv_hs_damage_t2_prod_8)
+    add_RV!(mcs, :rv_hs_damage_t2_cat_8, SampleStore(hs_coefficients_8[2,:]))
+    add_transform!(mcs,  :hs_damage, :t2_cat_8, :(=), :rv_hs_damage_t2_cat_8)
+    
+    add_RV!(mcs, :rv_hs_damage_t2_prod_8, SampleStore(hs_coefficients_8[3,:]))
+    add_transform!(mcs,  :hs_damage, :t2_prod_8, :(=), :rv_hs_damage_t2_prod_8)
 
 
     # add the socioeconomics RV if the socioeconomics source is Mimi RFF SPs
+    # use SampleStore for a deterministic RFF SP sampling approach, otherwise
+    # use an EmpiricalDistribution across all ids (equal probability is assumed 
+    # if probabilities not provided)
     if socioeconomics_source == :RFF
-        if drop_rffsp_outliers == true
-            # load outlier RFF-SP ID's as defined by trials that are between the 1 and 99 percentile of per capita income distribution in 2300
-            socio_ids = (load(joinpath(@__DIR__, "..", "data", "rffsp_1pct_trimmed.csv")) |> DataFrame).trialnum
-        else
-            socio_ids = collect(1:10_000)
-        end
-
-        # use SampleStore for a deterministic RFF SP sampling approach, otherwise
-        # use an EmpiricalDistribution across all ids (equal probability is assumed 
-        # if probabilities not provided)
-        distrib = rffsp_sampling == :random ? EmpiricalDistribution(socio_ids) : SampleStore(socio_ids)
+        distrib = rffsp_sampling == :random ? EmpiricalDistribution(collect(1:10_000)) : SampleStore(rffsp_sampling_ids)
         add_RV!(mcs, :socio_id_rv, distrib)
         add_transform!(mcs, :Socioeconomic, :id, :(=), :socio_id_rv)
     end
@@ -203,7 +211,7 @@ function get_mcs(trials;
     # variable and assign all component parameters connected to that shared model 
     # parameter to the value taken on by that random variable
 
-    fair_samples_map, fair_samples = get_fair_mcs_params(;n=trials, fair_parameter_set=fair_parameter_set)
+    fair_samples_map, fair_samples = get_fair_mcs_params(trials; fair_parameter_set=fair_parameter_set, fair_parameter_set_ids=fair_parameter_set_ids)
     fair_samples_left = deepcopy(fair_samples) # we know we've added everything when this is empty!
 
     # add and assign all random variables for single dimensional parameters
@@ -270,10 +278,11 @@ end
         output_dir::Union{String, Nothing} = nothing, 
         save_trials::Bool = false,
         fair_parameter_set::Symbol = :random,
+        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
         rffsp_sampling::Symbol = :random,
+        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
         m::Mimi.Model = get_model(),
         results_in_memory::Bool = true,
-        drop_rffsp_outliers::Bool = false
     )
 
 Return the results of a Monte Carlo Simulation with the defined number of trials
@@ -284,31 +293,32 @@ returned by get_model().
 - `trials` (required) - number of trials to be run, used for presampling
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_trials` (default false) - whether to save all random variables for all trials to trials.csv 
-- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
-chosen randomly from the provided sets, while :deterministic means they will be 
-chosen as 1:n (and n must be less than 2237). 
-- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF
+- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
+to :deterministic, this `n` element vector provides the fair parameter set ids 
+that will be run, otherwise it is set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
 SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
-will be chosen as 1:n (and n must be less than 10_000, or 9800 if outliers are dropped). 
+will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
+this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
+set to `nothing` and ignored.
 - `m` (default get_model()) - the model to run the simulation for
 - `save_list` (default []) - which parameters and variables to save for each trial,
 entered as a vector of Tuples (:component_name, :variable_name)
 - `results_in_memory` (default true) - this should be turned off if you are running 
 into memory problems, data will be streamed out to disk but not saved in memory 
 to the mcs object
-- `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop 
-the 100 trials from the upper and lower 1% of the GDP per capita income distribution 
-in the year 2300 (200 trials dropped in total)
 """
 function run_mcs(;trials::Int64 = 10000, 
                     output_dir::Union{String, Nothing} = nothing, 
                     save_trials::Bool = false,
                     fair_parameter_set::Symbol = :random,
+                    fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
+                    rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
                     m::Mimi.Model = get_model(), 
                     save_list::Vector = [],
                     results_in_memory::Bool = true,
-                    drop_rffsp_outliers::Bool = false
                 )
 
     m = deepcopy(m) # in the case that an `m` was provided, be careful that we don't modify the original
@@ -334,9 +344,10 @@ function run_mcs(;trials::Int64 = 10000,
                     socioeconomics_source = socioeconomics_source, 
                     mcs_years = Mimi.time_labels(m), 
                     fair_parameter_set = fair_parameter_set, 
+                    fair_parameter_set_ids = fair_parameter_set_ids,
                     rffsp_sampling = rffsp_sampling,
+                    rffsp_sampling_ids = rffsp_sampling_ids,
                     save_list = save_list,
-                    drop_rffsp_outliers = drop_rffsp_outliers
                 )
 
     # run monte carlo trials
@@ -352,23 +363,28 @@ function run_mcs(;trials::Int64 = 10000,
 end
 
 """
-    get_fair_mcs_params(;n::Int=2237, fair_parameter_set::Symbol = :random)
+    get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
 
 Return the FAIR mcs parameters mapped from parameter name to string name, and a dictionary
 using the parameter names as keys and a DataFrame holding the values as a value.
 If fair_parameter_set is :random (default), then FAIR mcs samples will be chosen 
-randomly from the provided sets. If it set to :deterministic they will be chosen 
-as 1:n (and n must be less than 2237).
+randomly from the provided sets. If it set to :deterministic they will be the vector
+provided by fair_parameter_set_ids.
 """
-function get_fair_mcs_params(;n::Int=2237, fair_parameter_set::Symbol = :random)
+function get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
 
-    n > 2237 && fair_parameter_set == :deterministic && error("Cannot deterministically sample FAIR mcs samples with n > 2237, the entered n = $n.")
+    # check some argument conditions
+    if fair_parameter_set == :deterministic 
+        isnothing(fair_parameter_set_ids) && error("If `fair_parameter_set` is :determinsitic, must provide a `fair_parameter_set_ids` vector.")
+        length(fair_parameter_set_ids) !== n && error("The length of the provided `fair_parameter_set_ids` vector must be equal to the number of trials ($n) run.")
+        sum(fair_parameter_set_ids .> 2237) .> 0 || sum(fair_parameter_set_ids .< 1) > 0. && error("FAIR parameter set ids must be between 1 and 2237, inclusive.")
+    end
 
     names_map = get_fair_mcs_params_map()
     params_dict = Dict()
 
     if fair_parameter_set == :deterministic
-        samples = 1:n
+        samples = fair_parameter_set_ids
     elseif fair_parameter_set == :random
         samples = sample(collect(1:2237), n, replace=true) # randomly sample n sample sets of 2237 options, with replacement
     end

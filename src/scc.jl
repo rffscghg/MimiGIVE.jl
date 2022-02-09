@@ -36,7 +36,9 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             discount_rates=nothing,
             certainty_equivalent=false,
             fair_parameter_set::Symbol = :random,
+            fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
+            rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
             n=0,
             gas::Symbol = :CO2,
             save_list::Vector = [],
@@ -44,7 +46,6 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             save_md::Bool = false,
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
-            drop_rffsp_outliers::Bool = false,
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
@@ -60,10 +61,16 @@ Compute the SC of a gas for the GIVE in USD \$2005
 - `certainty_equivalent` (default false) - whether to compute the certainty equivalent or expected SCC
 - `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
 chosen randomly from the provided sets, while :deterministic means they will be 
-chosen as 1:n (and n must be less than 2237). 
-- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF
+based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
+- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
+to :deterministic, this `n` element vector provides the fair parameter set ids 
+that will be run, otherwise it is set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
 SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
-will be chosen as 1:n (and n must be less than 10_000, or 9800 if outliers are dropped). 
+will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
+this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
+set to `nothing` and ignored.
 - `n` (default 0) - If `n` is 0, the deterministic version will be run, otherwise, a monte carlo simulation will be run. 
 - `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O. 
 - `save_list` (default []) - which parameters and varaibles to save for each trial,
@@ -72,9 +79,6 @@ entered as a vector of Tuples (:component_name, :variable_name)
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
-- `drop_rffsp_outliers` (default is false) - when set to `true`, this will drop 
-the 100 trials from the upper and lower 1% of the GDP per capita income distribution 
-in the year 2300 (200 trials dropped in total)
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - CIAM_foresight(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
@@ -88,7 +92,9 @@ function compute_scc(m::Model=get_model();
             discount_rates=nothing,
             certainty_equivalent=false,
             fair_parameter_set::Symbol = :random,
+            fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
+            rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
             n=0,
             gas::Symbol = :CO2,
             save_list::Vector = [],
@@ -96,7 +102,6 @@ function compute_scc(m::Model=get_model();
             save_md::Bool = false,
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
-            drop_rffsp_outliers::Bool = false,
             compute_sectoral_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
@@ -141,15 +146,16 @@ function compute_scc(m::Model=get_model();
                                 last_year=last_year, 
                                 discount_rates=discount_rates, 
                                 certainty_equivalent=certainty_equivalent,
-                                fair_parameter_set=fair_parameter_set, 
-                                rffsp_sampling=rffsp_sampling,
+                                fair_parameter_set = fair_parameter_set,
+                                fair_parameter_set_ids = fair_parameter_set_ids,
+                                rffsp_sampling = rffsp_sampling,
+                                rffsp_sampling_ids = rffsp_sampling_ids,
                                 gas = gas, 
                                 save_list = save_list, 
                                 output_dir = output_dir,
                                 save_md = save_md,
                                 save_cpc = save_cpc,
                                 save_slr_damages = save_slr_damages,
-                                drop_rffsp_outliers = drop_rffsp_outliers,
                                 compute_sectoral_values = compute_sectoral_values,
                                 compute_domestic_values = compute_domestic_values,
                                 CIAM_foresight = CIAM_foresight,
@@ -383,15 +389,16 @@ function _compute_scc_mcs(mm::MarginalModel,
                             last_year::Int, 
                             discount_rates, 
                             certainty_equivalent::Bool,
-                            fair_parameter_set::Symbol, 
-                            rffsp_sampling::Symbol,
+                            fair_parameter_set::Symbol = :random,
+                            fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
+                            rffsp_sampling::Symbol = :random,
+                            rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
                             gas::Symbol, 
                             save_list::Vector, 
                             output_dir::String,
                             save_md::Bool,
                             save_cpc::Bool,
                             save_slr_damages::Bool,
-                            drop_rffsp_outliers::Bool,
                             compute_sectoral_values::Bool,
                             compute_domestic_values::Bool,
                             CIAM_foresight::Symbol,
@@ -411,10 +418,11 @@ function _compute_scc_mcs(mm::MarginalModel,
     mcs = get_mcs(n; 
                     socioeconomics_source=socioeconomics_source, 
                     mcs_years = _model_years, 
-                    fair_parameter_set = fair_parameter_set, 
+                    fair_parameter_set = fair_parameter_set,
+                    fair_parameter_set_ids = fair_parameter_set_ids,
                     rffsp_sampling = rffsp_sampling,
-                    save_list = save_list,
-                    drop_rffsp_outliers = drop_rffsp_outliers
+                    rffsp_sampling_ids = rffsp_sampling_ids,
+                    save_list = save_list
                 )
     
     if post_mcs_creation_function!==nothing
@@ -612,10 +620,10 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         rows = [findall(i -> i == country, ciam_country_mapping.ciam_country_id)...] # rows of the mapping DataFrame that have this ciam country
         matching_segment_ids = [ciam_country_mapping.segment_id[rows]...] # the actual segment IDs that map to this ciam country
 
-        base_damages = sum(OptimalCost_base[:, matching_segment_ids], dims=2)
+        base_damages = sum(view(OptimalCost_base, :, matching_segment_ids), dims=2)
         OptimalCost_base_country[:, country] = [repeat(base_damages[1:end-1], inner=10); base_damages[end]] # repeat to annual from decadal
 
-        modified_damages = sum(OptimalCost_modified[:, matching_segment_ids], dims=2)
+        modified_damages = sum(view(OptimalCost_modified, :, matching_segment_ids), dims=2)
         OptimalCost_modified_country[:, country] = [repeat(modified_damages[1:end-1], inner=10); modified_damages[end]] # repeat to annual from decadal
     end
 
