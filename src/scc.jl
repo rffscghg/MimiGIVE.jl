@@ -533,7 +533,7 @@ function _compute_scc_mcs(mm::MarginalModel,
         cpc_in_year_of_emission = view(cpc_values[(region=:globe, sector=:total)], :, year_index)
         
         for k in keys(scc_values)
-            expected_mu_in_year_of_emission[k] = mean(cpc_in_year_of_emission .^ k.eta)
+            expected_mu_in_year_of_emission[k] = mean(1 ./ (cpc_in_year_of_emission .^ k.eta))
         end    
     end
 
@@ -545,9 +545,9 @@ function _compute_scc_mcs(mm::MarginalModel,
     for (k,v) in scc_values
         if certainty_equivalent
             result[:scc][k] = (
-                ce_scc = mean(v) * expected_mu_in_year_of_emission[k],
+                ce_scc = mean(v) ./ expected_mu_in_year_of_emission[k],
                 # se_scc = std(v) / sqrt(n), # TODO Can't use this equation here because we need to properly propagate the uncertainty from the two means we are taking
-                sccs = v .* expected_mu_in_year_of_emission[k]
+                sccs = v ./ expected_mu_in_year_of_emission[k]
             )
         else
             result[:scc][k] = (
