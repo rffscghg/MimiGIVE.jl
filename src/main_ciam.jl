@@ -141,12 +141,15 @@ function compute_PerfectForesight_OptimalCosts_typestable(protect_cost, retreat_
     # Preallocate this array and reuse for each segment
     npv = Vector{Float64}(undef, noptions)
 
+    # Precompute discount factor
+    df = [(1.04)^((1-t)*10) for t in 1:ntsteps]
+
     # loop over segments finding the optimal decision for each in light of perfect foresight
     # NPV and filling in the optimal costs with the undiscounted costs for that decision
     for segment in 1:nsegments
-        npv[1:4] .= (sum(protect_cost[t,segment,level] * (1.04)^((1-t)*10) * 10 for t in 1:ntsteps) for level in 1:4) # remove the Maintain level (allowMaintain = false for these runs) which is index 5
-        npv[5:9] .= (sum(retreat_cost[t,segment,level] * (1.04)^((1-t)*10) * 10 for t in 1:ntsteps) for level in 1:5) # remove the Maintain level (allowMaintain = false for these runs) which is index 6
-        npv[10]  = sum(no_adapt_cost[t,segment] * (1.04)^((1-t)*10) * 10 for t in 1:ntsteps)
+        npv[1:4] .= (sum(protect_cost[t,segment,level] * df[t] * 10 for t in 1:ntsteps) for level in 1:4) # remove the Maintain level (allowMaintain = false for these runs) which is index 5
+        npv[5:9] .= (sum(retreat_cost[t,segment,level] * df[t] * 10 for t in 1:ntsteps) for level in 1:5) # remove the Maintain level (allowMaintain = false for these runs) which is index 6
+        npv[10]  = sum(no_adapt_cost[t,segment] * df[t] * 10 for t in 1:ntsteps)
 
         optimal_decision = decision_options[findmin(npv)[2]]
         if optimal_decision.choice == :ProtectCost
