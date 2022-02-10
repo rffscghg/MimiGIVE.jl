@@ -34,6 +34,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             prtp::Union{Float64,Nothing} = 0.015,
             eta::Union{Float64,Nothing}=1.45,
             discount_rates=nothing,
+            certainty_equivalent=false,
             fair_parameter_set::Symbol = :random,
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
@@ -57,6 +58,7 @@ Compute the SC of a gas for the GIVE in USD \$2005
 - `m` (default get_model()) - If no model is provided, the default model from MimiGIVE.get_model() is used. 
 - `prtp` (default 0.015) and `eta` (1.45) - Ramsey discounting parameterization
 - `discount_rates` (default nothing) - a vector of Named Tuples ie. [(prpt = 0.03., eta = 1.45), (prtp = 0.015, eta = 1.45)] - required if running n > 1
+- `certainty_equivalent` (default false) - whether to compute the certainty equivalent or expected SCC
 - `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
 chosen randomly from the provided sets, while :deterministic means they will be 
 based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
@@ -88,6 +90,7 @@ function compute_scc(m::Model=get_model();
             prtp::Union{Float64,Nothing} = 0.015, 
             eta::Union{Float64,Nothing}=1.45,
             discount_rates=nothing,
+            certainty_equivalent=false,
             fair_parameter_set::Symbol = :random,
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
@@ -115,6 +118,7 @@ function compute_scc(m::Model=get_model();
     !(last_year in _model_years) ? error("Invalid value of $last_year for last_year. last_year must be within the model's time index $_model_years.") : nothing
     !(year in _model_years) ? error("Cannot compute the scc for year $year, year must be within the model's time index $_model_years.") : nothing
     !(gas in gases_list) ? error("Invalid value of $gas for gas, gas must be one of $(gases_list).") : nothing
+    n>0 && certainty_equivalent && !save_cpc && error("certainty_equivalent=true also requires save_cpc=true")
     
     mm = get_marginal_model(m; year = year, gas = gas)
 
@@ -141,6 +145,7 @@ function compute_scc(m::Model=get_model();
                                 year=year, 
                                 last_year=last_year, 
                                 discount_rates=discount_rates, 
+                                certainty_equivalent=certainty_equivalent,
                                 fair_parameter_set = fair_parameter_set,
                                 fair_parameter_set_ids = fair_parameter_set_ids,
                                 rffsp_sampling = rffsp_sampling,
@@ -226,7 +231,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -331,6 +336,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     # Calculate the SCC for each discount rate
     for dr in discount_rates
         df = [((cpc[year_index]/cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
+
+        if options.certainty_equivalent
+            df_ce = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
+            
+            intermediate_ce_scc = sum(df_ce .* total_mds[year_index:last_year_index])
+            intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+        end
         
         # totals
         scc = sum(df .* total_mds[year_index:last_year_index])
@@ -379,6 +391,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             year::Int, 
                             last_year::Int, 
                             discount_rates, 
+                            certainty_equivalent::Bool,
                             fair_parameter_set::Symbol = :random,
                             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                             rffsp_sampling::Symbol = :random,
@@ -423,6 +436,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :slr] : [:total]
 
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors)
+    intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
     if save_slr_damages
@@ -448,10 +462,11 @@ function _compute_scc_mcs(mm::MarginalModel,
                 save_cpc=save_cpc,
                 save_slr_damages=save_slr_damages,
                 CIAM_foresight=CIAM_foresight,
-                CIAM_GDPcap=CIAM_GDPcap
+                CIAM_GDPcap=CIAM_GDPcap,
+                certainty_equivalent=certainty_equivalent,
             )
 
-    payload = [scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -466,7 +481,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
     
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
 
@@ -520,17 +535,40 @@ function _compute_scc_mcs(mm::MarginalModel,
         df |> save("$output_dir/results/slr_damages_modified_lim_counts.csv")
     end
 
+    expected_mu_in_year_of_emission = Dict()
+
+    if certainty_equivalent
+        year_index = findfirst(isequal(year), _damages_years)
+        # In this case the normalization from utils to $ hasn't happened in the post trial function
+        # and instead we now do this here, based on expected per capita consumption in the year
+        # of the marginal emission pulse
+        cpc_in_year_of_emission = view(cpc_values[(region=:globe, sector=:total)], :, year_index)
+        
+        for k in keys(scc_values)
+            expected_mu_in_year_of_emission[k] = mean(1 ./ (cpc_in_year_of_emission .^ k.eta))
+        end    
+    end
+
     # Construct the returned result object
     result = Dict()
 
     # add an :scc dictionary, where key value pairs (k,v) are NamedTuples with keys(prtp, eta, region, sector) => values are 281 element vectors (2020:2300)
     result[:scc] = Dict()
     for (k,v) in scc_values
-        result[:scc][k] = (
-            expected_scc = mean(v),
-            se_scc = std(v) / sqrt(n),
-            sccs = v
-        )
+        if certainty_equivalent
+            result[:scc][k] = (
+                expected_scc = mean(v),
+                se_expected_scc = std(v) / sqrt(n),
+                ce_scc = mean(intermediate_ce_scc_values[k]) ./ expected_mu_in_year_of_emission[k],
+                sccs = v,                
+            )
+        else
+            result[:scc][k] = (
+                expected_scc = mean(v),
+                se_expected_scc = std(v) / sqrt(n),
+                sccs = v
+            )
+        end
     end
 
     # add a :mds dictionary, where key value pairs (k,v) are NamedTuples with keys(region, sector) => values are (n x 281 (2020:2300)) matrices
