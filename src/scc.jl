@@ -231,7 +231,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -335,10 +335,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
     # Calculate the SCC for each discount rate
     for dr in discount_rates
+        df = [((cpc[year_index]/cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
+
         if options.certainty_equivalent
-            df = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
-        else
-            df = [((cpc[year_index]/cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
+            df_ce = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
+            
+            intermediate_ce_scc = sum(df_ce .* total_mds[year_index:last_year_index])
+            intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
         end
         
         # totals
@@ -433,6 +436,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :slr] : [:total]
 
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors)
+    intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
     if save_slr_damages
@@ -462,7 +466,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                 certainty_equivalent=certainty_equivalent,
             )
 
-    payload = [scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -477,7 +481,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
     
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
 
@@ -553,14 +557,15 @@ function _compute_scc_mcs(mm::MarginalModel,
     for (k,v) in scc_values
         if certainty_equivalent
             result[:scc][k] = (
-                ce_scc = mean(v) ./ expected_mu_in_year_of_emission[k],
-                # se_scc = std(v) / sqrt(n), # TODO Can't use this equation here because we need to properly propagate the uncertainty from the two means we are taking
-                sccs = v ./ expected_mu_in_year_of_emission[k]
+                expected_scc = mean(v),
+                se_expected_scc = std(v) / sqrt(n),
+                ce_scc = mean(intermediate_ce_scc_values[k]) ./ expected_mu_in_year_of_emission[k],
+                sccs = v,                
             )
         else
             result[:scc][k] = (
                 expected_scc = mean(v),
-                se_scc = std(v) / sqrt(n),
+                se_expected_scc = std(v) / sqrt(n),
                 sccs = v
             )
         end
