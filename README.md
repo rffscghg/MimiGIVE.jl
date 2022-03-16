@@ -121,7 +121,7 @@ MimiGIVE.update_ciam!(m_ciam, m, segment_fingerprints)
 run(m_ciam)
 
 # Explore results of CIAM (this is not as effective for CIAM, as the dimensionality is large with ~12,000 coastal segments)
-explore(m) 
+explore(m_ciam) 
 ```
 
 # Calculating the SCC
