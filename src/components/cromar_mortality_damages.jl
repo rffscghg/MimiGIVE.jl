@@ -31,7 +31,7 @@ using Mimi
             # Calculate additional deaths per 1,000 population due to cold and heat.
             v.excess_death_rate[t,c] = p.baseline_mortality_rate[t,c] * v.mortality_change[t,c]
 
-            # Calculate additioanl deaths that occur due to cold and heat (assumes population units in millions of persons so converts to thousands to match deathrates units).
+            # Calculate additional deaths that occur due to cold and heat (assumes population units in millions of persons so converts to thousands to match deathrates units).
             v.excess_deaths[t,c] = (p.population[t,c] .* 1000) * v.excess_death_rate[t,c]
 
             # Multiply excess deaths by the VSL.
