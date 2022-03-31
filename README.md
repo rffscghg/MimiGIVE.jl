@@ -26,11 +26,10 @@ The model uses the Mimi framework and it is highly recommended to read the Mimi 
 using Mimi 
 using MimiGIVE
 
-# Create the a model using the SSPs socioeconomics and FAIR's RCP 4.5 emissions
+# Create the a model using the SSPs socioeconomics and FAIR's SSP245 emissions scenario
 m = MimiGIVE.get_model(socioeconomics_source = :SSP,
-                       SSPmodel = "Benveniste",
                        SSP = "SSP2",
-                       RCP = "RCP4.5")
+                       emissions_scenario = "SSP245")
 
 # Run the model
 run(m)
@@ -47,10 +46,8 @@ The function above has the signature and options as follows:
 ```julia
 function get_model(; Agriculture_gtap::String = "midDF",
                     socioeconomics_source::Symbol = :RFF,
-                    SSPmodel::Union{Nothing, String} = "Benveniste",
                     SSP::Union{Nothing, String} = "SSP2",
-                    RCPmodel::Union{Nothing, String} = "Leach",
-                    RCP::Union{Nothing, String} = "RCP4.5",
+                    emissions_scenario::Union{Nothing, String} = "SSP245",
                     RFFSPsample::Union{Nothing, Int} = nothing,
                     Agriculture_floor_on_damages::Bool = true,
                     Agriculture_ceiling_on_benefits::Bool = false,
@@ -61,23 +58,22 @@ The relevant arguments above are described as:
 
 **Socioeconomic**
 
-* socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
+- socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
+    
+- emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
+    "SSP370", "SSP585", and this will be used to choose the ar6 data for FAIR v1.6.2.
+    
+    _Note that the emissions data will be pulled from FAIR v1.6.2 so setting the emissions_scenario for MimiSSPs is not consequential but done for consistency._
 
-* RCP (default "RCP4.5") -  The current options for RCP: "RCP1.9", "RCP2.6", "RCP4.5", "RCP7.0", "RCP8.5", and this will be used to choose the ar6 data for FAIR v1.6.2.
-
-* SSPmodel, SSP, RCPmodel (default "Benveniste", "SSP2", "Leach) - These settings  are required if and only if one is using the SSPs as the socioeconomics_source.  See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for options.
- 
-    Current Options for SSPmodel: "Benveniste"
-    Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
-    Current Options for RCPmodel: "Leach"
-
+- SSP (default "SSP2") - This setting is used only only if one is using the SSPs 
+    as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
-    _Note that the RCP emissions data will be pulled from FAIR v1.6.2 so setting the RCPmodel and RCP for MimiSSPs is not consequential but done for consistency._
-
-* RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose the sample for which to run the RFF SSP. See the RFFSPs component here: https://github.com/rffscghg/MimiRFFSPs.jl
+- RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
+    the sample for which to run the RFF SSP. See the RFFSPs component here: 
+    https://github.com/rffscghg/MimiRFFSPs.jl.
 
 **Agriculture**
 
@@ -185,9 +181,9 @@ Some example use cases include:
 
 MimiGIVE.compute_scc(year=2020)
 
-# Compute the SCC for a different SSP/RCP combination using the default sources of data (Benveniste and Leach, respectively) and a different discounting scheme parameterization
+# Compute the SCC for a different SSP/emissions scenario combination using the default sources of data (Benveniste and Leach, respectively) and a different discounting scheme parameterization
 
-m = MimiGIVE.get_model(SSP="SSP5", RCP="RCP8.5")
+m = MimiGIVE.get_model(SSP="SSP5", emissions_scenario="SSP585")
 MimiGIVE.compute_scc(m, year=2020, prtp=0.03, eta=0.)
 
 # Next we compute partial SCC for ag:
@@ -314,7 +310,7 @@ mcs_results = MimiGIVE.run_mcs(trials = 100, save_list = save_list)
 explore(mcs_results)
 
 # specific model and save the trials values
-m = MimiGIVE.get_model(SSP = "SSP5", RCP = "RCP8.5")
+m = MimiGIVE.get_model(SSP = "SSP5", emissions_scenario = "SSP585")
 mcs_results = MimiGIVE.run_mcs(trials = 100, save_trials = true, m = m, save_list = save_list)
 explore(mcs_results)
 ```
