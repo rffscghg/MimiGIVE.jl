@@ -58,20 +58,20 @@ The relevant arguments above are described as:
 
 **Socioeconomic**
 
-- socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
+* socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
     
-- emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
+* emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
     "SSP370", "SSP585", and this will be used to choose the ar6 data for FAIR v1.6.2.
     
     _Note that the emissions data will be pulled from FAIR v1.6.2 so setting the emissions_scenario for MimiSSPs is not consequential but done for consistency._
 
-- SSP (default "SSP2") - This setting is used only only if one is using the SSPs 
+* SSP (default "SSP2") - This setting is used only only if one is using the SSPs 
     as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
-- RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
+* RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
     the sample for which to run the RFF SSP. See the RFFSPs component here: 
     https://github.com/rffscghg/MimiRFFSPs.jl.
 
