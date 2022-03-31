@@ -10,7 +10,7 @@ using Mimi
 
    	β_energy            = Parameter(index=[energy_countries])       # Coefficient relating global tempeature to change in energy expenditures as a share of GDP.
   	gdp 				= Parameter(index=[time, energy_countries], unit="billion US\$2005/yr") # Country-level GDP (billions US $2005 / yr").
- 	temperature         = Parameter(index=[time, energy_countries], unit="degC") # Global average surface temperature anomaly relative to pre-industrial (°C).
+ 	temperature         = Parameter(index=[time], unit="degC") # Global average surface temperature anomaly relative to pre-industrial (°C).
 
    	energy_costs_dollar = Variable(index=[time, energy_countries], unit="billion US\$2005/yr")  # Change in energy expenditures in dollars (billions US $2005 / yr).
    	energy_costs_share  = Variable(index=[time, energy_countries])  # Change in energy expenditures as a share of GDP (Δ gdp share / °C).
