@@ -37,7 +37,8 @@ function get_mcs(trials;
                     fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
                     rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                    save_list::Vector = []              
+                    save_list::Vector = [],
+                    pulse_size::Float64 = 1.              
         )
 
     # check some argument conditions
@@ -211,7 +212,7 @@ function get_mcs(trials;
     # variable and assign all component parameters connected to that shared model 
     # parameter to the value taken on by that random variable
 
-    fair_samples_map, fair_samples = get_fair_mcs_params(trials; fair_parameter_set=fair_parameter_set, fair_parameter_set_ids=fair_parameter_set_ids)
+    fair_samples_map, fair_samples = get_fair_mcs_params(trials; fair_parameter_set=fair_parameter_set, fair_parameter_set_ids=fair_parameter_set_ids, pulse_size=pulse_size)
     fair_samples_left = deepcopy(fair_samples) # we know we've added everything when this is empty!
 
     # add and assign all random variables for single dimensional parameters
@@ -319,6 +320,7 @@ function run_mcs(;trials::Int64 = 10000,
                     m::Mimi.Model = get_model(), 
                     save_list::Vector = [],
                     results_in_memory::Bool = true,
+                    pulse_size::Float64 = 1.
                 )
 
     m = deepcopy(m) # in the case that an `m` was provided, be careful that we don't modify the original
@@ -348,6 +350,7 @@ function run_mcs(;trials::Int64 = 10000,
                     rffsp_sampling = rffsp_sampling,
                     rffsp_sampling_ids = rffsp_sampling_ids,
                     save_list = save_list,
+                    pulse_size = pulse_size
                 )
 
     # run monte carlo trials
@@ -371,7 +374,7 @@ If fair_parameter_set is :random (default), then FAIR mcs samples will be chosen
 randomly from the provided sets. If it set to :deterministic they will be the vector
 provided by fair_parameter_set_ids.
 """
-function get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
+function get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}}, pulse_size::Float64)
 
     # check some argument conditions
     if fair_parameter_set == :deterministic 
