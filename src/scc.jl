@@ -84,7 +84,8 @@ entered as a vector of Tuples (:component_name, :variable_name)
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - CIAM_foresight(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - CIAM_GDPcap (default is false) - Limit SLR damages to country-level annual GDP
-- `pulse_size` (default 1) - This determines the size of the additional pulse of emissions. Default is 1 gigatoon (1Gt). 
+- `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size 
+of 1Gt of C for CO2, 1Mt of CH4, and 1Mt of N2O. 
 
 """
 function compute_scc(m::Model=get_model(); 
