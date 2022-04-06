@@ -12,13 +12,12 @@ Get a GIVE Model with the given argument Settings
 - emissions_scenario (default to nothing) -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
     "SSP370", "SSP585", and this will be used as follows
     
-    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2019
-        and the rcmip emissions scenario from the MimiSSPs component
+    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2020
+        and the rcmip emissions scenario from the MimiSSPs component to pull Leach et al. rcmip scenario
+        data for 2021 to 2300 for CO2, CH4, and N2O.
     (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6
-        data from 1750 - 2019 and trace gases from 2020 onwards
-
-    Note that if :socioeconomics_source is :RFF this emissions scenario will not be used, and ar6 data for trace gases using ssp245
-
+        data from 1750 - 2020 and trace gases from 2021 onwards, while emissions for CO2, CH4, and N2O
+        will come from the MimiRFFSPs component.
 
 - SSP (default to nothing) - This setting is used only only if one is using the SSPs 
     as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP4", "SSP5"
@@ -61,11 +60,11 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # MODEL - Check Arguments
     # --------------------------------------------------------------------------    
 
-    if socioeconomics_source == :SSP && isnothing(SSP) || isnothing(emissions_scenario)
+    if socioeconomics_source == :SSP && (isnothing(SSP) || isnothing(emissions_scenario))
         error("The socioeconomics_source argument :SSP requires setting both SSP and emissions_scenario")
     end    
     
-    if socioeconomics_source == :RFF && !isnothing(SSP) || !isnothing(emissions_scenario)
+    if socioeconomics_source == :RFF && (!isnothing(SSP) || !isnothing(emissions_scenario))
         @warn("You have set SSP or emissions_scenario to a non-nothing value, Note that setting the socioeconomics_source argument to :RFF means that niether SSP nor emissions_scenario will effect the output.")
     end
 

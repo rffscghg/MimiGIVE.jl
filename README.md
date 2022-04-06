@@ -62,13 +62,16 @@ The relevant arguments above are described as:
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
     
-* emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", "SSP370", "SSP585", and this will be used as follows
+* emissions_scenario (default to nothing) -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", "SSP370", "SSP585", and this will be used as follows
     
-    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2019
-        and the rcmip emissions scenario from the MimiSSPs component
-    (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6 data from 1750 - 2019 and trace gases from 2020 onwards
+    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2020
+        and the rcmip emissions scenario from the MimiSSPs component to pull Leach et al. rcmip scenario
+        data for 2021 to 2300 for CO2, CH4, and N2O.
+    (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6
+        data from 1750 - 2020 and trace gases from 2021 onwards, while emissions for CO2, CH4, and N2O
+        will come from the MimiRFFSPs component.
 
-* SSP (default "SSP2") - This setting is used only  if one is using the SSPs 
+* SSP (default to nothing) - This setting is used only  if one is using the SSPs 
     as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
@@ -311,7 +314,7 @@ mcs_results = MimiGIVE.run_mcs(trials = 100, save_list = save_list)
 explore(mcs_results)
 
 # specific model and save the trials values
-m = MimiGIVE.get_model(SSP = "SSP5", emissions_scenario = "SSP585")
+m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP = "SSP5", emissions_scenario = "SSP585")
 mcs_results = MimiGIVE.run_mcs(trials = 100, save_trials = true, m = m, save_list = save_list)
 explore(mcs_results)
 ```
