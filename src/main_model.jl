@@ -8,23 +8,26 @@ Get a GIVE Model with the given argument Settings
 - socioeconomics_source (default :RFF) - The options are :RFF, which uses data from 
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
-    
-- emissions_scenario (default to nothing) -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
-    "SSP370", "SSP585", and this will be used as follows
-    
-    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2020
-        and the rcmip emissions scenario from the MimiSSPs component to pull Leach et al. rcmip scenario
-        data for 2021 to 2300 for CO2, CH4, and N2O.
-    (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6
-        data from 1750 - 2020 and trace gases from 2021 onwards, while emissions for CO2, CH4, and N2O
-        will come from the MimiRFFSPs component.
 
-- SSP (default to nothing) - This setting is used only only if one is using the SSPs 
-    as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP4", "SSP5"
+- SSP_scenario (default to nothing) - This setting is used only if one is using 
+    the SSPs as the socioeconomics_source, and the current options are "SSP119", 
+    "SSP126", "SSP245", "SSP370", "SSP585", and this will be used as follows.
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
+
+    (1) Select the population and GDP trajectories for 2020 through 2300, mapping
+        each RCMIP scenario to the SSP (SSP1, 2, 3, 5 respectively)
     
+    (2) Choose the ar6 scenario for data from 1750 - 2020 and the RCMIP emissions 
+        scenario from the MimiSSPs component to pull Leach et al. RCMIP scenario
+        data for 2021 to 2300 for CO2, CH4, and N2O.
+
+    (NOTE) that if the socioeconomics_source is :RFF this will not be consequential 
+        and ssp245 will be used for the ar6 data from 1750 - 2020 and trace gases 
+        from 2021 onwards, while emissions for CO2, CH4, and N2O will come from
+        the MimiRFFSPs component.
+
 - RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
-    the sample for which to run the RFF SSP. See the RFFSPs component here: 
+    the sample for which to run the RFF SP. See the RFFSPs component here: 
     https://github.com/rffscghg/MimiRFFSPs.jl.
 
 -- Agriculture -- 
@@ -48,8 +51,7 @@ Get a GIVE Model with the given argument Settings
 """
 function get_model(; Agriculture_gtap::String = "midDF",
                     socioeconomics_source::Symbol = :RFF,
-                    SSP::Union{Nothing, String} = nothing,       
-                    emissions_scenario::Union{Nothing, String} = nothing,
+                    SSP_scenario::Union{Nothing, String} = nothing,       
                     RFFSPsample::Union{Nothing, Int} = nothing,
                     Agriculture_floor_on_damages::Bool = true,
                     Agriculture_ceiling_on_benefits::Bool = false,
@@ -60,12 +62,12 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # MODEL - Check Arguments
     # --------------------------------------------------------------------------    
 
-    if socioeconomics_source == :SSP && (isnothing(SSP) || isnothing(emissions_scenario))
-        error("The socioeconomics_source argument :SSP requires setting both SSP and emissions_scenario")
+    if socioeconomics_source == :SSP && isnothing(SSP_scenario)
+        error("The socioeconomics_source argument :SSP requires setting a SSP_scenario")
     end    
     
-    if socioeconomics_source == :RFF && (!isnothing(SSP) || !isnothing(emissions_scenario))
-        @warn("You have set SSP or emissions_scenario to a non-nothing value, Note that setting the socioeconomics_source argument to :RFF means that niether SSP nor emissions_scenario will effect the output.")
+    if socioeconomics_source == :RFF && !isnothing(SSP_scenario)
+        @warn("You have set a SSP_scenario to a non-nothing value, but note that setting the socioeconomics_source argument to :RFF means that this will have no effect on the model.")
     end
 
     # Restrictions on arguments
@@ -73,11 +75,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     socioeconomics_source in socioeconomics_source_options ? nothing : error("The socioeconomics_source must be one of $(socioeconomics_source_options)")
     Agriculture_gtap in MooreAg.gtaps ? nothing : error("Unknown GTAP dataframe specification: \"$gtap\". Must be one of the following: $(MooreAg.gtaps)")
 
-    SSP_options = [nothing, "SSP1", "SSP2", "SSP3", "SSP4", "SSP5"]
-    emissions_scenario_options = [nothing, "SSP119", "SSP126", "SSP245", "SSP370", "SSP585"]
-
-    SSP in SSP_options ? nothing : error("The SSP must be one of $(SSP_options)")
-    emissions_scenario in emissions_scenario_options ? nothing : error("The emissions_scenario must be one of $(emissions_scenario_options)")
+    SSP_scenario_options = [nothing, "SSP119", "SSP126", "SSP245", "SSP370", "SSP585"]
+    SSP_scenario in SSP_scenario_options ? nothing : error("The SSP_scenario must be one of $(SSP_scenario_options)")
 
     # --------------------------------------------------------------------------
     # MODEL - Model Data and Settings
@@ -118,13 +117,20 @@ function get_model(; Agriculture_gtap::String = "midDF",
     if socioeconomics_source == :RFF
         ar6_scenario = "ssp245" # use SSP245 emissions scenario as the basis for trace gases for RFF SP
     elseif socioeconomics_source == :SSP
-        ar6_scenario = lowercase(emissions_scenario)
+        ar6_scenario = lowercase(SSP_scenario)
     end
 
     # Baseline mortality use SSP2 as a proxy for SSP4 and
     # SSP1 as a proxy for SSP5 per instructions from the literature (relayed
     # by David Smith and Bryan Parthum)
     mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
+
+    # Grab the SSP name from the full scenario ie. SSP2 from SSP245
+    if socioeconomics_source == :SSP 
+        SSP = SSP_scenario[1:4]
+    else
+        SSP = nothing
+    end
 
     # --------------------------------------------------------------------------    
     # MODEL CONSTRUCTION
@@ -376,9 +382,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     if socioeconomics_source == :SSP
         update_param!(m, :Socioeconomic, :SSP_source, "Benveniste") # only available source to 2300 at this time in MimiSSPs
-        update_param!(m, :Socioeconomic, :SSP, SSP)
+        update_param!(m, :Socioeconomic, :SSP, SSP) # select the SSP from RCMIP name ie. SSP2
         update_param!(m, :Socioeconomic, :emissions_source, "Leach") # only available source to 2300 at this time in MimiSSPs
-        update_param!(m, :Socioeconomic, :emissions_scenario, emissions_scenario)
+        update_param!(m, :Socioeconomic, :emissions_scenario, SSP_scenario) # full name ie. SSSP245
 
     elseif socioeconomics_source == :RFF
         isnothing(RFFSPsample) ? nothing : update_param!(m, :Socioeconomic, :id, RFFSPsample)
