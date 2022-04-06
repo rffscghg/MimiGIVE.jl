@@ -434,8 +434,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                     fair_parameter_set_ids = fair_parameter_set_ids,
                     rffsp_sampling = rffsp_sampling,
                     rffsp_sampling_ids = rffsp_sampling_ids,
-                    save_list = save_list,
-                    pulse_size = pulse_size
+                    save_list = save_list
                 )
     
     if post_mcs_creation_function!==nothing
@@ -684,10 +683,12 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
 end
 
 """
-    get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing)
+    get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol, pulse_size::Float64)
 
-Creates a Mimi MarginalModel where the provided m is the base model, and the marginal model has additional emissions of C in year `year`.
-If no Model m is provided, the default model from MimiGIVE.get_model() is used as the base model.
+Creates a Mimi MarginalModel where the provided m is the base model, and the marginal model has additional emissions in year `year`.
+The marginal model will have an additional `pulse_size` of emissions in the specified `year` for gas `gas`, which will be in 
+units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4. If no Model m is provided, the default model from MimiGIVE.get_model() 
+is used as the base model.
 """
 function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol, pulse_size::Float64)
     year === nothing ? error("Must specify an emission year. Try `get_marginal_model(m, year=2020)`.") : nothing
@@ -695,7 +696,8 @@ function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::
 
     # note here that the pulse size will be used as the `delta` parameter for 
     # the `MarginalModel` and thus allow computation of the SCC to return units of
-    # dollars per ton, as long as `pulse_size` is in tons
+    # dollars per ton, as long as `pulse_size` is interpreted as baseline units
+    # of the given gas, which is units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
     mm = create_marginal_model(m, scc_gas_pulse_size_conversions[gas])
     add_marginal_emissions!(mm.modified, year, gas, pulse_size)
 
@@ -704,9 +706,10 @@ function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::
 end
 
 """
-    add_marginal_emissions!(m::Model, year::Int) 
+    add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64)
 
-Adds a marginal emission component to year m which adds 1GtC of additional CO2 emissions in the specified `year`.
+Adds a marginal emission component to year m which adds the pulse_size of additional emissions in the specified `year` for gas `gas`, 
+which will be in units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
 """
 function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64) 
 
