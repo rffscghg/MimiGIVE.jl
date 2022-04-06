@@ -28,8 +28,7 @@ using MimiGIVE
 
 # Create the a model using the SSPs socioeconomics and FAIR's SSP245 emissions scenario
 m = MimiGIVE.get_model(socioeconomics_source = :SSP,
-                       SSP = "SSP2",
-                       emissions_scenario = "SSP245")
+                       SSP_scenario = "SSP245")
 
 # Run the model
 run(m)
@@ -46,8 +45,7 @@ The function above has the signature and options as follows:
 ```julia
 function get_model(; Agriculture_gtap::String = "midDF",
                     socioeconomics_source::Symbol = :RFF,
-                    SSP::Union{Nothing, String} = "SSP2",
-                    emissions_scenario::Union{Nothing, String} = "SSP245",
+                    SSP_scenario::Union{Nothing, String} = "SSP245",
                     RFFSPsample::Union{Nothing, Int} = nothing,
                     Agriculture_floor_on_damages::Bool = true,
                     Agriculture_ceiling_on_benefits::Bool = false,
@@ -62,18 +60,22 @@ The relevant arguments above are described as:
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
     
-* emissions_scenario (default to nothing) -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", "SSP370", "SSP585", and this will be used as follows
-    
-    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2020
-        and the rcmip emissions scenario from the MimiSSPs component to pull Leach et al. rcmip scenario
-        data for 2021 to 2300 for CO2, CH4, and N2O.
-    (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6
-        data from 1750 - 2020 and trace gases from 2021 onwards, while emissions for CO2, CH4, and N2O
-        will come from the MimiRFFSPs component.
-
-* SSP (default to nothing) - This setting is used only  if one is using the SSPs 
-    as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
+* SSP_scenario (default to nothing) - This setting is used only if one is using 
+    the SSPs as the socioeconomics_source, and the current options are "SSP119", 
+    "SSP126", "SSP245", "SSP370", "SSP585", and this will be used as follows.
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
+
+    (1) Select the population and GDP trajectories for 2020 through 2300, mapping
+        each RCMIP scenario to the SSP (SSP1, 2, 3, 5 respectively)
+    
+    (2) Choose the ar6 scenario for data from 1750 - 2020 and the RCMIP emissions 
+        scenario from the MimiSSPs component to pull Leach et al. RCMIP scenario
+        data for 2021 to 2300 for CO2, CH4, and N2O.
+
+    (NOTE) that if the socioeconomics_source is :RFF this will not be consequential 
+        and ssp245 will be used for the ar6 data from 1750 - 2020 and trace gases 
+        from 2021 onwards, while emissions for CO2, CH4, and N2O will come from
+        the MimiRFFSPs component.
     
 * RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
     the sample for which to run the RFF SSP. See the RFFSPs component here: 
@@ -187,7 +189,7 @@ MimiGIVE.compute_scc(year=2020)
 
 # Compute the SCC for a different SSP/emissions scenario combination using the default sources of data (Benveniste and Leach, respectively) and a different discounting scheme parameterization
 
-m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP="SSP5", emissions_scenario="SSP585")
+m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP_scenario="SSP585")
 MimiGIVE.compute_scc(m, year=2020, prtp=0.03, eta=0.)
 
 # Next we compute partial SCC for ag:
@@ -314,7 +316,7 @@ mcs_results = MimiGIVE.run_mcs(trials = 100, save_list = save_list)
 explore(mcs_results)
 
 # specific model and save the trials values
-m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP = "SSP5", emissions_scenario = "SSP585")
+m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP_scenario = "SSP585")
 mcs_results = MimiGIVE.run_mcs(trials = 100, save_trials = true, m = m, save_list = save_list)
 explore(mcs_results)
 ```
