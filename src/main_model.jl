@@ -9,10 +9,18 @@ Get a GIVE Model with the given argument Settings
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
     
-- emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
-    "SSP370", "SSP460", "SSP585", and this will be used to choose the ar6 data for FAIR v1.6.2.
+- emissions_scenario (default to nothing) -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
+    "SSP370", "SSP585", and this will be used as follows
+    
+    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2019
+        and the rcmip emissions scenario from the MimiSSPs component
+    (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6
+        data from 1750 - 2019 and trace gases from 2020 onwards
 
-- SSP (default "SSP2") - This setting is used only only if one is using the SSPs 
+    Note that if :socioeconomics_source is :RFF this emissions scenario will not be used, and ar6 data for trace gases using ssp245
+
+
+- SSP (default to nothing) - This setting is used only only if one is using the SSPs 
     as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP4", "SSP5"
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
@@ -41,8 +49,8 @@ Get a GIVE Model with the given argument Settings
 """
 function get_model(; Agriculture_gtap::String = "midDF",
                     socioeconomics_source::Symbol = :RFF,
-                    SSP::Union{Nothing, String} = "SSP2",          
-                    emissions_scenario::Union{Nothing, String} = "SSP245",
+                    SSP::Union{Nothing, String} = nothing,       
+                    emissions_scenario::Union{Nothing, String} = nothing,
                     RFFSPsample::Union{Nothing, Int} = nothing,
                     Agriculture_floor_on_damages::Bool = true,
                     Agriculture_ceiling_on_benefits::Bool = false,
@@ -57,13 +65,17 @@ function get_model(; Agriculture_gtap::String = "midDF",
         error("The socioeconomics_source argument :SSP requires setting both SSP and emissions_scenario")
     end    
     
+    if socioeconomics_source == :RFF && !isnothing(SSP) || !isnothing(emissions_scenario)
+        @warn("You have set SSP or emissions_scenario to a non-nothing value, Note that setting the socioeconomics_source argument to :RFF means that niether SSP nor emissions_scenario will effect the output.")
+    end
+
     # Restrictions on arguments
     socioeconomics_source_options = [:SSP, :RFF]
     socioeconomics_source in socioeconomics_source_options ? nothing : error("The socioeconomics_source must be one of $(socioeconomics_source_options)")
     Agriculture_gtap in MooreAg.gtaps ? nothing : error("Unknown GTAP dataframe specification: \"$gtap\". Must be one of the following: $(MooreAg.gtaps)")
 
     SSP_options = [nothing, "SSP1", "SSP2", "SSP3", "SSP4", "SSP5"]
-    emissions_scenario_options = ["SSP119", "SSP126", "SSP245", "SSP370", "SSP460", "SSP585"]
+    emissions_scenario_options = [nothing, "SSP119", "SSP126", "SSP245", "SSP370", "SSP585"]
 
     SSP in SSP_options ? nothing : error("The SSP must be one of $(SSP_options)")
     emissions_scenario in emissions_scenario_options ? nothing : error("The emissions_scenario must be one of $(emissions_scenario_options)")
@@ -367,14 +379,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
         update_param!(m, :Socioeconomic, :SSP_source, "Benveniste") # only available source to 2300 at this time in MimiSSPs
         update_param!(m, :Socioeconomic, :SSP, SSP)
         update_param!(m, :Socioeconomic, :emissions_source, "Leach") # only available source to 2300 at this time in MimiSSPs
+        update_param!(m, :Socioeconomic, :emissions_scenario, emissions_scenario)
 
-        # We must set parameters for MimiSSPs emissions_source data however this will not be
-        # used, as emissions data comes directly from MimiFAIRv1_6_2
-        if emissions_scenario == "SSP460"
-            warn("Setting Socioeconomic component emissions scenario to SSP245 to substitute for the unavailable SSP460. These emissions data are not used by MimiGIVE so your results will still be CORRECT, pulling emissions for ssp460 from FAIRv1.6.2.")
-        else
-            update_param!(m, :Socioeconomic, :emissions_scenario, emissions_scenario)
-        end
     elseif socioeconomics_source == :RFF
         isnothing(RFFSPsample) ? nothing : update_param!(m, :Socioeconomic, :id, RFFSPsample)
     end

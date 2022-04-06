@@ -62,12 +62,13 @@ The relevant arguments above are described as:
     the RFF socioeconomic projections, or :SSP, which uses data from one of the 
     Shared Socioeconomic Pathways
     
-* emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", 
-    "SSP370", "SSP585", and this will be used to choose the ar6 data for FAIR v1.6.2.
+* emissions_scenario (default "SSP245") -  The current options for emissions_scenario: "SSP119", "SSP126", "SSP245", "SSP370", "SSP585", and this will be used as follows
     
-    _Note that the emissions data will be pulled from FAIR v1.6.2 so setting the emissions_scenario for MimiSSPs is not consequential but done for consistency._
+    (1) if the socioeconomics_source is :SSP this will choose the ar6 scenario for data from 1750 - 2019
+        and the rcmip emissions scenario from the MimiSSPs component
+    (2) if the socioeconomics_source is :RFF this will not be consequential and ssp245 will be used for the ar6 data from 1750 - 2019 and trace gases from 2020 onwards
 
-* SSP (default "SSP2") - This setting is used only only if one is using the SSPs 
+* SSP (default "SSP2") - This setting is used only  if one is using the SSPs 
     as the socioeconomics_source. Current Options for SSP: "SSP1", "SSP2", "SSP3", "SSP5"
     See the SSPs component here: https://github.com/anthofflab/MimiSSPs.jl for more information.
     
@@ -183,7 +184,7 @@ MimiGIVE.compute_scc(year=2020)
 
 # Compute the SCC for a different SSP/emissions scenario combination using the default sources of data (Benveniste and Leach, respectively) and a different discounting scheme parameterization
 
-m = MimiGIVE.get_model(SSP="SSP5", emissions_scenario="SSP585")
+m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP="SSP5", emissions_scenario="SSP585")
 MimiGIVE.compute_scc(m, year=2020, prtp=0.03, eta=0.)
 
 # Next we compute partial SCC for ag:
