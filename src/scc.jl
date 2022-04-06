@@ -51,7 +51,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
             post_mcs_creation_function=nothing,
-            pulse_size::Float64=1
+            pulse_size::Float64=1.
         )
 
 Compute the SC of a gas for the GIVE in USD \$2005
