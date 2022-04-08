@@ -320,9 +320,12 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
             slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
 
-            # domestic
-            slr_damages[:base_domestic][trialnum,:] = ciam_mds.damages_base_domestic[_damages_idxs]
-            slr_damages[:modified_domestic][trialnum,:] = ciam_mds.damages_modified_domestic[_damages_idxs]
+            # domestic - these Dictionary entries will only exist if we are computing
+            # domestic values
+            if options.compute_domestic_values
+                slr_damages[:base_domestic][trialnum,:] = ciam_mds.damages_base_domestic[_damages_idxs]
+                slr_damages[:modified_domestic][trialnum,:] = ciam_mds.damages_modified_domestic[_damages_idxs]
+            end
         else
 
             # global
@@ -331,9 +334,12 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             slr_damages[:base_lim_cnt][trialnum,:,:] = 0.
             slr_damages[:modified_lim_cnt][trialnum,:,:] = 0.
 
-            # domestic
-            slr_damages[:base_domestic][trialnum,:] .= 0.
-            slr_damages[:modified_domestic][trialnum,:] .= 0.
+            # domestic - these Dictionary entries will only exist if we are computing
+            # domestic values
+            if options.compute_domestic_values
+                slr_damages[:base_domestic][trialnum,:] .= 0.
+                slr_damages[:modified_domestic][trialnum,:] .= 0.
+            end
         end
     end
 
@@ -459,11 +465,16 @@ function _compute_scc_mcs(mm::MarginalModel,
         slr_damages = Dict(
             :base               => Array{Float64}(undef, n, length(_damages_years)),
             :modified           => Array{Float64}(undef, n, length(_damages_years)),
-            :base_domestic      => Array{Float64}(undef, n, length(_damages_years)),
-            :modified_domestic  => Array{Float64}(undef, n, length(_damages_years)),
             :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
             :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
         )
+
+        # domestic
+        # optionally add arrays to hold the domestic base and modified damages
+        if compute_domestic_values
+            slr_damages[:base_domestic] = Array{Float64}(undef, n, length(_damages_years))
+            slr_damages[:modified_domestic] = Array{Float64}(undef, n, length(_damages_years))
+        end
     else
         slr_damages = nothing
     end
