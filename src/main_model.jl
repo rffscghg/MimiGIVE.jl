@@ -17,13 +17,13 @@ Get a GIVE Model with the given argument Settings
     (1) Select the population and GDP trajectories for 2020 through 2300, mapping
         each RCMIP scenario to the SSP (SSP1, 2, 3, 5 respectively)
     
-    (2) Choose the ar6 scenario for data from 1750 - 2020 and the RCMIP emissions 
+    (2) Choose the ar6 scenario for data from 1750 - 2019 and the RCMIP emissions 
         scenario from the MimiSSPs component to pull Leach et al. RCMIP scenario
-        data for 2021 to 2300 for CO2, CH4, and N2O.
+        data for 2020 to 2300 for CO2, CH4, and N2O.
 
     (NOTE) that if the socioeconomics_source is :RFF this will not be consequential 
-        and ssp245 will be used for the ar6 data from 1750 - 2020 and trace gases 
-        from 2021 onwards, while emissions for CO2, CH4, and N2O will come from
+        and ssp245 will be used for the ar6 data from 1750 - 2019 and trace gases 
+        from 2020 onwards, while emissions for CO2, CH4, and N2O will come from
         the MimiRFFSPs component.
 
 - RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
@@ -402,15 +402,15 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     # Here we couple the identity component co2_emissions to the SSP output, and then the
     # FAIR emissions component to that identity component co2_emissions
-    connect_param!(m, :co2_emissions_identity => :input_co2, :Socioeconomic => :co2_emissions, ar6_emissions.FossilCO2 .+ ar6_emissions.OtherCO2, backup_offset = 1)
+    connect_param!(m, :co2_emissions_identity => :input_co2, :Socioeconomic => :co2_emissions, ar6_emissions.FossilCO2 .+ ar6_emissions.OtherCO2)
     connect_param!(m, :co2_cycle => :E_co2, :co2_emissions_identity => :output_co2)
 
     # do the same for n2o_emissions
-    connect_param!(m, :n2o_emissions_identity => :input_n2o, :Socioeconomic => :n2o_emissions, ar6_emissions.N2O, backup_offset = 1)
+    connect_param!(m, :n2o_emissions_identity => :input_n2o, :Socioeconomic => :n2o_emissions, ar6_emissions.N2O)
     connect_param!(m, :n2o_cycle => :fossil_emiss_N₂O, :n2o_emissions_identity => :output_n2o)
 
     # do the same for ch4_emissions
-    connect_param!(m, :ch4_emissions_identity => :input_ch4, :Socioeconomic => :ch4_emissions, ar6_emissions.CH4, backup_offset = 1)
+    connect_param!(m, :ch4_emissions_identity => :input_ch4, :Socioeconomic => :ch4_emissions, ar6_emissions.CH4)
     connect_param!(m, :ch4_cycle => :fossil_emiss_CH₄, :ch4_emissions_identity => :output_ch4)
 
     # Land Use CO2 Emissions - FAIRv1.6.2 component :landuse_forcing and parameter :landuse_emiss

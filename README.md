@@ -68,13 +68,13 @@ The relevant arguments above are described as:
     (1) Select the population and GDP trajectories for 2020 through 2300, mapping
         each RCMIP scenario to the SSP (SSP1, 2, 3, 5 respectively)
     
-    (2) Choose the ar6 scenario for data from 1750 - 2020 and the RCMIP emissions 
+    (2) Choose the ar6 scenario for data from 1750 - 2019 and the RCMIP emissions 
         scenario from the MimiSSPs component to pull Leach et al. RCMIP scenario
-        data for 2021 to 2300 for CO2, CH4, and N2O.
+        data for 2020 to 2300 for CO2, CH4, and N2O.
 
     (NOTE) that if the socioeconomics_source is :RFF this will not be consequential 
-        and ssp245 will be used for the ar6 data from 1750 - 2020 and trace gases 
-        from 2021 onwards, while emissions for CO2, CH4, and N2O will come from
+        and ssp245 will be used for the ar6 data from 1750 - 2019 and trace gases 
+        from 2020 onwards, while emissions for CO2, CH4, and N2O will come from
         the MimiRFFSPs component.
     
 * RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
