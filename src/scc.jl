@@ -723,7 +723,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::F
         add_comp!(m, Mimi.adder, :marginalemission, before=:co2_cycle)
 
         addem = zeros(length(time))
-        addem[pulse_year_index] = pulse_size     # 1 GtC in this year
+        addem[pulse_year_index] = pulse_size     # GtC in this year
 
         set_param!(m, :marginalemission, :add, addem)
 
@@ -735,7 +735,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::F
         add_comp!(m, Mimi.adder, :marginalemission, before=:ch4_cycle)
 
         addem = zeros(length(time))
-        addem[pulse_year_index] = pulse_size     # 1 MtCH4 in this year
+        addem[pulse_year_index] = pulse_size     # MtCH4 in this year
 
         set_param!(m, :marginalemission, :add, addem)
 
@@ -747,7 +747,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::F
         add_comp!(m, Mimi.adder, :marginalemission, before=:n2o_cycle)
 
         addem = zeros(length(time))
-        addem[pulse_year_index] = pulse_size     # 1 MtN2 in this year
+        addem[pulse_year_index] = pulse_size     # MtN2 in this year
 
         set_param!(m, :marginalemission, :add, addem)
 
