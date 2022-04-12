@@ -50,7 +50,8 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
-            post_mcs_creation_function=nothing
+            post_mcs_creation_function=nothing,
+            pulse_size::Float64=1.
         )
 
 Compute the SC of a gas for the GIVE in USD \$2005
@@ -83,6 +84,9 @@ entered as a vector of Tuples (:component_name, :variable_name)
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - CIAM_foresight(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - CIAM_GDPcap (default is false) - Limit SLR damages to country-level annual GDP
+- `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size 
+of 1Gt of C for CO2, 1Mt of CH4, and 1Mt of N2O. 
+
 """
 function compute_scc(m::Model=get_model(); 
             year::Union{Int, Nothing} = nothing, 
@@ -106,7 +110,8 @@ function compute_scc(m::Model=get_model();
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
-            post_mcs_creation_function=nothing
+            post_mcs_creation_function=nothing,
+            pulse_size::Float64=1.
         )
 
     hfc_list = [:HFC23, :HFC32, :HFC43_10, :HFC125, :HFC134a, :HFC143a, :HFC227ea, :HFC245fa]
@@ -120,7 +125,7 @@ function compute_scc(m::Model=get_model();
     !(gas in gases_list) ? error("Invalid value of $gas for gas, gas must be one of $(gases_list).") : nothing
     n>0 && certainty_equivalent && !save_cpc && error("certainty_equivalent=true also requires save_cpc=true")
     
-    mm = get_marginal_model(m; year = year, gas = gas)
+    mm = get_marginal_model(m; year = year, gas = gas, pulse_size = pulse_size)
 
     if n==0
         return _compute_scc(mm, 
@@ -130,8 +135,9 @@ function compute_scc(m::Model=get_model();
                             eta=eta, 
                             discount_rates=discount_rates, 
                             gas=gas, domestic=compute_domestic_values, 
-                            CIAM_foresight = CIAM_foresight,
-                            CIAM_GDPcap = CIAM_GDPcap
+                            CIAM_foresight=CIAM_foresight,
+                            CIAM_GDPcap=CIAM_GDPcap,
+                            pulse_size=pulse_size
                         )
     else
         isnothing(discount_rates) ? error("To run the Monte Carlo compute_scc function (n != 0), please use the `discount_rates` argument.") : nothing
@@ -160,7 +166,8 @@ function compute_scc(m::Model=get_model();
                                 compute_domestic_values = compute_domestic_values,
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
-                                post_mcs_creation_function = post_mcs_creation_function
+                                post_mcs_creation_function = post_mcs_creation_function,
+                                pulse_size=pulse_size
                             )
     end
 end
@@ -175,7 +182,8 @@ function _compute_scc(mm::MarginalModel;
                         gas::Symbol,
                         domestic::Bool,
                         CIAM_foresight::Symbol,
-                        CIAM_GDPcap::Bool
+                        CIAM_GDPcap::Bool,
+                        pulse_size::Float64
                     )
                     
     # Run all model years even if taking a shorter last_year - running unnecessary 
@@ -251,11 +259,11 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     # Units Note:
     #   main_mds and non-ciam sectoral damages: we explicitly need to handle both pulse size and molecular mass so we use gas_units_multiplier
     #   slr_mds: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
-    gas_units_multiplier = scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas]
+    gas_units_multiplier = scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* options.pulse_size)
     include_slr = base[:DamageAggregator, :include_slr]
 
     if include_slr
-        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap) # NamedTuple with globe and domestic
+        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) # NamedTuple with globe and domestic
         # zero out the CIAM marginal damages from start year (2020) through emissions
         # year - they will be non-zero due to foresight but saved marginal damages
         # should be zeroed out pre-emissions year
@@ -406,7 +414,8 @@ function _compute_scc_mcs(mm::MarginalModel,
                             compute_domestic_values::Bool,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
-                            post_mcs_creation_function
+                            post_mcs_creation_function,
+                            pulse_size::Float64
                         )
                         
     models = [mm.base, mm.modified]
@@ -464,6 +473,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                 CIAM_foresight=CIAM_foresight,
                 CIAM_GDPcap=CIAM_GDPcap,
                 certainty_equivalent=certainty_equivalent,
+                pulse_size=pulse_size
             )
 
     payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
@@ -590,7 +600,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     return result
 end
 
-function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight, CIAM_GDPcap)
+function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight, CIAM_GDPcap, pulse_size)
     update_ciam!(ciam_base, base, segment_fingerprints)
     update_ciam!(ciam_modified, modified, segment_fingerprints)
 
@@ -652,14 +662,14 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_base_domestic = vec(sum(OptimalCost_base_country[:,134],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,134],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
-    damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to just USD here
 
     # global
     damages_base = vec(sum(OptimalCost_base_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified = vec(sum(OptimalCost_modified_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
-    damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ scc_gas_pulse_size_conversions[gas] # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
     # CIAM starts in 2020
@@ -673,31 +683,35 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
 end
 
 """
-    get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing)
+    get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol, pulse_size::Float64)
 
-Creates a Mimi MarginalModel where the provided m is the base model, and the marginal model has additional emissions of C in year `year`.
-If no Model m is provided, the default model from MimiGIVE.get_model() is used as the base model.
+Creates a Mimi MarginalModel where the provided m is the base model, and the marginal model has additional emissions in year `year`.
+The marginal model will have an additional `pulse_size` of emissions in the specified `year` for gas `gas`, which will be in 
+units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4. If no Model m is provided, the default model from MimiGIVE.get_model() 
+is used as the base model.
 """
-function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol)
+function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol, pulse_size::Float64)
     year === nothing ? error("Must specify an emission year. Try `get_marginal_model(m, year=2020)`.") : nothing
     !(year in _model_years) ? error("Cannot add marginal emissions in $year, year must be within the model's time index $_model_years.") : nothing
 
     # note here that the pulse size will be used as the `delta` parameter for 
     # the `MarginalModel` and thus allow computation of the SCC to return units of
-    # dollars per ton, as long as `pulse_size` is in tons
+    # dollars per ton, as long as `pulse_size` is interpreted as baseline units
+    # of the given gas, which is units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
     mm = create_marginal_model(m, scc_gas_pulse_size_conversions[gas])
-    add_marginal_emissions!(mm.modified, year, gas)
+    add_marginal_emissions!(mm.modified, year, gas, pulse_size)
 
     return mm
 
 end
 
 """
-    add_marginal_emissions!(m::Model, year::Int) 
+    add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64)
 
-Adds a marginal emission component to year m which adds 1GtC of additional CO2 emissions in the specified `year`.
+Adds a marginal emission component to year m which adds the pulse_size of additional emissions in the specified `year` for gas `gas`, 
+which will be in units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
 """
-function add_marginal_emissions!(m::Model, year::Int, gas::Symbol) 
+function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64) 
 
     time = Mimi.dim_keys(m, :time)
     pulse_year_index = findfirst(i -> i == year, time)
@@ -709,7 +723,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol)
         add_comp!(m, Mimi.adder, :marginalemission, before=:co2_cycle)
 
         addem = zeros(length(time))
-        addem[pulse_year_index] = 1.0     # 1 GtC in this year
+        addem[pulse_year_index] = pulse_size     # 1 GtC in this year
 
         set_param!(m, :marginalemission, :add, addem)
 
@@ -721,7 +735,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol)
         add_comp!(m, Mimi.adder, :marginalemission, before=:ch4_cycle)
 
         addem = zeros(length(time))
-        addem[pulse_year_index] = 1.0     # 1 MtCH4 in this year
+        addem[pulse_year_index] = pulse_size     # 1 MtCH4 in this year
 
         set_param!(m, :marginalemission, :add, addem)
 
@@ -733,7 +747,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol)
         add_comp!(m, Mimi.adder, :marginalemission, before=:n2o_cycle)
 
         addem = zeros(length(time))
-        addem[pulse_year_index] = 1.0     # 1 MtN2 in this year
+        addem[pulse_year_index] = pulse_size     # 1 MtN2 in this year
 
         set_param!(m, :marginalemission, :add, addem)
 
