@@ -69,20 +69,16 @@ function get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../d
 
         while isnan(fpAIS_loc) || isnan(fpGIS_loc) || isnan(fpGSIC_loc) && inc<5
 
-            newlonStart = lon_subtractor.(fplon[ilon],inc)[1]
-            newlatStart = lat_subtractor.(fplat[ilat],inc)[1]
-            newlonEnd = lon_adder.(fplon[ilon],inc)[1]
-            newlatEnd = lat_adder.(fplat[ilat],inc)[1]
+            newlonStart = next_lon.(fplon[ilon], inc, :decrease)[1]
+            newlatStart = next_lat.(fplat[ilat], inc, :decrease)[1]
+            newlonEnd = next_lon.(fplon[ilon], inc, :increase)[1]
+            newlatEnd = next_lat.(fplat[ilat], inc, :increase)[1]
 
             latInd1 = minimum(findall(isequal(minimum(abs.(fplat.-newlatStart))),abs.(fplat.-newlatStart)))
-            #minimum(findall(x-> x in newlatStart,fplat))
             latInd2 = maximum(findall(isequal(minimum(abs.(fplat.-newlatEnd))),abs.(fplat.-newlatEnd)))
-            #maximum(findall(x -> x in newlatEnd,fplat))
 
             lonInd1 = minimum(findall(isequal(minimum(abs.(fplon.-newlonStart))),abs.(fplon.-newlonStart)))
-            #minimum(findall(x-> x in newlonStart,fplon))
             lonInd2 = maximum(findall(isequal(minimum(abs.(fplon.-newlonEnd))),abs.(fplon.-newlonEnd)))
-            #maximum(findall(x -> x in newlonEnd,fplon))
 
             if latInd2 < latInd1
                 latInds=[latInd1; 1:latInd2]
@@ -98,7 +94,7 @@ function get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../d
 
             fpAIS_flat = collect(skipmissing(Iterators.flatten(fpAIS[lonInds,latInds])))
             fpGSIC_flat = collect(skipmissing(Iterators.flatten(fpGSIC[lonInds,latInds])))
-            fpGIS_flat = collect(skipmissing(Iterators.flatten(fpGIS[lonInds,latInds]))) # fixed from CIAM which had GSIC here
+            fpGIS_flat = collect(skipmissing(Iterators.flatten(fpGIS[lonInds,latInds])))
 
             fpAIS_loc = mean(fpAIS_flat[isnan.(fpAIS_flat).==false],dims=1)[1]
             fpGSIC_loc = mean(fpGSIC_flat[isnan.(fpGSIC_flat).==false],dims=1)[1]
@@ -171,27 +167,57 @@ function downscale_brick(m, fp_segments_file::String = joinpath(@__DIR__, "../..
     return df
 end
 
-function adder(maxval)
-    function y(point,n)
-        if point + n > maxval
-            return point + n - maxval
-        else
-            return point + n
+
+##==============================================================================
+## Small Helper Functions for dealing with sea level fingerprints near land
+
+"""
+    next_lat(lat::Float64, inc::Int64, direction::Symbol)
+Increment latitude by `inc` in either positive direction (`direction=:increase`)
+or in the negative direction (`direction=:decrease`).
+Assumes latitude runs from -90 to 90 (deg N).
+"""
+function next_lat(lat::Float64, inc::Int64, direction::Symbol)
+    if lat < -90 || lat > 90
+        error("Latitude must be between -90 and 90")
+    end
+
+    if direction == :increase
+        new_lat = lat + inc
+        if new_lat > 90
+            new_lat = new_lat - 180 #wrap around
+        end
+
+    elseif direction == :decrease
+        new_lat = lat - inc
+        if new_lat < -90
+            new_lat = new_lat + 180
         end
     end
+    return new_lat
 end
 
-function subtractor(minval,maxval)
-    function y(point,n)
-        if point - n < minval
-            return min(maxval,point - n + maxval)
-        else
-            return point - n
+"""
+    next_lon(lon::Float64, inc::Int64, direction::Symbol)
+Increment longitude by `inc` in either positive direction
+(`direction=:increase`) or in the negative direction (`direction=:decrease`).
+Assumes longitude runs from 0 to 360 (deg E).
+"""
+function next_lon(lon::Float64, inc::Int64, direction::Symbol)
+    if lon < 0 || lon > 360
+        error("Longitude must be between 0 and 360")
+    end
+
+    if direction == :increase
+        new_lon = lon + inc
+        if new_lon > 360
+            new_lon = new_lon - 360
+        end
+    elseif direction == :decrease
+        new_lon = lon - inc
+        if new_lon < 0
+            new_lon = new_lon + 360
         end
     end
+    return new_lon
 end
-
-lon_subtractor = subtractor(1,360)
-lon_adder = adder(360)
-lat_adder = adder(180)
-lat_subtractor = subtractor(1,180)
