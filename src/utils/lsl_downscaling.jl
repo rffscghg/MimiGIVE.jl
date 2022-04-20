@@ -27,6 +27,7 @@ function get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../d
                             fp_segments_file::String = joinpath(@__DIR__, "../../data/CIAM/segment_fingerprints.csv"))
 
     # getfingerprints from FINGERPRINTS_SLANGEN_Bakker
+    # the fplat and fplon are -90 to 90 and 0 to 360 respectively
     (fplat,fplon,fpAIS,fpGSIC,fpGIS) = get_fingerprints(fp_file = fp_file)
 
     # segment data
@@ -56,11 +57,11 @@ function get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../d
         # Take average of closest lat/lon values
         fpAIS_flat = collect(skipmissing(Iterators.flatten(fpAIS[ilon,ilat])))
         fpGSIC_flat = collect(skipmissing(Iterators.flatten(fpGSIC[ilon,ilat])))
-        fpGIS_flat = collect(skipmissing(Iterators.flatten(fpGIS[ilon,ilat]))) # fixed from CIAM which had GSIC here
+        fpGIS_flat = collect(skipmissing(Iterators.flatten(fpGIS[ilon,ilat])))
 
-        fpAIS_loc = mean(fpAIS_flat[isnan.(fpAIS_flat).==false],dims=1)[1]
-        fpGSIC_loc = mean(fpGSIC_flat[isnan.(fpGSIC_flat).==false],dims=1)[1]
-        fpGIS_loc = mean(fpGIS_flat[isnan.(fpGIS_flat).==false],dims=1)[1]
+        fpAIS_loc = mean(fpAIS_flat[isnan.(fpAIS_flat).==false],dims=1)[1] # [1] converts Vector to Float64
+        fpGSIC_loc = mean(fpGSIC_flat[isnan.(fpGSIC_flat).==false],dims=1)[1] # [1] converts Vector to Float64
+        fpGIS_loc = mean(fpGIS_flat[isnan.(fpGIS_flat).==false],dims=1)[1] # [1] converts Vector to Float64
         fpTE_loc = 1.0
         fpLWS_loc=1.0
 
@@ -122,51 +123,6 @@ function get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../d
 
     df |> save(fp_segments_file)
 end
-
-"""
-Downscale the data in BRICK model `m` from GMSL to LMSL using data in fp_segments_file 
-as created by get_segment_fingerprints.
-
-Output:
-
-lsl_out: array of local sea levels, sorted in alphabetical order by segment name (time x segment)
-GMSL: global mean sea levels corresponding to local sea level vector (time)
-"""
-function downscale_brick(m, fp_segments_file::String = joinpath(@__DIR__, "../../data/CIAM/segment_fingerprints.csv"))
-
-    # brick data
-    brick_data = DataFrame(:time => Mimi.time_labels(m),
-                            :AIS => m[:global_sea_level, :slr_antartic_icesheet],
-                            :GSIC => m[:global_sea_level, :slr_glaciers_small_ice_caps],
-                            :GIS => m[:global_sea_level, :slr_greeland_icesheet],
-                            :TE => m[:global_sea_level, :slr_thermal_expansion],
-                            :LWS => m[:global_sea_level, :slr_landwater_storage],
-                            :GMSL =>m[:global_sea_level, :sea_level_rise]
-    )
-
-    # segment data
-    segment_fingerprints = load(fp_segments_file) |> DataFrame
-
-    # output data
-    lsl_out = zeros(size(ciamlonlat,1), size(brick_data,1)) # segments x time
-    for i in 1:size(ciamlonlat,1)
-
-       # Multiply fingerprints by BRICK ensemble members
-       lsl_out[i, :] = segment_fingerprints.fpGIS_loc[i]  .* brick_data.GIS + 
-                 segment_fingerprints.fpAIS_loc[i]  .* brick_data.AIS[:] + 
-                 segment_fingerprints.fpGSIC_loc[i] .* brick_data.GSIC[:] +
-                 segment_fingerprints.fpTE_loc[i]   .* brick_data.TE[:] + 
-                 segment_fingerprints.fpLWS_loc[i]  .* brick_data.LWS[:]
-                
-    end # End lonlat tuple
-
-    df = DataFrame(lsl_out, :auto) |> i -> rename!(i, Symbol.(brick_data.time)) |> DataFrame
-    insertcols!(df, 1, :segid => segment_fingerprints.segid)
-    insertcols!(df, 1, :segments => segment_fingerprints.segments)
-    
-    return df
-end
-
 
 ##==============================================================================
 ## Small Helper Functions for dealing with sea level fingerprints near land
