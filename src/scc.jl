@@ -603,7 +603,8 @@ function _compute_scc_mcs(mm::MarginalModel,
             result[:scc][k] = (
                 expected_scc = mean(v),
                 se_expected_scc = std(v) / sqrt(n),
-                ce_scc = intermediate_ce_scc_values[k] ./ expected_mu_in_year_of_emission[k],
+                ce_scc = mean(intermediate_ce_scc_values[k]) ./ expected_mu_in_year_of_emission[k],
+                ce_sccs= intermediate_ce_scc_values[k] ./ expected_mu_in_year_of_emission[k],
                 sccs = v,                
             )
         else

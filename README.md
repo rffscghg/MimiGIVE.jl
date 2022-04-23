@@ -236,7 +236,7 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 ### Returned `result` Object Structure
 
 The object returned by `result = MimiGIVE.compute_scc(...)` is a `Dictionary` with 1-3 keys: `scc` (always), `:mds` (if `save_md` is set to `true`) and `:cpc` (if `save_cpc` is set to `true`). The structure of the values returned by these keys is as follows:
-- `results[:scc]` accesses a Dictionary with keys being `NamedTuples` with elements (prtp, eta region, sector) and values which are `NamedTuples` with elements (expected_scc, se_expected_scc, and scc) as well as ce_scc if certainty_equivalent=true
+- `results[:scc]` accesses a Dictionary with keys being `NamedTuples` with elements (prtp, eta region, sector) and values which are `NamedTuples` with elements (expected_scc, se_expected_scc, and scc) as well as ce_scc and ce_sccs if certainty_equivalent=true
 - `results[:mds]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector) and values which are matrices of size num trials x 281 years (2020:2300) of undiscounted marginal damages in USD $2011
 - `results[:cpc]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector) and values which are matrices of size num trials x 281 years (2020:2300) of net per capita consumption in USD $2011
 
