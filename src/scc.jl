@@ -411,16 +411,16 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 scc_values[(region=:domestic, sector= :slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
     
                 if options.certainty_equivalent
-                    intermediate_ce_scc = sum(df .* cromar_mortality_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc = sum(df_ce .* cromar_mortality_mds_domestic[year_index:last_year_index])
                     intermediate_ce_scc_values[(region=:domestic, sector= :cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
         
-                    intermediate_ce_scc = sum(df .* agriculture_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc = sum(df_ce .* agriculture_mds_domestic[year_index:last_year_index])
                     intermediate_ce_scc_values[(region=:domestic, sector= :agriculture, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
         
-                    intermediate_ce_scc = sum(df .* energy_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc = sum(df_ce .* energy_mds_domestic[year_index:last_year_index])
                     intermediate_ce_scc_values[(region=:domestic, sector= :energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
         
-                    intermediate_ce_scc = sum(df .* slr_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc = sum(df_ce .* slr_mds_domestic[year_index:last_year_index])
                     intermediate_ce_scc_values[(region=:domestic, sector= :slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc    
                 end
             end
