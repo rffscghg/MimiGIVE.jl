@@ -344,24 +344,30 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     # Calculate the SCC for each discount rate
     for dr in discount_rates
         df = [((cpc[year_index]/cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
-
         if options.certainty_equivalent
-            df_ce = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
-            
+            df_ce = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...] # only used if optionas.certainty_equivalent=true
+        end
+
+        # totals (sector=:total)
+        scc = sum(df .* total_mds[year_index:last_year_index])
+        scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
+        if options.certainty_equivalent
             intermediate_ce_scc = sum(df_ce .* total_mds[year_index:last_year_index])
             intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
         end
-        
-        # totals
-        scc = sum(df .* total_mds[year_index:last_year_index])
-        scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
-        
+
+        # domestic totals (sector=:total)
         if options.compute_domestic_values
             scc = sum(df .* total_mds_domestic[year_index:last_year_index])
             scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
+
+            if options.certainty_equivalent
+                intermediate_ce_scc = sum(df_ce .* total_mds_domestic[year_index:last_year_index])
+                intermediate_ce_scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+            end
         end
 
-        # sectoral 
+        # sectoral
         if options.compute_sectoral_values
             scc = sum(df .* cromar_mortality_mds[year_index:last_year_index])
             scc_values[(region=:globe, sector=:cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
@@ -375,6 +381,21 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             scc = sum(df .* slr_mds[year_index:last_year_index])
             scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
 
+            if options.certainty_equivalent
+                intermediate_ce_scc = sum(df_ce .* cromar_mortality_mds[year_index:last_year_index])
+                intermediate_ce_scc_values[(region=:globe, sector=:cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+    
+                intermediate_ce_scc = sum(df_ce .* agriculture_mds[year_index:last_year_index])
+                intermediate_ce_scc_values[(region=:globe, sector=:agriculture, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+    
+                intermediate_ce_scc = sum(df_ce .* energy_mds[year_index:last_year_index])
+                intermediate_ce_scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+    
+                intermediate_ce_scc = sum(df_ce .* slr_mds[year_index:last_year_index])
+                intermediate_ce_scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc    
+            end
+
+            # sectoral domestic (region=:domestic)
             if options.compute_domestic_values
 
                 scc = sum(df .* cromar_mortality_mds_domestic[year_index:last_year_index])
@@ -389,6 +410,19 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 scc = sum(df .* slr_mds_domestic[year_index:last_year_index])
                 scc_values[(region=:domestic, sector= :slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = scc
     
+                if options.certainty_equivalent
+                    intermediate_ce_scc = sum(df .* cromar_mortality_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc_values[(region=:domestic, sector= :cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+        
+                    intermediate_ce_scc = sum(df .* agriculture_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc_values[(region=:domestic, sector= :agriculture, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+        
+                    intermediate_ce_scc = sum(df .* energy_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc_values[(region=:domestic, sector= :energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+        
+                    intermediate_ce_scc = sum(df .* slr_mds_domestic[year_index:last_year_index])
+                    intermediate_ce_scc_values[(region=:domestic, sector= :slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc    
+                end
             end
         end
     end
