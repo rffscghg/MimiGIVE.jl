@@ -8,7 +8,7 @@ using Mimi
 
     country                 = Index() # Index for countries in the regions used for the Cromar et al. temperature-mortality damage functions.
 
-   	β_mortality             = Parameter(index=[country]) # Coefficient relating global tempeature to change in energy expenditures as a share of GDP.
+   	β_mortality             = Parameter(index=[country]) # Coefficient relating global temperature to change in energy expenditures as a share of GDP.
     baseline_mortality_rate = Parameter(index=[time, country]) # Crude death rate in a given country (deaths per 1,000 population).
  	temperature             = Parameter(index=[time], unit="degC") # Global average surface temperature anomaly relative to pre-industrial (°C).
 
