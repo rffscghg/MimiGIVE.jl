@@ -68,13 +68,13 @@ The relevant arguments above are described as:
     (1) Select the population and GDP trajectories for 2020 through 2300, mapping
         each RCMIP scenario to the SSP (SSP1, 2, 3, 5 respectively)
     
-    (2) Choose the ar6 scenario for data from 1750 - 2020 and the RCMIP emissions 
+    (2) Choose the ar6 scenario for data from 1750 - 2019 and the RCMIP emissions 
         scenario from the MimiSSPs component to pull Leach et al. RCMIP scenario
-        data for 2021 to 2300 for CO2, CH4, and N2O.
+        data for 2020 to 2300 for CO2, CH4, and N2O.
 
     (NOTE) that if the socioeconomics_source is :RFF this will not be consequential 
-        and ssp245 will be used for the ar6 data from 1750 - 2020 and trace gases 
-        from 2021 onwards, while emissions for CO2, CH4, and N2O will come from
+        and ssp245 will be used for the ar6 data from 1750 - 2019 and trace gases 
+        from 2020 onwards, while emissions for CO2, CH4, and N2O will come from
         the MimiRFFSPs component.
     
 * RFFSPsample (default to nothing, which will pull the in MimiRFFSPs) - choose
@@ -150,7 +150,8 @@ function compute_scc(m::Model=get_model();
         save_slr_damages::Bool = false,
         compute_sectoral_values::Bool = false,
         compute_domestic_values::Bool = false,
-        CIAM_foresight::Symbol = :perfect
+        CIAM_foresight::Symbol = :perfect,
+        pulse_size::Float64 = 1.
     )
 ```
 
@@ -174,6 +175,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight` (default :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
+- `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size of 1Gt of C when `gas=:CO2`, 1Mt of CH4 when  `gas=:CH4`, and 1Mt of N2 when `gas =:N20`. 
 
 **Discount Rate Note**: 
 In scc.jl , the rate of pure time preference `prtp` is treated as a discrete variable, such that `prtp` is applied in the discrete form `1/(1+prtp)^(t-year)`. Note that if using a `prtp` value calculated as a continuous time rate, like those in Rennert et al. (2021), one must transform this discount factor with `prtp_discrete = exp(prtp)-1)`.  Please be in touch with the developers if you need assistance or further explanation!

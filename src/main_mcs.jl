@@ -9,7 +9,7 @@ import Mimi: SampleStore, add_RV!, add_transform!, add_save!
         fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
         rffsp_sampling::Symbol = :random,
         rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-        save_list::Vector = [],
+        save_list::Vector = []
     )
 
 Return a Monte Carlo Simulation definition of type Mimi.SimulationDefinition that
@@ -37,7 +37,7 @@ function get_mcs(trials;
                     fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
                     rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                    save_list::Vector = []              
+                    save_list::Vector = []           
         )
 
     # check some argument conditions
