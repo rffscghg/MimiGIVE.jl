@@ -137,6 +137,7 @@ function compute_scc(m::Model=get_model();
         prtp::Union{Float64,Nothing} = 0.015, 
         eta::Union{Float64,Nothing}=1.45,
         discount_rates=nothing,
+        certainty_equivalent=false,
         fair_parameter_set::Symbol = :random,
         fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
         rffsp_sampling::Symbol = :random, 
@@ -160,6 +161,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `m` (default get_model()) - If no model is provided, the default model from MimiGIVE.get_model() is used. 
 - `prtp` (default 0.015) and `eta` (1.45) - Ramsey discounting parameterization
 - `discount_rates` (default nothing) - a vector of Named Tuples ie. [(label = "Ramsey", prtp = 0.03., eta = 1.45), (label = "Constant 2%", prtp = 0.015, eta = 0.)] - required if running n > 1
+- `certainty_equivalent` (default false) - compute the certainty equivalent SCC in addition to the expected SCC
 - `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
 - `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set to :deterministic, this `n` element vector provides the fair parameter set ids that will be run, otherwise it is set to `nothing` and ignored.
 - `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
@@ -234,7 +236,7 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 ### Returned `result` Object Structure
 
 The object returned by `result = MimiGIVE.compute_scc(...)` is a `Dictionary` with 1-3 keys: `scc` (always), `:mds` (if `save_md` is set to `true`) and `:cpc` (if `save_cpc` is set to `true`). The structure of the values returned by these keys is as follows:
-- `results[:scc]` accesses a Dictionary with keys being `NamedTuples` with elements (prtp, eta region, sector) and values which are `NamedTuples` with elements (expected_scc, se_scc, and scc)
+- `results[:scc]` accesses a Dictionary with keys being `NamedTuples` with elements (prtp, eta region, sector) and values which are `NamedTuples` with elements (expected_scc, se_expected_scc, and scc) as well as ce_scc and ce_sccs if certainty_equivalent=true
 - `results[:mds]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector) and values which are matrices of size num trials x 281 years (2020:2300) of undiscounted marginal damages in USD $2011
 - `results[:cpc]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector) and values which are matrices of size num trials x 281 years (2020:2300) of net per capita consumption in USD $2011
 
