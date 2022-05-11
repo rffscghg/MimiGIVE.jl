@@ -319,18 +319,26 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
     # Save slr damages
     if options.save_slr_damages
+
+        # get a dummy ciam model to be sure to accurately assign segment names to 
+        # segment level damages
+        m = MimiGIVE.get_model()
+        m_ciam, ~ = MimiGIVE.get_ciam(m)
+
         if include_slr
             slr_damages[:base][trialnum,:] = ciam_mds.damages_base[_damages_idxs]
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
             slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
             slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
             slr_damages[:base_segments_2100][trialnum, :] = damages_base_segments_2100
+            slr_damages[:segment_names] = dim_keys(m_ciam, :segments)
         else
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
             slr_damages[:base_lim_cnt][trialnum,:,:] .= 0.
             slr_damages[:modified_lim_cnt][trialnum,:,:] .= 0.
             slr_damages[:base_segments_2100][trialnum, :] .= 0.
+            slr_damages[:segment_names] = dim_keys(m_ciam, :segments)
         end
     end
 
@@ -490,7 +498,7 @@ function _compute_scc_mcs(mm::MarginalModel,
             :modified           => Array{Float64}(undef, n, length(_damages_years)),
             :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
             :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
-            :base_segments_2100 => Array{Float64}(undef, n, 12148) # 12,148 segments
+            :base_segments_2100 => Array{Float64}(undef, n, 11857) # 11,857 segments
         )
     else
         slr_damages = nothing
