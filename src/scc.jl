@@ -324,11 +324,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
             slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
             slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
+            slr_damages[:base_segments_2100][trialnum, :] = damages_base_segments_2100
         else
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
-            slr_damages[:base_lim_cnt][trialnum,:,:] = 0.
-            slr_damages[:modified_lim_cnt][trialnum,:,:] = 0.
+            slr_damages[:base_lim_cnt][trialnum,:,:] .= 0.
+            slr_damages[:modified_lim_cnt][trialnum,:,:] .= 0.
+            slr_damages[:base_segments_2100][trialnum, :] .= 0.
         end
     end
 
@@ -488,6 +490,7 @@ function _compute_scc_mcs(mm::MarginalModel,
             :modified           => Array{Float64}(undef, n, length(_damages_years)),
             :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
             :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
+            :base_segments_2100 => Array{Float64}(undef, n, 12148) # 12,148 segments
         )
     else
         slr_damages = nothing
@@ -713,7 +716,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
-            modified_lim_cnt    = modified_lim_cnt # 2020:2300 x countries
+            modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
+            damages_base_segments_2100   = OptimalCost_base_country[9, :] # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
     )
 end
 
