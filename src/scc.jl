@@ -330,15 +330,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
             slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
             slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
-            slr_damages[:base_segments_2100][trialnum, :] = damages_base_segments_2100
-            slr_damages[:segment_names] = dim_keys(m_ciam, :segments)
+            slr_damages[:base_segments_2100][trialnum, :] = ciam_mds.damages_base_segments_2100
         else
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
             slr_damages[:base_lim_cnt][trialnum,:,:] .= 0.
             slr_damages[:modified_lim_cnt][trialnum,:,:] .= 0.
             slr_damages[:base_segments_2100][trialnum, :] .= 0.
-            slr_damages[:segment_names] = dim_keys(m_ciam, :segments)
         end
     end
 
@@ -558,8 +556,15 @@ function _compute_scc_mcs(mm::MarginalModel,
             i -> rename!(i, [:trial, :time, :slr_damages]) |>
             save("$output_dir/results/model_2/slr_damages.csv")
 
-        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
+        segments = Symbol.(dim_keys(ciam_base, :segments))
+        df = DataFrame(slr_damages[:base_segments_2100], :auto) |> 
+            i -> rename!(i, segments) |>
+            i -> insertcols!(i, 1, :trial => 1:n) |> 
+            i -> stack(i, Not(:trial)) |>
+            i -> rename!(i, [:trial, :segment, :slr_damages_2100]) |>
+            save("$output_dir/results/model_1/slr_damages_2100_by_segment.csv")
 
+        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
         df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
@@ -725,7 +730,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
-            damages_base_segments_2100   = OptimalCost_base_country[9, :] # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
+            damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005 # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
     )
 end
 
