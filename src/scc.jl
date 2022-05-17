@@ -320,6 +320,11 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     # Save slr damages
     if options.save_slr_damages
 
+        # get a dummy ciam model to be sure to accurately assign segment names to 
+        # segment level damages
+        m = MimiGIVE.get_model()
+        m_ciam, ~ = MimiGIVE.get_ciam(m)
+
         if include_slr
 
             # global
@@ -327,6 +332,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
             slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
             slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
+            slr_damages[:base_segments_2100][trialnum, :] = ciam_mds.damages_base_segments_2100
 
             # domestic - these Dictionary entries will only exist if we are computing
             # domestic values
@@ -334,13 +340,15 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 slr_damages[:base_domestic][trialnum,:] = ciam_mds.damages_base_domestic[_damages_idxs]
                 slr_damages[:modified_domestic][trialnum,:] = ciam_mds.damages_modified_domestic[_damages_idxs]
             end
+
         else
 
             # global
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
-            slr_damages[:base_lim_cnt][trialnum,:,:] = 0.
-            slr_damages[:modified_lim_cnt][trialnum,:,:] = 0.
+            slr_damages[:base_lim_cnt][trialnum,:,:] .= 0.
+            slr_damages[:modified_lim_cnt][trialnum,:,:] .= 0.
+            slr_damages[:base_segments_2100][trialnum, :] .= 0.
 
             # domestic - these Dictionary entries will only exist if we are computing
             # domestic values
@@ -510,6 +518,7 @@ function _compute_scc_mcs(mm::MarginalModel,
             :modified           => Array{Float64}(undef, n, length(_damages_years)),
             :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
             :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
+            :base_segments_2100 => Array{Float64}(undef, n, 11857) # 11,857 segments
         )
 
         # domestic
@@ -578,6 +587,14 @@ function _compute_scc_mcs(mm::MarginalModel,
             i -> rename!(i, [:trial, :time, :slr_damages]) |>
             save("$output_dir/results/model_2/slr_damages.csv")
 
+        segments = Symbol.(dim_keys(ciam_base, :segments))
+        df = DataFrame(slr_damages[:base_segments_2100], :auto) |> 
+            i -> rename!(i, segments) |>
+            i -> insertcols!(i, 1, :trial => 1:n) |> 
+            i -> stack(i, Not(:trial)) |>
+            i -> rename!(i, [:trial, :segment, :slr_damages_2100]) |>
+            save("$output_dir/results/model_1/slr_damages_2100_by_segment.csv")
+            
         # domestic 
         if compute_domestic_values
                 df = DataFrame(slr_damages[:base_domestic], :auto) |> 
@@ -597,6 +614,7 @@ function _compute_scc_mcs(mm::MarginalModel,
 
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
 
+        ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
         df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
@@ -763,7 +781,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
             damages_modified_domestic = [fill(0., 2020 - _model_years[1]); damages_modified_domestic], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
-            modified_lim_cnt    = modified_lim_cnt # 2020:2300 x countries
+            modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
+            damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005 # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
     )
 end
 
