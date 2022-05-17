@@ -319,16 +319,35 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
     # Save slr damages
     if options.save_slr_damages
+
         if include_slr
+
+            # global
             slr_damages[:base][trialnum,:] = ciam_mds.damages_base[_damages_idxs]
             slr_damages[:modified][trialnum,:] = ciam_mds.damages_modified[_damages_idxs]
             slr_damages[:base_lim_cnt][trialnum,:,:] = ciam_mds.base_lim_cnt
             slr_damages[:modified_lim_cnt][trialnum,:,:] = ciam_mds.modified_lim_cnt
+
+            # domestic - these Dictionary entries will only exist if we are computing
+            # domestic values
+            if options.compute_domestic_values
+                slr_damages[:base_domestic][trialnum,:] = ciam_mds.damages_base_domestic[_damages_idxs]
+                slr_damages[:modified_domestic][trialnum,:] = ciam_mds.damages_modified_domestic[_damages_idxs]
+            end
         else
+
+            # global
             slr_damages[:base][trialnum,:] .= 0.
             slr_damages[:modified][trialnum,:] .= 0.
             slr_damages[:base_lim_cnt][trialnum,:,:] = 0.
             slr_damages[:modified_lim_cnt][trialnum,:,:] = 0.
+
+            # domestic - these Dictionary entries will only exist if we are computing
+            # domestic values
+            if options.compute_domestic_values
+                slr_damages[:base_domestic][trialnum,:] .= 0.
+                slr_damages[:modified_domestic][trialnum,:] .= 0.
+            end
         end
     end
 
@@ -482,16 +501,27 @@ function _compute_scc_mcs(mm::MarginalModel,
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
+    
     if save_slr_damages
+
+        # global
         slr_damages = Dict(
             :base               => Array{Float64}(undef, n, length(_damages_years)),
             :modified           => Array{Float64}(undef, n, length(_damages_years)),
             :base_lim_cnt       => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
             :modified_lim_cnt   => Array{Float64}(undef, n, length(_damages_years), 141), # 141 CIAM countries
         )
+
+        # domestic
+        # optionally add arrays to hold the domestic base and modified damages
+        if compute_domestic_values
+            slr_damages[:base_domestic] = Array{Float64}(undef, n, length(_damages_years))
+            slr_damages[:modified_domestic] = Array{Float64}(undef, n, length(_damages_years))
+        end
     else
         slr_damages = nothing
     end
+
     ciam_base, segment_fingerprints = get_ciam(mm.base)
     ciam_modified, _ = get_ciam(mm.base)
 
@@ -499,7 +529,8 @@ function _compute_scc_mcs(mm::MarginalModel,
     ciam_modified = Mimi.build(ciam_modified)
 
     # set some computation options
-    options = (compute_sectoral_values=compute_sectoral_values, 
+    options = (
+                compute_sectoral_values=compute_sectoral_values, 
                 compute_domestic_values=compute_domestic_values,
                 save_md=save_md,
                 save_cpc=save_cpc,
@@ -528,11 +559,11 @@ function _compute_scc_mcs(mm::MarginalModel,
     scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
     
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
-
     if save_slr_damages
         isdir("$output_dir/results/model_1") || mkpath("$output_dir/results/model_1")
         isdir("$output_dir/results/model_2") || mkpath("$output_dir/results/model_2")
 
+        # global 
         df = DataFrame(slr_damages[:base], :auto) |> 
             i -> rename!(i, Symbol.(_damages_years)) |> 
             i -> insertcols!(i, 1, :trial => 1:n) |> 
@@ -546,6 +577,23 @@ function _compute_scc_mcs(mm::MarginalModel,
             i -> stack(i, Not(:trial)) |>
             i -> rename!(i, [:trial, :time, :slr_damages]) |>
             save("$output_dir/results/model_2/slr_damages.csv")
+
+        # domestic 
+        if compute_domestic_values
+                df = DataFrame(slr_damages[:base_domestic], :auto) |> 
+                    i -> rename!(i, Symbol.(_damages_years)) |> 
+                    i -> insertcols!(i, 1, :trial => 1:n) |> 
+                    i -> stack(i, Not(:trial)) |>
+                    i -> rename!(i, [:trial, :time, :slr_damages_domestic]) |>
+                    save("$output_dir/results/model_1/slr_damages_domestic.csv")
+
+                df = DataFrame(slr_damages[:modified_domestic], :auto) |> 
+                    i -> rename!(i, Symbol.(_damages_years)) |> 
+                    i -> insertcols!(i, 1, :trial => 1:n) |> 
+                    i -> stack(i, Not(:trial)) |>
+                    i -> rename!(i, [:trial, :time, :slr_damages_domestic]) |>
+                    save("$output_dir/results/model_2/slr_damages_domestic.csv")
+        end
 
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
 
@@ -693,13 +741,13 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         modified_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
     end
 
-    # domestic 
+    # domestic
     damages_base_domestic = vec(sum(OptimalCost_base_country[:,134],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,134],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to just USD here
-
+    
     # global
     damages_base = vec(sum(OptimalCost_base_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified = vec(sum(OptimalCost_modified_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
@@ -707,11 +755,13 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
-    # CIAM starts in 2020
+    # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
+            damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
+            damages_modified_domestic = [fill(0., 2020 - _model_years[1]); damages_modified_domestic], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt # 2020:2300 x countries
     )
