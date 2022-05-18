@@ -444,8 +444,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
 	update_param!(m,  :VSL, :ϵ, 1.0)
 	connect_param!(m, :VSL => :pc_gdp, :PerCapitaGDP => :pc_gdp)
-    connect_param!(m, :VSL => :gdp, :Socioeconomic => :gdp)
-    connect_param!(m, :VSL => :population, :Socioeconomic => :population)
 
     # --------------------------------------------------------------------------    
     # Temperature Normlization Components
