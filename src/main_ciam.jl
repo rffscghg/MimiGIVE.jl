@@ -45,13 +45,17 @@ function get_ciam(m_give::Mimi.Model)
                     adaptation_firsts = adaptPers, ciam_countries = ciam_countries,
                     xsc_params_path = joinpath(@__DIR__,"..","data","CIAM", "xsc_ciam_countries.csv")
                     )
-
+    
 	# Check Dimensions
     Mimi.dim_keys(m, :ciam_country) != rgns && error("The countries in xsc key need to match the segments in m_give.")
     Mimi.dim_keys(m, :segments) != segs && error("The segments in xsc key need to match the segments in m_give.")
 
     for (k,v) in ciam_params
-        update_param!(m, :slrcost, Symbol(k), v)
+        # these are parameters we don't need to set, the correct one for the run
+        # is held in "surgeexposure"
+        if !(k in ["surgeexposure_dc-gtsr", "surgeexposure_gtsr"]) 
+            update_param!(m, :slrcost, Symbol(k), v) 
+        end
     end
 
     # Set dummy variables
