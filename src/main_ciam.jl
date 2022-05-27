@@ -51,7 +51,11 @@ function get_ciam(m_give::Mimi.Model)
     Mimi.dim_keys(m, :segments) != segs && error("The segments in xsc key need to match the segments in m_give.")
 
     for (k,v) in ciam_params
-        update_param!(m, :slrcost, Symbol(k), v)
+        # these are parameters we don't need to set, the correct one for the run
+        # is held in "surgeexposure"
+        if !(k in ["surgeexposure_dc-gtsr", "surgeexposure_gtsr"]) 
+            update_param!(m, :slrcost, Symbol(k), v) 
+        end
     end
 
     # Set dummy variables
