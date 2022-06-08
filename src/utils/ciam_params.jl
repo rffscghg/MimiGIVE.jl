@@ -67,7 +67,7 @@ function get_ciam_params(;tstep::Int64, first::Int64, last::Int64, ciam_countrie
     rgns != ciam_countries && error("The provided ciam_countries in the get_ciam_params function must match those in the provided xsc_params_path File.") : nothing
 
     # Process params using xsc
-    MimiCIAM.parse_ciam_params!(ciam_params, rgns, segs)
+    MimiCIAM.parse_ciam_params!(ciam_params, rgns, segs, 0)
 
     # --------------------------------------------------------------------------
 	# Adjust, Delete, and Add Parameters

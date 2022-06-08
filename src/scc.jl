@@ -203,10 +203,10 @@ function _compute_scc(mm::MarginalModel;
     #   ciam_marginal_damages: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
     if domestic
         main_marginal_damages = mm[:DamageAggregator, :total_damage_domestic] .* scc_gas_molecular_conversions[gas] 
-        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap).domestic : fill(0., length(_model_years)) 
+        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,  pulse_size=pulse_size).domestic : fill(0., length(_model_years)) 
     else
         main_marginal_damages = mm[:DamageAggregator, :total_damage] .* scc_gas_molecular_conversions[gas] 
-        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap).globe : fill(0., length(_model_years)) 
+        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap, pulse_size=pulse_size).globe : fill(0., length(_model_years)) 
     end
 
     marginal_damages = main_marginal_damages .+ ciam_marginal_damages
