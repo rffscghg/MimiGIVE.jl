@@ -45,7 +45,7 @@ function get_ciam(m_give::Mimi.Model)
                     adaptation_firsts = adaptPers, ciam_countries = ciam_countries,
                     xsc_params_path = joinpath(@__DIR__,"..","data","CIAM", "xsc_ciam_countries.csv")
                     )
-
+    
 	# Check Dimensions
     Mimi.dim_keys(m, :ciam_country) != rgns && error("The countries in xsc key need to match the segments in m_give.")
     Mimi.dim_keys(m, :segments) != segs && error("The segments in xsc key need to match the segments in m_give.")
