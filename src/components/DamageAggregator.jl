@@ -6,7 +6,7 @@ using Mimi
     country = Index()
     energy_countries = Index()
     domestic_countries = Index()
-    
+
     domestic_idxs_country_dim = Parameter(index=[domestic_countries]) # indices for USA and PRI in country dimension
     domestic_idxs_energy_countries_dim = Parameter(index=[domestic_countries]) # indices for USA and PRI in energy_countries dimension
 
@@ -58,9 +58,9 @@ using Mimi
         v.total_damage_share[t] = v.total_damage[t] / gdp
 
         ## domestic annual aggregates - for interim model outputs and partial SCCs
-        v.cromar_mortality_damage_domestic[t]           = sum(p.damage_cromar_mortality[t,domestic_idxs_country_dim])
+        v.cromar_mortality_damage_domestic[t]           = sum(p.damage_cromar_mortality[t,Int64.(p.domestic_idxs_country_dim)])
         v.agriculture_damage_domestic[t]                = p.damage_ag[t,1] * 1e9 
-        v.energy_damage_domestic[t]                     = sum(p.damage_energy[t,domestic_idxs_energy_countries_dim] * 1e9)
+        v.energy_damage_domestic[t]                     = sum(p.damage_energy[t,Int64.(p.domestic_idxs_energy_countries_dim)] * 1e9)
         
         # Calculate domestic damages
         v.total_damage_domestic[t] =
