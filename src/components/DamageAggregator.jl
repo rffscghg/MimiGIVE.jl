@@ -5,9 +5,10 @@ using Mimi
     fund_regions = Index()
     country = Index()
     energy_countries = Index()
-
-    domestic_idxs_country_dim = Parameter(index=[2]) # indices for USA and PRI in country dimension
-    domestic_idxs_energy_countries_dim = Parameter(index=[2]) # indices for USA and PRI in energy_countries dimension
+    domestic_countries = Index()
+    
+    domestic_idxs_country_dim = Parameter(index=[domestic_countries]) # indices for USA and PRI in country dimension
+    domestic_idxs_energy_countries_dim = Parameter(index=[domestic_countries]) # indices for USA and PRI in energy_countries dimension
 
     include_cromar_mortality = Parameter{Bool}(default=true) # default TRUE
     include_ag = Parameter{Bool}(default=true) # default TRUE
