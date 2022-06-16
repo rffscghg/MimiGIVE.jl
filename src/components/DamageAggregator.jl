@@ -10,6 +10,10 @@ using Mimi
     domestic_idxs_country_dim = Parameter(index=[domestic_countries])
     domestic_idxs_energy_countries_dim = Parameter(index=[domestic_countries])
 
+    # internally compute for speed
+    domestic_idxs_country_dim_int = Variable{Int}(index=[domestic_countries])
+    domestic_idxs_energy_countries_dim_int = Variable{Int}(index=[domestic_countries])
+
     include_cromar_mortality = Parameter{Bool}(default=true) # default TRUE
     include_ag = Parameter{Bool}(default=true) # default TRUE
     include_slr = Parameter{Bool}(default=true) # default TRUE - will run SLR after the main model
@@ -39,6 +43,12 @@ using Mimi
     agriculture_damage_domestic              = Variable(index=[time], unit="US\$2005/yr")
     energy_damage_domestic                   = Variable(index=[time], unit="US\$2005/yr")
   
+    function init(p,v,d)
+        # convert to integers for type stability
+        v.domestic_idxs_country_dim_int[:] = Int.(p.domestic_idxs_country_dim)
+        v.domestic_idxs_energy_countries_dim_int[:] = Int.(p.domestic_idxs_energy_countries_dim)
+    end
+
     function run_timestep(p, v, d, t)
 
         ## global annual aggregates - for interim model outputs and partial SCCs
@@ -58,9 +68,9 @@ using Mimi
         v.total_damage_share[t] = v.total_damage[t] / gdp
 
         ## domestic annual aggregates - for interim model outputs and partial SCCs
-        v.cromar_mortality_damage_domestic[t]           = sum(p.damage_cromar_mortality[t,Int.(p.domestic_idxs_country_dim)])
+        v.cromar_mortality_damage_domestic[t]           = sum(p.damage_cromar_mortality[t, v.domestic_idxs_country_dim_int])
         v.agriculture_damage_domestic[t]                = p.damage_ag[t,1] * 1e9 
-        v.energy_damage_domestic[t]                     = sum(p.damage_energy[t,Int.(p.domestic_idxs_energy_countries_dim)] * 1e9)
+        v.energy_damage_domestic[t]                     = sum(p.damage_energy[t, v.domestic_idxs_energy_countries_dim_int] * 1e9)
         
         # Calculate domestic damages
         v.total_damage_domestic[t] =
