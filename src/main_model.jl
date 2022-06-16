@@ -265,10 +265,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
         add_shared_param!(m, :model_ssp_baseline_mortality_rate, vcat(fill(NaN, (length(model_first:damages_first-1), size(mortality_data)[2])), mortality_data |> Matrix), dims = [:time, :country]) # Pad with NaN b/c starting component in later year.
     end
 
-    # DamageAggregator
-    add_shared_param!(m, :domestic_idxs_country_dim, indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)), dims = [:domestic_countries])  
-    add_shared_param!(m, :domestic_idxs_energy_countries_dim, indexin(dim_keys(m, :domestic_countries), dim_keys(m, :energy_countries)), dims = [:domestic_countries])
-
     # --------------------------------------------------------------------------
 	# Component-Specific Parameters and Connections
     # --------------------------------------------------------------------------
@@ -632,9 +628,11 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :DamageAggregator => :damage_dice2016R2, :dice2016R2_damage => :damages)
     connect_param!(m, :DamageAggregator => :damage_hs, :hs_damage => :damages)
 
-    # connect parameters that are shared across model
-    connect_param!(m, :DamageAggregator, :domestic_idxs_country_dim, :domestic_idxs_country_dim)
-    connect_param!(m, :DamageAggregator, :domestic_idxs_energy_countries_dim, :domestic_idxs_energy_countries_dim)
+    domestic_idxs_country_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)))  
+    update_param!(m, :DamageAggregator, :domestic_idxs_country_dim, domestic_idxs_country_dim)
+
+    domestic_idxs_energy_countries_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :energy_countries)))
+    update_param!(m, :DamageAggregator, :domestic_idxs_energy_countries_dim, domestic_idxs_energy_countries_dim)
 
     # --------------------------------------------------------------------------
 	# Net consumption

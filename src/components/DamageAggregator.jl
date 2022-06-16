@@ -7,8 +7,8 @@ using Mimi
     energy_countries = Index()
     domestic_countries = Index()
 
-    domestic_idxs_country_dim = Parameter(index=[domestic_countries])
-    domestic_idxs_energy_countries_dim = Parameter(index=[domestic_countries])
+    domestic_idxs_country_dim = Parameter{Int}(index=[domestic_countries])
+    domestic_idxs_energy_countries_dim = Parameter{Int}(index=[domestic_countries])
 
     # internally compute for speed
     domestic_idxs_country_dim_int = Variable{Int}(index=[domestic_countries])
@@ -44,7 +44,7 @@ using Mimi
     energy_damage_domestic                   = Variable(index=[time], unit="US\$2005/yr")
   
     function init(p,v,d)
-        # convert to integers for type stability
+        # convert to integers for indexing - do once here for speed
         v.domestic_idxs_country_dim_int[:] = Int.(p.domestic_idxs_country_dim)
         v.domestic_idxs_energy_countries_dim_int[:] = Int.(p.domestic_idxs_energy_countries_dim)
     end
