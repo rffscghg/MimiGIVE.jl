@@ -760,8 +760,10 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     end
 
     # domestic
-    damages_base_domestic = vec(sum(OptimalCost_base_country[:,138],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
-    damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,138],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
+    domestic_idxs = indexin(domestic_countries, dim_keys(ciam_base, :ciam_country))
+    damages_base_domestic = vec(sum(OptimalCost_base_country[:,domestic_idxs],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,domestic_idxs],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
     damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to just USD here

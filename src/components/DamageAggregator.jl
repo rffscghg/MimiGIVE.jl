@@ -5,6 +5,14 @@ using Mimi
     fund_regions = Index()
     country = Index()
     energy_countries = Index()
+    domestic_countries = Index()
+
+    domestic_idxs_country_dim = Parameter{Int}(index=[domestic_countries])
+    domestic_idxs_energy_countries_dim = Parameter{Int}(index=[domestic_countries])
+
+    # internally compute for speed
+    domestic_idxs_country_dim_int = Variable{Int}(index=[domestic_countries])
+    domestic_idxs_energy_countries_dim_int = Variable{Int}(index=[domestic_countries])
 
     include_cromar_mortality = Parameter{Bool}(default=true) # default TRUE
     include_ag = Parameter{Bool}(default=true) # default TRUE
@@ -35,6 +43,12 @@ using Mimi
     agriculture_damage_domestic              = Variable(index=[time], unit="US\$2005/yr")
     energy_damage_domestic                   = Variable(index=[time], unit="US\$2005/yr")
   
+    function init(p,v,d)
+        # convert to integers for indexing - do once here for speed
+        v.domestic_idxs_country_dim_int[:] = Int.(p.domestic_idxs_country_dim)
+        v.domestic_idxs_energy_countries_dim_int[:] = Int.(p.domestic_idxs_energy_countries_dim)
+    end
+
     function run_timestep(p, v, d, t)
 
         ## global annual aggregates - for interim model outputs and partial SCCs
@@ -54,9 +68,9 @@ using Mimi
         v.total_damage_share[t] = v.total_damage[t] / gdp
 
         ## domestic annual aggregates - for interim model outputs and partial SCCs
-        v.cromar_mortality_damage_domestic[t]           = p.damage_cromar_mortality[t,174]
+        v.cromar_mortality_damage_domestic[t]           = sum(p.damage_cromar_mortality[t, v.domestic_idxs_country_dim_int])
         v.agriculture_damage_domestic[t]                = p.damage_ag[t,1] * 1e9 
-        v.energy_damage_domestic[t]                     = p.damage_energy[t,12] * 1e9
+        v.energy_damage_domestic[t]                     = sum(p.damage_energy[t, v.domestic_idxs_energy_countries_dim_int] * 1e9)
         
         # Calculate domestic damages
         v.total_damage_domestic[t] =
