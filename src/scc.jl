@@ -760,7 +760,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     end
 
     # domestic
-    domestic_idxs = indexin(["USA", "PRI"], dim_keys(ciam_base, :ciam_country))
+    domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
+    domestic_idxs = indexin(domestic_countries, dim_keys(ciam_base, :ciam_country))
     damages_base_domestic = vec(sum(OptimalCost_base_country[:,domestic_idxs],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,domestic_idxs],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
