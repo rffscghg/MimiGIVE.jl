@@ -83,7 +83,7 @@ The relevant arguments above are described as:
 
 **Agriculture**
 
-* Agriculture_gtap (default midDF) - specify the `Agriculture_gtap_gtap` input parameter as one of 
+* Agriculture_gtap (default midDF) - specify the `Agriculture_gtap` input parameter as one of 
     `["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF"]`, indicating which 
     gtap damage function the component should use. 
 * Agriculture_floor_on_damages (default true) - If `Agriculture_gtap_floor_on_damages` = true, then 
