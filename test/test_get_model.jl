@@ -25,7 +25,7 @@ import MimiGIVE: get_model, compute_scc
 # )
 
 ##------------------------------------------------------------------------------
-## full API
+## full API - ensure all possible combinations of keyword args run without error
 ##------------------------------------------------------------------------------
 
 m = get_model()
@@ -72,20 +72,26 @@ end
 ##------------------------------------------------------------------------------
 
 # Agriculture GTAP Parameter (Agriculture_gtap)
+
 sccs = []
 agcosts = []
+
 for Agriculture_gtap in ["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF"]
     m = get_model(; Agriculture_gtap=Agriculture_gtap)
     run(m)
-    gtap_idx = findfirst(isequal(Agriculture_gtap), MooreAg.gtaps)
-    @test m[:Agriculture, :gtap_df] == MooreAg.gtap_df_all[:, :, gtap_idx]
+    
     append!(sccs, compute_scc(m, year=2020))
     append!(agcosts, sum(skipmissing(m[:Agriculture, :agcost])))
+    gtap_idx = findfirst(isequal(Agriculture_gtap), MooreAg.gtaps)
+
+    @test m[:Agriculture, :gtap_df] == MooreAg.gtap_df_all[:, :, gtap_idx]
 end
+
 @test allunique(sccs)
 @test allunique(agcosts)
 
 # socioeconomics_source and SSP_scenario and RFFSPsample
+
 sccs = []
 co2_emissions = []
 gdp = []
@@ -94,19 +100,23 @@ pop = []
 for id in [1,2,3]
     m_rff = get_model(;RFFSPsample=id)
     run(m_rff)
+
     append!(sccs, compute_scc(m_rff, year=2020))
     push!(co2_emissions, m_rff[:Socioeconomic, :co2_emissions])
     push!(gdp, m_rff[:Socioeconomic, :gdp_global])
     push!(pop, m_rff[:Socioeconomic, :population_global])
+
     @test(m_rff[:Socioeconomic, :id] == id)
 end
 for ssp in ["SSP126", "SSP245", "SSP370", "SSP585"]
     m_ssp = get_model(;socioeconomics_source=:SSP, SSP_scenario=ssp)
     run(m_ssp)
+
     append!(sccs, compute_scc(m_ssp, year=2020))
     push!(co2_emissions, m_ssp[:Socioeconomic, :co2_emissions])
     push!(gdp, m_ssp[:Socioeconomic, :gdp_global])
     push!(pop, m_ssp[:Socioeconomic, :population_global])
+
     @test(m_ssp[:Socioeconomic, :SSP] == ssp[1:4])
     @test(m_ssp[:Socioeconomic, :emissions_scenario] == ssp)
 end
