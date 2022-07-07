@@ -815,7 +815,7 @@ end
     add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64)
 
 Adds a marginal emission component to year m which adds the pulse_size of additional emissions in the specified `year` for gas `gas`, 
-which will be in units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
+which will be in units of GtC for CO2, MtN2 for N2O, MtCH4 for CH4, and kt for HFCs
 """
 function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64) 
 
