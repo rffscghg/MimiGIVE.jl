@@ -1,4 +1,4 @@
-# module TestComputeSCC
+module TestComputeSCC
 
 using MimiGIVE
 using Test
@@ -32,25 +32,25 @@ import MimiGIVE: get_model, compute_scc
 # )
 
 ##------------------------------------------------------------------------------
-## API
+## API - test that run without error
 ##------------------------------------------------------------------------------
 
-# deterministic - boilerplate API
+# deterministic
 scc = compute_scc(year = 2020)
 scc_rff = compute_scc(get_model(; socioeconomics_source=:RFF, RFFSPsample=1000), year = 2020)
 scc_ssp = compute_scc(get_model(; socioeconomics_source=:SSP, SSP_scenario="SSP126"), year = 2020)
 
-# deterministic - try non-default options, leave saving values for regression testing section
+# deterministic - non-default options
 scc = compute_scc(year = 2025, last_year = 2200, prtp = 0.02, eta = 1.5, gas  = :CH4,
                 CIAM_foresight = :limited, CIAM_GDPcap  = true, pulse_size = 10.)
 
-# monte carlo - boilerplate API
+# monte carlo
 drs = [(label = "label", prtp = 0.015, eta = 1.45)]
 scc = compute_scc(year = 2020, n = 5, discount_rates = drs)
 scc_rff = compute_scc(get_model(; socioeconomics_source=:RFF, RFFSPsample=1000), year = 2020, n = 5, discount_rates=drs)
 scc_ssp = compute_scc(get_model(; socioeconomics_source=:SSP, SSP_scenario="SSP126"), year = 2020, n = 5, discount_rates=drs)
 
-# monte carlo - try non-default options, leave saving values for regression testing section
+# monte carlo - non-default options
 drs = [(label = "CR 1%", prtp = 0.01, eta = 0.0), 
         (label = "CR 2%", prtp = 0.02, eta = 0.0),
         (label = "CR 3%", prtp = 0.03, eta = 0.0)]
@@ -65,7 +65,7 @@ scc = compute_scc(year = 2025, last_year = 2200, discount_rates = drs, gas  = :C
 @test compute_scc(year = 2020) < compute_scc(year = 2025) < compute_scc(year = 2030)
 @test compute_scc(year = 2020) > compute_scc(year = 2020; last_year=2200)
 
-# discount rates parameters eta and prtp
+# discount rate
 @test compute_scc(year = 2020, prtp = 0.01, eta = 0.0) > compute_scc(year = 2020, prtp = 0.02, eta = 0.0) > compute_scc(year = 2020, prtp = 0.03, eta = 0.0) 
 drs = [(label = "CR 1%", prtp = 0.01, eta = 0.0), 
         (label = "CR 2%", prtp = 0.02, eta = 0.0),
@@ -77,7 +77,25 @@ sccs = compute_scc(year = 2020; discount_rates = drs)
 @test compute_scc(year = 2020, gas = :CO2) < compute_scc(year = 2020, gas = :CH4) < compute_scc(year = 2020, gas = :N2O)
 
 # pulse size
-scc_1 = compute_scc(year = 2020, pulse_size = 1.)
-scc_1_1 = compute_scc(year = 2020, pulse_size = 1.1)
+scc_0_5 = compute_scc(year = 2020, pulse_size = 0.5)
+scc_1_0 = compute_scc(year = 2020, pulse_size = 1.)
+scc_1_5 = compute_scc(year = 2020, pulse_size = 1.5)
+@test scc_0_5 ≈ scc_1_0 rtol = 1e-3
+@test scc_0_5 ≈ scc_1_5 rtol = 1e-3
 
-# end # module
+# CIAM parameters
+# use lower discount rate to see differences in the out years
+scc_limited = compute_scc(year = 2020, prtp = 0.01, eta = 0.0, CIAM_foresight = :limited)
+scc_perfect = compute_scc(year = 2020, prtp = 0.01, eta = 0.0, CIAM_foresight = :perfect)
+@test scc_perfect < scc_limited
+
+scc_nocap = compute_scc(year = 2020, prtp = 0.01, eta = 0.0, CIAM_GDPcap = false)
+scc_GDPcap = compute_scc(year = 2020, prtp = 0.01, eta = 0.0, CIAM_GDPcap = true)
+@test scc_GDPcap == scc_nocap # no difference for this (default) trial
+
+m = get_model(; RFFSPsample=1798) # known difference with this trial
+scc_nocap = compute_scc(m; year = 2020, prtp = 0.01, eta = 0.0, CIAM_GDPcap = false)
+scc_GDPcap = compute_scc(m; year = 2020, prtp = 0.01, eta = 0.0, CIAM_GDPcap = true)
+@test scc_GDPcap < scc_nocap
+
+end # module

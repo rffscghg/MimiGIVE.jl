@@ -17,7 +17,7 @@ import MimiGIVE: get_model, compute_scc
 # )
 
 ##------------------------------------------------------------------------------
-## full API - ensure all possible combinations of keyword args run without error
+## API - test that run without error
 ##------------------------------------------------------------------------------
 
 m = get_model()
@@ -64,7 +64,6 @@ end
 ##------------------------------------------------------------------------------
 
 # Agriculture GTAP Parameter (Agriculture_gtap)
-
 sccs = []
 agcosts = []
 
@@ -85,7 +84,6 @@ end
 @test sccs[4] > sccs[5] > sccs[3]  # lowDF > midDF > highDF
 
 # socioeconomics_source and SSP_scenario and RFFSPsample
-
 sccs = []
 co2_emissions = []
 gdp = []
