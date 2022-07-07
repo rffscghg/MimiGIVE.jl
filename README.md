@@ -167,7 +167,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
 - `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, this `n` element vector provides the RFF SP ids that will be run, otherwise it is set to `nothing` and ignored.
 - `n` (default 0) - If `n` is 0, the deterministic version will be run, otherwise, a monte carlo simulation will be run. 
-- `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O. 
+- `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O as well as the HFC gases :HFC23, :HFC32, :HFC43_10, :HFC125, :HFC134a, :HFC143a, :HFC227ea, and :HFC245fa
 - `save_list` (default []) - which parameters and varaibles to save for each trial, entered as a vector of Tuples (:component_name, :variable_name)
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation

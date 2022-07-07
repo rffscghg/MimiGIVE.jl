@@ -802,7 +802,7 @@ function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::
     # the `MarginalModel` and thus allow computation of the SCC to return units of
     # dollars per ton, as long as `pulse_size` is interpreted as baseline units
     # of the given gas, which is units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
-    mm = create_marginal_model(m, scc_gas_pulse_size_conversions[gas])
+    mm = create_marginal_model(m, scc_gas_pulse_size_conversions[gas] .* pulse_size)
     add_marginal_emissions!(mm.modified, year, gas, pulse_size)
 
     return mm

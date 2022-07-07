@@ -2,17 +2,9 @@ module TestGetModel
 
 using MimiGIVE
 using Test
-using MooreAg
+using MooreAg 
 
 import MimiGIVE: get_model, compute_scc
-
-# This module will test that the public facing API (1) runs without error
-# (2) picks up relevant keyword arguments and (2) produces outputs of the 
-# expected dimensions and types
-
-##------------------------------------------------------------------------------
-## get_model
-##------------------------------------------------------------------------------
 
 # function get_model(; 
 #     Agriculture_gtap::String = "midDF",
@@ -89,6 +81,8 @@ end
 
 @test allunique(sccs)
 @test allunique(agcosts)
+@test agcosts[4] > agcosts[5] > agcosts[3] # lowDF > midDF > highDF
+@test sccs[4] > sccs[5] > sccs[3]  # lowDF > midDF > highDF
 
 # socioeconomics_source and SSP_scenario and RFFSPsample
 
