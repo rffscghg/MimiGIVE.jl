@@ -167,7 +167,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
 - `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, this `n` element vector provides the RFF SP ids that will be run, otherwise it is set to `nothing` and ignored.
 - `n` (default 0) - If `n` is 0, the deterministic version will be run, otherwise, a monte carlo simulation will be run. 
-- `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O as well as the HFC gases :HFC23, :HFC32, :HFC43_10, :HFC125, :HFC134a, :HFC143a, :HFC227ea, and :HFC245fa
+- `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O
 - `save_list` (default []) - which parameters and varaibles to save for each trial, entered as a vector of Tuples (:component_name, :variable_name)
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
@@ -354,26 +354,12 @@ This function uses similar arguments to above, with the following differences:
 const scc_gas_molecular_conversions = Dict(:CO2 => 12/44, # C to CO2
                                             :N2O => 28/44, # N2 to N2O,
                                             :CH4 => 1., # CH4 to CH4
-                                            :HFC23 => 1., # HFC23 to HFC23
-                                            :HFC32 => 1., # HFC32 to HFC32
-                                            :HFC43_10 => 1., # HFC43_10 to HFC43_10
-                                            :HFC125 => 1., # HFC125 to HFC125
-                                            :HFC134a => 1., # HFC134a to HFC134a
-                                            :HFC143a => 1., # HFC143a to HFC143a
-                                            :HFC227ea => 1., # HFC227ea to HFC227ea
-                                            :HFC245fa => 1.) # HFC245fa to HFC245fa
+                                        )
 
 const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
                                         :N2O => 1e6, # Mt to t
                                         :CH4 => 1e6, # Mt to t
-                                        :HFC23 => 1e3, # kt to t
-                                        :HFC32 => 1e3, # kt to t
-                                        :HFC43_10 => 1e3, # kt to t
-                                        :HFC125 => 1e3, # kt to t
-                                        :HFC134a => 1e3, # kt to t
-                                        :HFC143a => 1e3, # kt to t
-                                        :HFC227ea => 1e3, # kt to t
-                                        :HFC245fa => 1e3) # kt to t
+                                        )
 ```
 
 ## Uncertain Parameters
