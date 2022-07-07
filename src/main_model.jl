@@ -88,6 +88,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     fund_regions        = (load(joinpath(@__DIR__, "..", "data", "Dimension_fund_regions.csv")) |> @select(:fund_region) |> DataFrame |> Matrix)[:]
     gcam_regions        = (load(joinpath(@__DIR__, "..", "data", "Dimension_gcam_energy_regions.csv")) |> @select(:gcam_energy_region) |> DataFrame |> Matrix)[:] # not currently a dimension in model
     cromar_regions      = (load(joinpath(@__DIR__, "..", "data", "Dimension_cromar_mortality_regions.csv")) |> @select(:cromar_mortality_region) |> DataFrame |> Matrix)[:] # not currently a dimension in model
+    domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
 
     # Create country-region (FUND derived) mapping for Agriculture damage function
     ag_mapping = load(joinpath(@__DIR__, "..", "data", "Mapping_countries_to_fund_regions.csv")) |> DataFrame
@@ -154,6 +155,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :ag_mapping_input_regions, countries) # Agriculture Aggregator components
     set_dimension!(m, :ag_mapping_output_regions, fund_regions) # Agriculture Aggregator components
     set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function (TODO: Update to GCAM subset? Just using all countries for now)
+
+    set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
 
     # Add Socioeconomics component BEFORE the FAIR model to allow for emissions feedbacks after damages_first year
     if socioeconomics_source == :RFF
@@ -624,6 +627,12 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :DamageAggregator => :damage_energy, :energy_damages => :energy_costs_dollar)
     connect_param!(m, :DamageAggregator => :damage_dice2016R2, :dice2016R2_damage => :damages)
     connect_param!(m, :DamageAggregator => :damage_hs, :hs_damage => :damages)
+
+    domestic_idxs_country_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)))  
+    update_param!(m, :DamageAggregator, :domestic_idxs_country_dim, domestic_idxs_country_dim)
+
+    domestic_idxs_energy_countries_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :energy_countries)))
+    update_param!(m, :DamageAggregator, :domestic_idxs_energy_countries_dim, domestic_idxs_energy_countries_dim)
 
     # --------------------------------------------------------------------------
 	# Net consumption
