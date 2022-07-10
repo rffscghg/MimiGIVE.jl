@@ -299,7 +299,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     gas_units_multiplier = scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* options.pulse_size)
     include_slr = base[:DamageAggregator, :include_slr]
 
-    mm = Mimi.MarginalModel(base, marginal, gas_units_multiplier)
+    mm = Mimi.MarginalModel(base, marginal, 1/gas_units_multiplier)
 
     if include_slr
         ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) # NamedTuple with globe and domestic
