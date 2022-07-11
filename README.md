@@ -36,10 +36,10 @@ run(m)
 explore(m)
 
 # Access a specific variable's data in tabular format.
-co2_emissions = m[:co2cycle, :E_co2]
+co2_emissions = m[:co2_cycle, :E_co2]
 
 # Access a specific variable's data in a Dataframe
-co2_emissions = getdataframe(m, :co2cycle, :E_co2)
+co2_emissions = getdataframe(m, :co2_cycle, :E_co2)
 ```
 
 The `get_model` function above has the signature and options as follows:
