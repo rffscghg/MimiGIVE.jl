@@ -94,7 +94,7 @@ for p in ["F_solar"]
     arr = [fair_params[i][p] for i in 1:n]
     arr = reduce(hcat, arr)' # 361 years per sample - flatten out from vector of vectors to a matrix
     df = DataFrame(arr, :auto) |>
-    i -> rename!(i, Symbol.(1750:2110)) # TODO are these the correct years?
+    i -> rename!(i, Symbol.(1750:2110)) # Assume here that F-solar includes 1750 onwards for 361 years
     df |> save(joinpath(@__DIR__, "..", "..", "data", "FAIR_mcs", "fair_mcs_params_$p.csv"))
 end
 

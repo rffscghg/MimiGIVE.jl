@@ -154,7 +154,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :segments, segment_fingerprints.segments) # BRICK components
     set_dimension!(m, :ag_mapping_input_regions, countries) # Agriculture Aggregator components
     set_dimension!(m, :ag_mapping_output_regions, fund_regions) # Agriculture Aggregator components
-    set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function (TODO: Update to GCAM subset? Just using all countries for now)
+    set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
 

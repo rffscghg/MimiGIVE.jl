@@ -225,7 +225,7 @@ function get_mcs(trials;
     end
 
     # assign one random variable per year with a unique distribution from fair_samples
-    # TODO handle dimensions - what years does F_solar include?  Assuming 1750 onwards for 361 years 
+    # Assume here that F-solar includes 1750 onwards for 361 years
     for year in 1750:2110
         rv_name = Symbol("rv_F_solar_$year")
         add_RV!(mcs, rv_name, SampleStore(fair_samples[:F_solar][!,string(year)]))
@@ -331,7 +331,6 @@ function run_mcs(;trials::Int64 = 10000,
 
     trials_output_filename = save_trials ?  joinpath("$output_dir/trials.csv") : nothing
 
-    # TODO could make this more elegant :)
     socioeconomics_module = _get_module_name(m, :Socioeconomic)
     if socioeconomics_module == :MimiSSPs
         socioeconomics_source = :SSP
