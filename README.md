@@ -116,7 +116,7 @@ m = MimiGIVE.get_model()
 run(m)
 
 # Get the default CIAM model
-segment_fingerprints, m_ciam = MimiGIVE.get_ciam(m)
+ m_ciam, segment_fingerprints = MimiGIVE.get_ciam(m)
 
 # Update the CIAM model with MimiGIVE specific parameters
 MimiGIVE.update_ciam!(m_ciam, m, segment_fingerprints)
