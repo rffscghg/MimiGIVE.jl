@@ -3,14 +3,14 @@ import Mimi: SampleStore, add_RV!, add_transform!, add_save!
 
 """
     get_mcs(trials; 
-        socioeconomics_source::Symbol = :RFF, 
-        mcs_years = 1750:2300, 
-        fair_parameter_set::Symbol = :random,
-        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
-        rffsp_sampling::Symbol = :random,
-        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-        save_list::Vector = []
-    )
+            socioeconomics_source::Symbol = :RFF, 
+            mcs_years = 1750:2300, 
+            fair_parameter_set::Symbol = :random,
+            fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
+            rffsp_sampling::Symbol = :random,
+            rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
+            save_list::Vector = []   
+        )
 
 Return a Monte Carlo Simulation definition of type Mimi.SimulationDefinition that
 holds all random variables and distributions, as assigned to model component/parameter
@@ -18,17 +18,20 @@ pairs, that will be used in a Monte Carlo Simulation.
 
 - `trials` (required) - number of trials to be run, used for presampling
 - `socioeconomics_source` (default :RFF) - which source the Socioeconomics component uses
-- `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
-to :deterministic, this `n` element vector provides the fair parameter set ids 
-that will be run, otherwise it is set to `nothing` and ignored.
+- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
+        chosen randomly from the provided sets, while :deterministic means they will 
+        be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
+- `fair_parameter_set_ids` (default nothing) - if `fair_parameter_set` is set 
+        to :deterministic, this `n` element vector provides the fair parameter set ids 
+        that will be run, otherwise it is set to `nothing` and ignored.
 - `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
-SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
-will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
-- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
-this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
-set to `nothing` and ignored.
+        SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
+        will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` (default nothing) - if `rffsp_sampling` is set to :deterministic, 
+        this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
+        set to `nothing` and ignored.
 - `save_list` (default []) - which parameters and varaibles to save for each trial,
-entered as a vector of Tuples (:component_name, :variable_name)
+        entered as a vector of Tuples (:component_name, :variable_name)
 """
 function get_mcs(trials; 
                     socioeconomics_source::Symbol = :RFF, 
@@ -119,7 +122,7 @@ function get_mcs(trials;
 
 
     # add the socioeconomics RV if the socioeconomics source is Mimi RFF SPs
-    # use SampleStore for a deterministic RFF SP sampling approach, otherwise
+    # Use SampleStore for a deterministic RFF SP sampling approach, otherwise
     # use an EmpiricalDistribution across all ids (equal probability is assumed 
     # if probabilities not provided)
     if socioeconomics_source == :RFF
@@ -204,7 +207,7 @@ function get_mcs(trials;
     end
 
     # add the FAIR random variables and transforms - note this could be done within
-    # the @defsim macro but we can use the dictionary to make this less verbose
+    # the @defsim macro but we use the dictionary to make this less verbose
 
     # Note that if a parameter component is not included in add_transform!, the 
     # parameters are shared model parameters, and each line will create ONE random 
@@ -225,7 +228,7 @@ function get_mcs(trials;
     end
 
     # assign one random variable per year with a unique distribution from fair_samples
-    # Assume here that F-solar includes 1750 onwards for 361 years
+    # assume F_solar parameter set defines value starting in 1750 with 361 years total
     for year in 1750:2110
         rv_name = Symbol("rv_F_solar_$year")
         add_RV!(mcs, rv_name, SampleStore(fair_samples[:F_solar][!,string(year)]))
@@ -275,39 +278,43 @@ end
 
 """
     run_mcs(;trials::Int64 = 10000, 
-        output_dir::Union{String, Nothing} = nothing, 
-        save_trials::Bool = false,
-        fair_parameter_set::Symbol = :random,
-        fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
-        rffsp_sampling::Symbol = :random,
-        rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-        m::Mimi.Model = get_model(),
-        results_in_memory::Bool = true,
-    )
+            output_dir::Union{String, Nothing} = nothing, 
+            save_trials::Bool = false,
+            fair_parameter_set::Symbol = :random,
+            fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
+            rffsp_sampling::Symbol = :random,
+            rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
+            m::Mimi.Model = get_model(), 
+            save_list::Vector = [],
+            results_in_memory::Bool = true,
+        )
 
 Return the results of a Monte Carlo Simulation with the defined number of trials
 and save data into the `output_dir` folder, optionally also saving trials if 
 `save_trials` is set to `true.` If no model is provided, use the default model 
 returned by get_model().
 
-- `trials` (required) - number of trials to be run, used for presampling
+- `trials` (default 10,000) - number of trials to be run, used for presampling
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_trials` (default false) - whether to save all random variables for all trials to trials.csv 
+- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
+        chosen randomly from the provided sets, while :deterministic means they will 
+        be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
 - `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
-to :deterministic, this `n` element vector provides the fair parameter set ids 
-that will be run, otherwise it is set to `nothing` and ignored.
+        to :deterministic, this `n` element vector provides the fair parameter set ids 
+        that will be run, otherwise it is set to `nothing` and ignored.
 - `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
-SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
-will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+        SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
+        will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
 - `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
-this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
-set to `nothing` and ignored.
+        this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
+        set to `nothing` and ignored.
 - `m` (default get_model()) - the model to run the simulation for
 - `save_list` (default []) - which parameters and variables to save for each trial,
-entered as a vector of Tuples (:component_name, :variable_name)
+        entered as a vector of Tuples (:component_name, :variable_name)
 - `results_in_memory` (default true) - this should be turned off if you are running 
-into memory problems, data will be streamed out to disk but not saved in memory 
-to the mcs object
+        into memory problems, data will be streamed out to disk but not saved in memory 
+        to the mcs object
 """
 function run_mcs(;trials::Int64 = 10000, 
                     output_dir::Union{String, Nothing} = nothing, 
@@ -362,15 +369,21 @@ function run_mcs(;trials::Int64 = 10000,
 end
 
 """
-    get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
-
+    get_fair_mcs_params(n::Int; 
+                        fair_parameter_set::Symbol = :random, 
+                        fair_parameter_set_ids::Union{Nothing, Vector{Int}}
+                    )
+                    
 Return the FAIR mcs parameters mapped from parameter name to string name, and a dictionary
 using the parameter names as keys and a DataFrame holding the values as a value.
 If fair_parameter_set is :random (default), then FAIR mcs samples will be chosen 
 randomly from the provided sets. If it set to :deterministic they will be the vector
 provided by fair_parameter_set_ids.
 """
-function get_fair_mcs_params(n::Int; fair_parameter_set::Symbol = :random, fair_parameter_set_ids::Union{Nothing, Vector{Int}})
+function get_fair_mcs_params(n::Int; 
+                            fair_parameter_set::Symbol = :random, 
+                            fair_parameter_set_ids::Union{Nothing, Vector{Int}}
+                        )
 
     # check some argument conditions
     if fair_parameter_set == :deterministic 

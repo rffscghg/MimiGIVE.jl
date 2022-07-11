@@ -1,5 +1,7 @@
 using Mimi
 
+# Calculate global net consumption
+
 @defcomp GlobalNetConsumption begin
     country = Index()
 
@@ -25,7 +27,7 @@ using Mimi
         # Compute net consumption as GDP - damages
         v.net_consumption[t] = v.global_gdp[t] - total_damage
 
-        # We multiply by 1e3 because net_consumption is in billion, and population is in million
+        # Multiply by 1e3 because net_consumption is in billion, and population is in million
         v.net_cpc[t] = v.net_consumption[t] * 1e3 / v.global_population[t]
 
     end

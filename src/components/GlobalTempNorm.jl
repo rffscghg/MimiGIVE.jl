@@ -1,8 +1,7 @@
 using Mimi
 
-# ------------------------------------------------------------------------------
-# Normalize global temperature to a provided list of years - template component to be used by different components
-# ------------------------------------------------------------------------------
+# Normalize global temperature to a provided range of years
+# template component to be used by any component needing temperature normalization
 
 @defcomp GlobalTempNorm begin
 

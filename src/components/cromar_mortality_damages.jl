@@ -1,15 +1,14 @@
 using Mimi
 
-# ------------------------------------------------------------
-# Temperature Mortality Damages (based on Cromar et al. 2021)
-# ------------------------------------------------------------
+# Calculate temperature mortality damages
+# Cromar et al. 2021
 
 @defcomp cromar_mortality_damages begin
 
     country                 = Index() # Index for countries in the regions used for the Cromar et al. temperature-mortality damage functions.
 
    	β_mortality             = Parameter(index=[country]) # Coefficient relating global temperature to change in mortality rates.
-    baseline_mortality_rate = Parameter(index=[time, country]) # Crude death rate in a given country (deaths per 1,000 population).
+    baseline_mortality_rate = Parameter(index=[time, country], unit = "deaths/1000 persons/yr") # Crude death rate in a given country (deaths per 1,000 population).
  	temperature             = Parameter(index=[time], unit="degC") # Global average surface temperature anomaly relative to pre-industrial (°C).
 
     population              = Parameter(index=[time, country], unit="million") # Population in a given country (millions of persons).

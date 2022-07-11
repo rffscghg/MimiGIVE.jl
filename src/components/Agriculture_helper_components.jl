@@ -1,8 +1,6 @@
 using Mimi
 
-# -------------------------------------------------------------------------------------------------
 # Aggregate from countries to FUND regions using sum function
-# -------------------------------------------------------------------------------------------------
 
 @defcomp Agriculture_RegionAggregatorSum begin
     
@@ -33,7 +31,7 @@ using Mimi
     end
 end
 
-# same as above but without a time dimension
+# Version of above with no time dimension
 
 @defcomp Agriculture_RegionAggregatorSum_NoTime begin
     
@@ -54,7 +52,7 @@ end
         !isnothing(findfirst(i -> isnothing(i), idxs)) ? error("All provided region names in the Agriculture_RegionAggregatorSum's input_output_mapping Parameter must exist in the output_region_names Parameter.") : nothing
         v.input_output_mapping_int[:] = idxs
 
-        # fill in the data because there's no time dimensions
+        # can simply fill in the data here because there is no time dimensions
         v.output[:] .= 0.
         for i in d.ag_mapping_input_regions
             v.output[v.input_output_mapping_int[i]] += p.input[i]

@@ -1,8 +1,7 @@
 using Mimi
 
-# ------------------------------------------------------------------------------
-# Normalize global SLR to a provided list of years - template component to be used by different components
-# ------------------------------------------------------------------------------
+# Normalize global sea level rise (SLR) to a provided range of years
+# template component to be used by any component needing SLR normalization
 
 @defcomp GlobalSLRNorm begin
 

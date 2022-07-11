@@ -1,5 +1,8 @@
 using Mimi
 
+# Calculate global damages
+# Howard, P. H., & Sterner, T. (2017)
+
 @defcomp hs_damage begin
     country          = Index()
 
@@ -56,7 +59,7 @@ using Mimi
             error("Invalid effects argument of p.hs_specification")
         end
         
-        ## effects options
+        # effects options
         if p.effects == :base
             v.t2 = v.t2_base
         elseif p.effects == :productivity
@@ -69,10 +72,10 @@ using Mimi
             error("Invalid effects argument of p.effects.")
         end
 
-        ## 25 percent adder option
+        # 25 percent adder option
         v.t2 = p.add25pct ? v.t2*1.25 : v.t2
 
-        ## damage function
+        # damage function
         v.damfrac[t] = 1-(1/(1+(v.t2/100) * p.temperature[t]^2))
         v.damages[t] = v.damfrac[t] * sum(p.gdp[t,:])
 
