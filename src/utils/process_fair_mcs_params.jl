@@ -89,12 +89,12 @@ for p in ["C_pi"] # Choose first element of vector of 31 elements
 end
 
 # Pre-industrial CO₂ concentration (other concentrations fixed across samples). 
-
+# assume F_solar parameter set defines value starting in 1750 with 361 years total
 for p in ["F_solar"]
     arr = [fair_params[i][p] for i in 1:n]
     arr = reduce(hcat, arr)' # 361 years per sample - flatten out from vector of vectors to a matrix
     df = DataFrame(arr, :auto) |>
-    i -> rename!(i, Symbol.(1750:2110)) # TODO are these the correct years?
+    i -> rename!(i, Symbol.(1750:2110))
     df |> save(joinpath(@__DIR__, "..", "..", "data", "FAIR_mcs", "fair_mcs_params_$p.csv"))
 end
 
@@ -127,7 +127,8 @@ DataFrame(:ghan_params_b_POM => [fair_params[i]["ghan_params"][3] for i in 1:n])
 
 # Radiative forcing scaling terms (based on ordering of forcing agents in Python code). - select from a vector of 45 elements
 
-# TODO: :scale_contrails !!! Default FAIR has contrail forcing switched off. But they sample a scaling term. Not including for now.
+# NOTE for :scale_contrails: Default FAIR has contrail forcing switched off. But 
+# the data used does sample a scaling term. Currently not included in this model.
 
 DataFrame(:scale_CO2 => [fair_params[i]["scale"][1] for i in 1:n]) |> 
     save(joinpath(@__DIR__, "..", "..", "data", "FAIR_mcs", "fair_mcs_params_scale_CO2.csv"))

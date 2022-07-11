@@ -4,6 +4,8 @@ using MimiCIAM, Query, DataFrames, CSVFiles
 # Adapted from scripts in MimiCIAM.jl
 
 """
+    prep_ciam_xsc(xsc_params_path::String)
+
 Process the segment-country mapping file (xsc) in CIAM by (1) Reads from CSV
 and outputs list of dictionaries and arrays (2) Filters xsc file to desired
 segments/regions
@@ -47,6 +49,8 @@ function prep_ciam_xsc(xsc_params_path::String)
 end
 
 """
+    get_ciam_params(;tstep::Int64, first::Int64, last::Int64, ciam_countries::Vector, xsc_params_path::String, adaptation_firsts::Array)
+
 Obtain the CIAM parameters for the ciam_countries using the key in xsc_params_path
 for a model with time dimension first:tstep:last and adaptation starting in `adaptation_firsts`.
 """

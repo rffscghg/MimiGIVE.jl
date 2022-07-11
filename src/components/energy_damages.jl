@@ -1,14 +1,13 @@
 using Mimi
 
-# --------------------------------------------------
-# Energy-Use Damages (based on Clarke et al. 2018)
-# --------------------------------------------------
+# Calculate energy-use damages
+# Clarke et al. 2018
 
 @defcomp energy_damages begin
 
-	energy_countries    = Index() 							        # Index for countries in the GCAM regions used for energy damage functions.
+	energy_countries    = Index() # Index for countries in the GCAM regions used for energy damage functions.
 
-   	β_energy            = Parameter(index=[energy_countries])       # Coefficient relating global tempeature to change in energy expenditures as a share of GDP.
+   	β_energy            = Parameter(index=[energy_countries]) # Coefficient relating global tempeature to change in energy expenditures as a share of GDP.
   	gdp 				= Parameter(index=[time, energy_countries], unit="billion US\$2005/yr") # Country-level GDP (billions US $2005 / yr").
  	temperature         = Parameter(index=[time], unit="degC") # Global average surface temperature anomaly relative to pre-industrial (°C).
 

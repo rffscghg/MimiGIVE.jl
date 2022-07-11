@@ -1,9 +1,7 @@
 using Mimi
 
-# ------------------------------------------------------------------------------
-# Calculate the Value of a Statistical Life (following the FUND equations & 
-# parameterization).
-# ------------------------------------------------------------------------------
+# Calculate the value of a statistical life
+# follows equations from FUND 
 
 @defcomp VSL begin
 
@@ -14,7 +12,7 @@ using Mimi
     y₀            = Parameter(unit = "US\$2005")    # Normalization constant.
     pc_gdp        = Parameter(index=[time, country], unit = "US\$2005/yr/person") # Country-level per capita GDP ($/person).
 
-    vsl           = Variable(index=[time, country], unit = "US\$2005/yr")   # Value of a statistical life ($).
+    vsl           = Variable(index=[time, country], unit = "US\$2005/yr") # Value of a statistical life ($).
     
     function run_timestep(p, v, d, t)
         for c in d.country

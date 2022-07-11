@@ -1,5 +1,8 @@
 using Mimi
 
+# Calculate global damages
+# Nordhaus, 2017
+
 @defcomp dice2016R2_damage begin
     country     = Index()
 
