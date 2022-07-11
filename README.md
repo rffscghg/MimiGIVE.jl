@@ -139,13 +139,13 @@ You can run a Monte Carlo Simulation on the GIVE model to explore the effects of
 
 ## 3a. API
 
-Running a basic Monte Carlo Simulation on the default model `m = MimiGIVE.get_model()` can be carried out as follows.
+Running a basic Monte Carlo Simulation on the default model `m = MimiGIVE.get_model()` with 100 trials can be carried out as follows.
 
 ```julia
 using Mimi 
 using MimiGIVE
 
-mcs_results = MimiGIVE.run_mcs(trials = 1000; socioeconomics_source= :RFF, output_dir = nothing, save_trials = false)
+mcs_results = MimiGIVE.run_mcs(trials = 100)
 ```
 
 The built-in Monte Carlo Simulation details can be found in `src/main_mcs.jl` and the primary function has the signature as follows:
@@ -202,12 +202,12 @@ Note that if `results_in_memory` is set to `false`, you will not be able to expl
 
 - `save_list` (default is empty vector `[]`) is a vector of Tuples, each holding two Symbols, an example is below.  Note this can be any variable or parameter you see in any component of the model (all also shown in the explorer). If you are wondering about a specific parameter that is set with a random variable, take a look at the `get_mcs` function and see where a given random variable is assigned to.a component/parameter pair.  **Also feel free to inquire with the team if your curious about how to grab something specific!**
 ```
-mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co2))
+mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co2)])
 ```
 
 - `results_in_memory` (default is `true`) - if this is `true`, you will be able to access the data in the `save_list` from the returned `mcs` object with `getdataframe(mcs, :component, :variable/parameter)`, or `explore(mcs)`, but this will build up a large dataframe in memory.  If this becomes a problem, just turn this flag off as follows, and your data will **only** be streamed to files in `output_dir`.
 ```
-mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co2), results_in_memory = false)
+mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co2)], results_in_memory = false)
 ```
 
 **compute_scc function arguments**
@@ -313,7 +313,7 @@ Some example use cases include:
 ```julia
 
 # Compute a simple baseline case
-MimiGIVE.compute_scc(year=2020)
+scc = MimiGIVE.compute_scc(year=2020)
 
 # Compute the SCC for a different SSP/emissions scenario combination using the default sources of data (Benveniste and Leach, respectively) and a different discounting scheme parameterization
 m = MimiGIVE.get_model(socioeconomics_source=:SSP, SSP_scenario="SSP585")
@@ -334,6 +334,9 @@ You can also pass `compute_scc` a vector of `NamedTuple`s to the `discount_rates
 discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45), (label="Constant 2%", prtp=0.02, eta=0.)]
 MimiGIVE.compute_scc(m, year=2020, discount_rates = discount_rates)
 ```
+**Returned `result` Object Structure**
+
+If only one discount rate specification is provided, the `compute_scc(...)` function run deterministically will return a single number. If a vector of discount rates are provided via the `discount_rates` argument, then the returned object is a Dictionary with keys being `NamedTuples` with elements (dr_label, prtp, eta) corresponding to the `discount_rates` elements (label, prtp, eta).
 
 ## 4b. Monte Carlo Simulation (MCS) SCC Calculation
 
@@ -357,10 +360,10 @@ If all four of these are set to true one would runs something like:
 discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45), (label="Constant 2%", prtp=0.02, eta=0.)]
 result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 5, compute_sectoral_values = true, compute_domestic_values = true, save_md = true, save_cpc = true)
 ```
-## 4c. Returned `result` Object Structure
+**Returned `result` Object Structure**
 
-The object returned by `result = MimiGIVE.compute_scc(...)` is a `Dictionary` with 1-3 keys: `scc` (always), `:mds` (if `save_md` is set to `true`) and `:cpc` (if `save_cpc` is set to `true`). The structure of the values returned by these keys is as follows:
-- `results[:scc]` accesses a Dictionary with keys being `NamedTuples` with elements (prtp, eta region, sector) and values which are `NamedTuples` with elements (expected_scc, se_expected_scc, and scc) as well as ce_scc and ce_sccs if certainty_equivalent=true
+The object returned by `result = MimiGIVE.compute_scc(...)` for a MCS is a `Dictionary` with 1-3 keys: `scc` (always), `:mds` (if `save_md` is set to `true`) and `:cpc` (if `save_cpc` is set to `true`). The structure of the values returned by these keys is as follows:
+- `results[:scc]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector, dr_label, prtp, eta) and values which are `NamedTuples` with elements (expected_scc, se_expected_scc, and scc) as well as ce_scc and ce_sccs if certainty_equivalent=true
 - `results[:mds]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector) and values which are matrices of size num trials x 281 years (2020:2300) of undiscounted marginal damages in USD $2011
 - `results[:cpc]` accesses a Dictionary with keys being `NamedTuples` with elements (region, sector) and values which are matrices of size num trials x 281 years (2020:2300) of net per capita consumption in USD $2011
 
@@ -374,8 +377,8 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 
 # print out information on the calculated SCCs
 for (k,v) in result[:scc]
-    println("Specification: $(k.region) SCC in $(k.sector) sector, using discount rate $(k.label) specified by prtp = $(k.prtp) and eta = $(k.eta):")
-    println(" --> Expected SCC = $(v.expected_scc) with standard error $(v.se_scc)")
+    println("Specification: $(k.region) SCC in $(k.sector) sector, using discount rate $(k.dr_label) specified by prtp = $(k.prtp) and eta = $(k.eta):")
+    println(" --> Expected SCC = $(v.expected_scc) with standard error $(v.se_expected_scc)")
 end
 
 # compare global and within US borders marginal damaeges
