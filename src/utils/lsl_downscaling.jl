@@ -4,6 +4,8 @@ using Query, NetCDF, StatsBase, DataFrames, CSVFiles
 # Adapted from https://github.com/raddleverse/CIAM_uncertainty_propagation
 
 """
+    get_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../data/CIAM/FINGERPRINTS_SLANGEN_Bakker.nc"))
+
 Retrieve BRICK fingerprints from NetCDF file
 """
 function get_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../data/CIAM/FINGERPRINTS_SLANGEN_Bakker.nc"))
@@ -19,6 +21,10 @@ function get_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../data/CIAM
 end
 
 """
+    get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../data/CIAM/FINGERPRINTS_SLANGEN_Bakker.nc"),
+            segIDs_file::String = joinpath(@__DIR__, "../../data/CIAM/diva_segment_latlon.csv"),
+            fp_segments_file::String = joinpath(@__DIR__, "../../data/CIAM/segment_fingerprints.csv"))
+
 Get segment specific fingerprints for segments in segIDs_file using fingerprints in
 fp_file as the baseline information. Write out these segment specific fingerprints.
 """
@@ -124,11 +130,11 @@ function get_segment_fingerprints(;fp_file::String = joinpath(@__DIR__, "../../d
     df |> save(fp_segments_file)
 end
 
-##==============================================================================
-## Small Helper Functions for dealing with sea level fingerprints near land
+# Small helper functions for dealing with sea level fingerprints near land
 
 """
     next_lat(lat::Float64, inc::Int64, direction::Symbol)
+
 Increment latitude by `inc` in either positive direction (`direction=:increase`)
 or in the negative direction (`direction=:decrease`).
 Assumes latitude runs from -90 to 90 (deg N).
@@ -155,6 +161,7 @@ end
 
 """
     next_lon(lon::Float64, inc::Int64, direction::Symbol)
+
 Increment longitude by `inc` in either positive direction
 (`direction=:increase`) or in the negative direction (`direction=:decrease`).
 Assumes longitude runs from 0 to 360 (deg E).

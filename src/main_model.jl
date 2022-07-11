@@ -1,6 +1,15 @@
 using Mimi, CSVFiles, DataFrames, Query, StatsBase, XLSX, Interpolations, DelimitedFiles, Distributions
 
 """
+    get_model(; Agriculture_gtap::String = "midDF",
+                socioeconomics_source::Symbol = :RFF,
+                SSP_scenario::Union{Nothing, String} = nothing,       
+                RFFSPsample::Union{Nothing, Int} = nothing,
+                Agriculture_floor_on_damages::Bool = true,
+                Agriculture_ceiling_on_benefits::Bool = false,
+                vsl::Symbol= :epa
+            )
+                
 Get a GIVE Model with the given argument Settings
 
 -- Socioeconomic -- 
@@ -32,13 +41,15 @@ Get a GIVE Model with the given argument Settings
 
 -- Agriculture -- 
 
-- Agriculture_gtap (default midDF) - specify the `Agriculture_gtap_gtap` input parameter as one of 
+- Agriculture_gtap (default midDF) - specify the `Agriculture_gtap` input parameter as one of 
     `["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF"]`, indicating which 
     gtap damage function the component should use. 
+
  - Agriculture_floor_on_damages (default true) - If `Agriculture_gtap_floor_on_damages` = true, then 
     the agricultural damages (negative values of the `agcost` variable) in each 
     timestep will not be allowed to exceed 100% of the size of the  agricultural 
     sector in each region.
+
 - Agriculture_ceiling_on_benefits (default false) - If `Agriculture_gtap_ceiling_on_benefits` = true, 
     then the agricultural benefits (positive values of the `agcost` variable) in 
     each timestep will not be allowed to exceed 100% of the size of the agricultural 
@@ -154,7 +165,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :segments, segment_fingerprints.segments) # BRICK components
     set_dimension!(m, :ag_mapping_input_regions, countries) # Agriculture Aggregator components
     set_dimension!(m, :ag_mapping_output_regions, fund_regions) # Agriculture Aggregator components
-    set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function (TODO: Update to GCAM subset? Just using all countries for now)
+    set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
 
@@ -174,8 +185,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # We add an identity component that simply passes values through here
     # This makes it easier to later insert the marginal emission modification component
     # between two components that don't use backup data
-    # NOTE we have to add different components instead of the Identity cookie cutter
-    # due to the Mimi bug in #865 and the use of backup data with connector comps later -- fix coming
     add_comp!(m, IdentityComponent_co2, :co2_emissions_identity, before = :co2_cycle);
     add_comp!(m, IdentityComponent_ch4, :ch4_emissions_identity, before = :ch4_cycle);
     add_comp!(m, IdentityComponent_n2o, :n2o_emissions_identity, before = :n2o_cycle);

@@ -1,5 +1,7 @@
 using Mimi
 
+# Aggregate damages across damage functions
+
 @defcomp DamageAggregator begin
 
     fund_regions = Index()
@@ -14,10 +16,15 @@ using Mimi
     domestic_idxs_country_dim_int = Variable{Int}(index=[domestic_countries])
     domestic_idxs_energy_countries_dim_int = Variable{Int}(index=[domestic_countries])
 
-    include_cromar_mortality = Parameter{Bool}(default=true) # default TRUE
-    include_ag = Parameter{Bool}(default=true) # default TRUE
-    include_slr = Parameter{Bool}(default=true) # default TRUE - will run SLR after the main model
-    include_energy = Parameter{Bool}(default=true) # default TRUE
+    # inclusion of different damages
+
+    # By default the individual sectoral damage calculations are ON, including 
+    # SLR which runs after the main model, while global damage function calculations
+    # are OFF.
+    include_cromar_mortality = Parameter{Bool}(default=true)
+    include_ag = Parameter{Bool}(default=true)
+    include_slr = Parameter{Bool}(default=true)
+    include_energy = Parameter{Bool}(default=true)
     include_dice2016R2 = Parameter{Bool}(default=false)
     include_hs_damage = Parameter{Bool}(default=false)
 
@@ -33,12 +40,12 @@ using Mimi
     total_damage_share = Variable(index=[time])
     total_damage_domestic = Variable(index=[time], unit="US\$2005/yr")
 
-    ## global annual aggregates - for interim model outputs and partial SCCs
+    # global annual aggregates - for interim model outputs and partial SCCs
     cromar_mortality_damage         = Variable(index=[time], unit="US\$2005/yr")
     agriculture_damage              = Variable(index=[time], unit="US\$2005/yr")
     energy_damage                   = Variable(index=[time], unit="US\$2005/yr")
 
-    ## domestic annual aggregates - for interim model outputs and partial SCCs
+    # domestic annual aggregates - for interim model outputs and partial SCCs
     cromar_mortality_damage_domestic         = Variable(index=[time], unit="US\$2005/yr")
     agriculture_damage_domestic              = Variable(index=[time], unit="US\$2005/yr")
     energy_damage_domestic                   = Variable(index=[time], unit="US\$2005/yr")
@@ -51,7 +58,7 @@ using Mimi
 
     function run_timestep(p, v, d, t)
 
-        ## global annual aggregates - for interim model outputs and partial SCCs
+        # global annual aggregates - for interim model outputs and partial SCCs
         v.cromar_mortality_damage[t]        = sum(p.damage_cromar_mortality[t,:])
         v.agriculture_damage[t]             = sum(p.damage_ag[t,:]) * 1e9 
         v.energy_damage[t]                  = sum(p.damage_energy[t,:]) * 1e9
@@ -67,7 +74,7 @@ using Mimi
 
         v.total_damage_share[t] = v.total_damage[t] / gdp
 
-        ## domestic annual aggregates - for interim model outputs and partial SCCs
+        # domestic annual aggregates - for interim model outputs and partial SCCs
         v.cromar_mortality_damage_domestic[t]           = sum(p.damage_cromar_mortality[t, v.domestic_idxs_country_dim_int])
         v.agriculture_damage_domestic[t]                = p.damage_ag[t,1] * 1e9 
         v.energy_damage_domestic[t]                     = sum(p.damage_energy[t, v.domestic_idxs_energy_countries_dim_int] * 1e9)

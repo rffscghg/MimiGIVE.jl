@@ -1,5 +1,7 @@
 using Mimi
 
+# Create identity components to assist with adding pulse of emissions
+
 @defcomp IdentityComponent_co2 begin
     input_co2 = Parameter(index=[time])
     output_co2 = Variable(index=[time])
