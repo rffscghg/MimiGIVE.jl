@@ -435,11 +435,19 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 for (i,t) in enumerate(_model_years), r in 1:n_countries_for_en if year<=t<=last_year
             )
 
+            pc_gdp_for_slr = [fill(0., 2020-1750, 145); repeat(ciam_base[:slrcost, :ypcc][1:end-1,:], inner=(10,1)); ciam_base[:slrcost, :ypcc][end:end,:]]
+            n_countries_for_slr = size(pc_gdp_for_slr, 2)
+            mds_ciam_country = (ciam_mds.modified_lim_cnt .- ciam_mds.base_lim_cnt) ./ gas_units_multiplier
+            mds_ciam_country = [fill(0., 2020-1750, 145); repeat(mds_ciam_country[1:end-1,:], inner=(10,1)); mds_ciam_country[end:end,:]]
+            slr_scc_in_utils = sum(
+                mds_ciam_country[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                for (i,t) in enumerate(_model_years), r in 1:n_countries_for_slr if year<=t<=last_year
+            )
+
             noralization_country_index = findfirst(isequal(dr.ew_norm_country), dim_keys(mm.base, :country))
 
-            # TODO Add CIAM
             scc = mm.base[:PerCapitaGDP, :pc_gdp][year_index,noralization_country_index]^dr.eta * (
-                health_scc_in_utils + ag_scc_in_utils + en_scc_in_utils
+                health_scc_in_utils + ag_scc_in_utils + en_scc_in_utils + slr_scc_in_utils
             )
 
             scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=true)][trialnum] = scc
