@@ -276,9 +276,9 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
                             )
                             
 
-    # TOLERANCE - TODO revist these tolerance values
-    atol = 1e-3
-    rtol = 1e-6
+    # TOLERANCE
+    atol = 1e-9
+    rtol = 1e-9
 
     # get the model data
     tmpdir = tempdir()

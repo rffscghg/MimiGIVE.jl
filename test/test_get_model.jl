@@ -59,6 +59,13 @@ for Agriculture_gtap in ["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF
     end
 end
 
+# some errors
+@test_throws ErrorException get_model(; socioeconomics_source = :SSP) # missing SSP scenario
+@test_throws ErrorException get_model(; socioeconomics_source = :foo) # not a legal SSP option
+@test_throws ErrorException get_model(; Agriculture_gtap = "foo") # not a legal gtap spec option
+@test_throws ErrorException get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP8") # not a legal SSP scenario option
+@test_throws ErrorException get_model(; vsl = :foo) # not a legal vsl option
+
 ##------------------------------------------------------------------------------
 ## keyword arguments and values
 ##------------------------------------------------------------------------------
@@ -100,6 +107,7 @@ for id in [1,2,3]
 
     @test(m_rff[:Socioeconomic, :id] == id)
 end
+
 for ssp in ["SSP126", "SSP245", "SSP370", "SSP585"]
     m_ssp = get_model(;socioeconomics_source=:SSP, SSP_scenario=ssp)
     run(m_ssp)
@@ -114,13 +122,16 @@ for ssp in ["SSP126", "SSP245", "SSP370", "SSP585"]
 end
 
 @test allunique(sccs)
-for i in 1:length(gdp), j in 1:length(gdp)
+for i in 1:length(gdp), j in 1:length(gdp) # equivalent to allunique for two arrays
     if i !== j
         @test gdp[i] !== gdp[j]
         @test pop[i] !== pop[j]
         @test co2_emissions[i] !== co2_emissions[j]
     end
 end
+
+@test compute_scc(get_model(;socioeconomics_source=:SSP, SSP_scenario="SSP585"), year = 2020) > compute_scc(get_model(;socioeconomics_source=:SSP, SSP_scenario="SSP126"), year = 2020)
+@test compute_scc(get_model(;socioeconomics_source=:SSP, SSP_scenario="SSP245"), year = 2020) > compute_scc(get_model(;socioeconomics_source=:SSP, SSP_scenario="SSP126"), year = 2020)
 
 # vsl
 m_epa = get_model(vsl=:epa)

@@ -32,7 +32,8 @@ import MimiGIVE: get_model, compute_scc
 # )
 
 ##------------------------------------------------------------------------------
-## API - test that run without error
+## API - test that basic cases run without error - will test more of the API in
+## regression testing file (test_regression.jl)
 ##------------------------------------------------------------------------------
 
 # deterministic
