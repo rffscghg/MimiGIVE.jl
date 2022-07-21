@@ -84,7 +84,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Restrictions on arguments
     socioeconomics_source_options = [:SSP, :RFF]
     socioeconomics_source in socioeconomics_source_options ? nothing : error("The socioeconomics_source must be one of $(socioeconomics_source_options)")
-    Agriculture_gtap in MooreAg.gtaps ? nothing : error("Unknown GTAP dataframe specification: \"$gtap\". Must be one of the following: $(MooreAg.gtaps)")
+    Agriculture_gtap in MooreAg.gtaps ? nothing : error("Unknown GTAP dataframe specification: \"$Agriculture_gtap\". Must be one of the following: $(MooreAg.gtaps)")
 
     SSP_scenario_options = [nothing, "SSP119", "SSP126", "SSP245", "SSP370", "SSP585"]
     SSP_scenario in SSP_scenario_options ? nothing : error("The SSP_scenario must be one of $(SSP_scenario_options)")
