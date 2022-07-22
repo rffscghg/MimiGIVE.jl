@@ -6,7 +6,8 @@ include("utils.jl")
 # This script saves a set of validation data for the give date in the validation_data
 # folder.  These data are used for regression testing by test_regression.jl.
 
-curr_date = "07_19_2022"
+# label of folder to be created
+validation_label = "current"
 
 ##------------------------------------------------------------------------------
 ## Model Data
