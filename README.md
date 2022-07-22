@@ -395,7 +395,7 @@ net_cpc = result[:cpc][(region=:globe, sector=:total)]
 
 **IMPORTANT: Please look at section 3 above for details and arguments of the Monte Carlo Simulation.**
 
-# 5. Model Structure
+# 5. Model Structure and References
 
 Below we list the main structure of the model, for information on direct input data see docs/DataExplainer.ipynb.
 
