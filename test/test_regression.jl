@@ -3,8 +3,8 @@ module TestRegression
 using MimiGIVE
 include("utils.jl")
 
-# date of validation data
-validation_date = "07_19_2022"
+# label of validation data to compare AGAINST
+validation_label = "current"
 
 ##------------------------------------------------------------------------------
 ## Validate Model Data
@@ -27,12 +27,12 @@ savevars = [
 ]
 
 # default model
-validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_date", "default_model")
+validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model")
 m = MimiGIVE.get_model()
 validate_model_data(m, savevars, validationdir)
 
 # SSP245
-validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_date", "SSP245_model")
+validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model")
 m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 validate_model_data(m, savevars, validationdir)
 
@@ -48,12 +48,12 @@ discount_rates = [
 
 for gas in [:CO2, :N2O, :CH4]
     # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
-    validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_date", "default_model_SCC_2020")
+    validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_SCC_2020")
     m = MimiGIVE.get_model()
     validate_scc_data(validationdir; m = m, year = 2020, discount_rates = discount_rates, gas = gas)
 
     # SSP245 model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
-    validationdir = joinpath(@__DIR__, "validation_data","validation_data_$validation_date", "SSP245_model_SCC_2020")
+    validationdir = joinpath(@__DIR__, "validation_data","validation_data_$validation_label", "SSP245_model_SCC_2020")
     m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
     validate_scc_data(validationdir; m = m, year = 2020, discount_rates = discount_rates, gas = gas)
 end
@@ -89,7 +89,7 @@ seed = 999
 
 # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 for gas in [:CO2, :N2O, :CH4]
-    validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_date", "default_model_MCS_SCC_2020", "$gas")
+    validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_MCS_SCC_2020", "$gas")
     m = MimiGIVE.get_model()
     validate_scc_mcs_data(seed, validationdir, n;
                             m = m, 
@@ -107,7 +107,7 @@ end
 
 # SSP245 model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 for gas in [:CO2, :N2O, :CH4]
-    validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_date", "SSP245_model_MCS_SCC_2020", "$gas")
+    validationdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_MCS_SCC_2020", "$gas")
     m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
     validate_scc_mcs_data(seed, validationdir, n;
                             m = m,
