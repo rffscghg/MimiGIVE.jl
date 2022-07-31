@@ -132,9 +132,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
         ar6_scenario = lowercase(SSP_scenario)
     end
 
-    # Baseline mortality use SSP2 as a proxy for SSP4 and
-    # SSP1 as a proxy for SSP5 per instructions from the literature (relayed
-    # by David Smith and Bryan Parthum)
+    # Baseline mortality use SSP2 as a proxy for SSP4 and SSP1 as a proxy for 
+    # SSP5 per instructions from the literature
     mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
 
     # Grab the SSP name from the full scenario ie. SSP2 from SSP245
@@ -145,7 +144,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     end
 
     # --------------------------------------------------------------------------    
-    # MODEL CONSTRUCTION
+    # Model Construction
     # --------------------------------------------------------------------------    
 
     # component first and lasts
@@ -431,7 +430,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # and other, so we will simply let FAIR1.6.2 run with its original settings for land use CO2, which is 
     # consistent with Leach (FAIRv2.0) but just not broken out in that dataset, so this is consistent. 
     # For the RFF SPs we can either let them run with the middle-of the road and best matched (pop and emissions)
-    # ssp245 AR6 scenario, or explicitly connect new data.  Currently do the former.
+    # ssp245 AR6 scenario, or explicitly connect new data. Currently do the former.
 
     # --------------------------------------------------------------------------    
     # PerCapitaGDP
@@ -613,21 +612,21 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :energy_damages => :temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------
-    # DICE2016R2 damages
+    # DICE2016R2 Damages
     # --------------------------------------------------------------------------
 
     connect_param!(m, :dice2016R2_damage => :temperature, :TempNorm_1900 => :global_temperature_norm)
     connect_param!(m, :dice2016R2_damage => :gdp, :Socioeconomic => :gdp)
 
     # --------------------------------------------------------------------------
-    # Howard and Sterner damages
+    # Howard and Sterner Damages
     # --------------------------------------------------------------------------
 
     connect_param!(m, :hs_damage => :temperature, :TempNorm_1880 => :global_temperature_norm)
     connect_param!(m, :hs_damage => :gdp,  :Socioeconomic => :gdp)
 
     # --------------------------------------------------------------------------
-	# Damage aggregation
+	# Damage Aggregation
     # --------------------------------------------------------------------------
 
     connect_param!(m, :DamageAggregator => :damage_ag, :Agriculture => :agcost)
@@ -644,7 +643,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :DamageAggregator, :domestic_idxs_energy_countries_dim, domestic_idxs_energy_countries_dim)
 
     # --------------------------------------------------------------------------
-	# Net consumption
+	# Net Consumption
     # --------------------------------------------------------------------------
     
     connect_param!(m, :global_netconsumption => :gdp, :Socioeconomic => :gdp)

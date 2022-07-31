@@ -28,18 +28,18 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
                                         :HFC227ea => 1e3, # kt to t
                                         :HFC245fa => 1e3) # kt to t
 """
-    compute_scc(m::Model=get_model(); 
+    compute_scc(m::Model = get_model(); 
             year::Union{Int, Nothing} = nothing, 
             last_year::Int = _model_years[end], 
             prtp::Union{Float64,Nothing} = 0.015, 
-            eta::Union{Float64,Nothing}=1.45,
-            discount_rates=nothing,
-            certainty_equivalent=false,
+            eta::Union{Float64,Nothing} = 1.45,
+            discount_rates = nothing,
+            certainty_equivalent = false,
             fair_parameter_set::Symbol = :random,
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-            n=0,
+            n = 0,
             gas::Symbol = :CO2,
             save_list::Vector = [],
             output_dir::Union{String, Nothing} = nothing,
@@ -50,8 +50,8 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
-            post_mcs_creation_function=nothing,
-            pulse_size::Float64=1.
+            post_mcs_creation_function = nothing,
+            pulse_size::Float64 = 1.
         )
 
 Compute the SC of a gas for the GIVE in USD \$2005
@@ -82,18 +82,18 @@ that will be run, otherwise it is set to `nothing` and ignored.
 - `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size of 1Gt of C for CO2, 1Mt of CH4, and 1Mt of N2O. 
 
 """
-function compute_scc(m::Model=get_model(); 
+function compute_scc(m::Model = get_model(); 
             year::Union{Int, Nothing} = nothing, 
             last_year::Int = _model_years[end], 
             prtp::Union{Float64,Nothing} = 0.015, 
-            eta::Union{Float64,Nothing}=1.45,
-            discount_rates=nothing,
-            certainty_equivalent=false,
+            eta::Union{Float64,Nothing} = 1.45,
+            discount_rates = nothing,
+            certainty_equivalent = false,
             fair_parameter_set::Symbol = :random,
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-            n=0,
+            n = 0,
             gas::Symbol = :CO2,
             save_list::Vector = [],
             output_dir::Union{String, Nothing} = nothing,
@@ -104,8 +104,8 @@ function compute_scc(m::Model=get_model();
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
-            post_mcs_creation_function=nothing,
-            pulse_size::Float64=1.
+            post_mcs_creation_function = nothing,
+            pulse_size::Float64 = 1.
         )
 
     hfc_list = [:HFC23, :HFC32, :HFC43_10, :HFC125, :HFC134a, :HFC143a, :HFC227ea, :HFC245fa]
@@ -128,7 +128,8 @@ function compute_scc(m::Model=get_model();
                             prtp=prtp, 
                             eta=eta, 
                             discount_rates=discount_rates, 
-                            gas=gas, domestic=compute_domestic_values, 
+                            gas=gas, 
+                            domestic=compute_domestic_values, 
                             CIAM_foresight=CIAM_foresight,
                             CIAM_GDPcap=CIAM_GDPcap,
                             pulse_size=pulse_size
@@ -142,10 +143,10 @@ function compute_scc(m::Model=get_model();
 
         return _compute_scc_mcs(mm, 
                                 n, 
-                                year=year, 
-                                last_year=last_year, 
-                                discount_rates=discount_rates, 
-                                certainty_equivalent=certainty_equivalent,
+                                year = year, 
+                                last_year = last_year, 
+                                discount_rates = discount_rates, 
+                                certainty_equivalent = certainty_equivalent,
                                 fair_parameter_set = fair_parameter_set,
                                 fair_parameter_set_ids = fair_parameter_set_ids,
                                 rffsp_sampling = rffsp_sampling,
@@ -161,7 +162,7 @@ function compute_scc(m::Model=get_model();
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
                                 post_mcs_creation_function = post_mcs_creation_function,
-                                pulse_size=pulse_size
+                                pulse_size = pulse_size
                             )
     end
 end
@@ -797,8 +798,8 @@ function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::
     year === nothing ? error("Must specify an emission year. Try `get_marginal_model(m, year=2020)`.") : nothing
     !(year in _model_years) ? error("Cannot add marginal emissions in $year, year must be within the model's time index $_model_years.") : nothing
 
-    # NOTE here that the pulse size will be used as the `delta` parameter for 
-    # the `MarginalModel` and thus allow computation of the SCC to return units of
+    # NOTE: the pulse size will be used as the `delta` parameter for 
+    # the `MarginalModel` and, thus, allow computation of the SCC to return units of
     # dollars per ton, as long as `pulse_size` is interpreted as baseline units
     # of the given gas, which is units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
     mm = create_marginal_model(m, scc_gas_pulse_size_conversions[gas] .* pulse_size)
@@ -866,12 +867,12 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::F
 
         # perturb hfc emissions
 
-        # For now this will return :emiss_other_ghg because it is treated as a 
+        # for now this will return :emiss_other_ghg because it is treated as a 
         # shared parameter in MimiFAIRv1_6_2, and thus also in this model, but this
         # line keeps us robust if it becomes an unshared parameter.
         model_param_name = Mimi.get_model_param_name(m, :other_ghg_cycles, :emiss_other_ghg)
 
-        # Obtain the base emissions values from the model - the following line 
+        # obtain the base emissions values from the model - the following line 
         # allows us to do so without running the model. If we had run the model
         # we can use deepcopy(m[:other_ghg_cycles, :emiss_other_ghg])
         new_emissions = deepcopy(Mimi.model_param(m, model_param_name).values.data)

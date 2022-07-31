@@ -201,7 +201,7 @@ Note that if `results_in_memory` is set to `false`, you will not be able to expl
 - `output_dir` (default is `nothing` and then constructed under the hood) - if this is not entered, a default folder will be constructed within your `output` folder with the date, time, and trials number. Any saved data will be saved to this folder, including `trials.csv` if `save_trials = true` (a large `n` will make this too big :)) and anything in the `save_list` as described below.
 
 - `save_list` (default is empty vector `[]`) is a vector of Tuples, each holding two Symbols, an example is below. Note this can be any variable or parameter you see in any component of the model (all also shown in the explorer). If you are wondering about a specific parameter that is set with a random variable, take a look at the `get_mcs` function and see where a given random variable is assigned to.a component/parameter pair.  **Inquire with model developers if you are curious about how to export something specific!**
-
+```
 mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co2)])
 ```
 
@@ -248,7 +248,7 @@ Currently, this Monte Carlo Simulation includes the following uncertain paramete
 We provide a user-facing API call `compute_scc` to compute the Social Cost of CO2 **in USD $\2005** for this model.  The signature of this function is as follows:
 
 ```julia
-function compute_scc(m::Model=get_model(); 
+function compute_scc(m::Model = get_model(); 
                     year::Union{Int, Nothing} = nothing, 
                     last_year::Int = _model_years[end], 
                     prtp::Union{Float64,Nothing} = 0.015, 
@@ -324,6 +324,7 @@ m = MimiGIVE.get_model()
 update_param!(m, :DamageAggregator, :include_ag, true)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
 update_param!(m, :DamageAggregator, :include_slr, false)
+update_param!(m, :DamageAggregator, :include_energy, false)
 
 MimiGIVE.compute_scc(m, year=2020, prtp=0.03, eta=0.)
 ```
@@ -449,11 +450,9 @@ Below we list the main structure of the model, for information on direct input d
 
 - Citation: Clarke, L., Eom, J., Marten, E. H., Horowitz, R., Kyle, P., Link, R., ... & Zhou, Y. (2018). Effects of long-term climate change on global building energy expenditures. Energy Economics, 72, 667-677.
 
-### Global damages functions (Kalkuhl/Wenz, Nordhaus DICE2016R2, and Howard/Sterner)
+### Global Damages Functions
 
 _Non-default options to use for comparisons etc._
-
-- Citation: Kalkuhl, M., & Wenz, L. (2020). The impact of climate conditions on economic production. Evidence from a global panel of regions. Journal of Environmental Economics and Management, 103, 102360.
 
 - Citation: Nordhaus, W. D. (2017). Revisiting the social cost of carbon. Proceedings of the National Academy of Sciences, 114(7), 1518-1523.
 
