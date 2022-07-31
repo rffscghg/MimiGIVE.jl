@@ -128,7 +128,7 @@ run(m_ciam)
 # `explore` as above
 
 # NOTE: `explore` may be unwiedly and/or slow for CIAM, as the dimensionality 
-# is large with ~12,000 coastal segments), we recommend accessing variables individually
+# is large with ~12,000 coastal segments, we recommend accessing variables individually
 # instead
 explore(m_ciam) 
 ```
@@ -200,7 +200,7 @@ Note that if `results_in_memory` is set to `false`, you will not be able to expl
 
 - `output_dir` (default is `nothing` and then constructed under the hood) - if this is not entered, a default folder will be constructed within your `output` folder with the date, time, and trials number. Any saved data will be saved to this folder, including `trials.csv` if `save_trials = true` (a large `n` will make this too big :)) and anything in the `save_list` as described below.
 
-- `save_list` (default is empty vector `[]`) is a vector of Tuples, each holding two Symbols, an example is below.  Note this can be any variable or parameter you see in any component of the model (all also shown in the explorer). If you are wondering about a specific parameter that is set with a random variable, take a look at the `get_mcs` function and see where a given random variable is assigned to.a component/parameter pair.  **Also feel free to inquire with the team if your curious about how to grab something specific!**
+- `save_list` (default is empty vector `[]`) is a vector of Tuples, each holding two Symbols, an example is below. Note this can be any variable or parameter you see in any component of the model (all also shown in the explorer). If you are wondering about a specific parameter that is set with a random variable, take a look at the `get_mcs` function and see where a given random variable is assigned to.a component/parameter pair.  **Inquire with model developers if you are curious about how to export something specific!**
 ```
 mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co2)])
 ```
@@ -214,7 +214,7 @@ mcs = run_mcs(m, trials = 100, save_list = [(:temperature, :T), (:co2_cycle, :co
 
 This function uses similar arguments to above, with the following differences:
 - `results_in_memory` is automatically off without the option to turn it on.  This is changeable if desired.
-- `output_dir` will hold **two** folders, `model1` and `model2`, which correspond to `base` and `marginal` models ie. `base` and base + pulse of gas.  This may be helpful for looking at temperature trajectories and marginal damages. Remember that the pulse units are important, take a look at these two dictionaries from `scc.jl` which may help with conversions.  **Importantly, as of now this will not include any information from CIAM damages**, you can pull anything from BRICK, but not CIAM.
+- `output_dir` will hold **two** folders, `model_1` and `model_2`, which correspond to `base` and `marginal` models ie. `base` and base + pulse of gas (`marginal`).  This may be helpful for looking at temperature trajectories and marginal damages. Remember that the pulse units are important, take a look at these two dictionaries from `scc.jl` which may help with conversions.
 
 ```
 const scc_gas_molecular_conversions = Dict(:CO2 => 12/44, # C to CO2
@@ -241,25 +241,25 @@ Currently, this Monte Carlo Simulation includes the following uncertain paramete
 
 - Mortality: uncertainty using resampled parameterization of damage function for Cromar et al.
 
-- Global Damage Functions: uncertainty in Nordhaus (2017) and Howard and Sterner (2017) is derived from the parametric parameter uncertainty as stated in the corresponding publication and replication code. Kalkuhl and Wenz (2020) does not have any parameter uncertainty as it is a reduced-form approximation of their structural econometric specification. 
+- Global Damage Functions: uncertainty in Nordhaus (2017) and Howard and Sterner (2017) is derived from the parametric parameter uncertainty as stated in the corresponding publication and replication code.
 
 # 4. Calculating the SCC
 
 We provide a user-facing API call `compute_scc` to compute the Social Cost of CO2 **in USD $\2005** for this model.  The signature of this function is as follows:
 
 ```julia
-function compute_scc(m::Model=get_model(); 
+function compute_scc(m::Model = get_model(); 
                     year::Union{Int, Nothing} = nothing, 
                     last_year::Int = _model_years[end], 
                     prtp::Union{Float64,Nothing} = 0.015, 
-                    eta::Union{Float64,Nothing}=1.45,
-                    discount_rates=nothing,
-                    certainty_equivalent=false,
+                    eta::Union{Float64,Nothing} = 1.45,
+                    discount_rates = nothing,
+                    certainty_equivalent = false,
                     fair_parameter_set::Symbol = :random,
                     fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
                     rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                    n=0,
+                    n = 0,
                     gas::Symbol = :CO2,
                     save_list::Vector = [],
                     output_dir::Union{String, Nothing} = nothing,
@@ -270,8 +270,8 @@ function compute_scc(m::Model=get_model();
                     compute_domestic_values::Bool = false,
                     CIAM_foresight::Symbol = :perfect,
                     CIAM_GDPcap::Bool = false,
-                    post_mcs_creation_function=nothing,
-                    pulse_size::Float64=1.
+                    post_mcs_creation_function = nothing,
+                    pulse_size::Float64 = 1.
     )
 ```
 
@@ -324,6 +324,7 @@ m = MimiGIVE.get_model()
 update_param!(m, :DamageAggregator, :include_ag, true)
 update_param!(m, :DamageAggregator, :include_cromar_mortality, false)
 update_param!(m, :DamageAggregator, :include_slr, false)
+update_param!(m, :DamageAggregator, :include_energy, false)
 
 MimiGIVE.compute_scc(m, year=2020, prtp=0.03, eta=0.)
 ```
@@ -352,8 +353,8 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 
 - **Marginal Damages** (only relevant for Monte Carlo Simulation): Set keyword argument `save_md` to `true` to include undiscounted marginal damages in the returned results. 
 - **Net Per Capita Consumption** (only relevant for Monte Carlo Simulation): Set keyword argument `save_cpc` to `true` to include net per capita consumption in the returned results.
-- **Sectorally Disaggregated Values** (only relevant for Monte Carlo Simulation): Set keyword argument `compute_sectoral_values` to `true` to compute sectorally disaggregated values. Calculations of the disaggregated sectoral SCCs will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and sectoral calculations of the SCC. To compute an isolated sectoral SCC one may run a separate simulatin with only that sector's damages turned on.
-- **Within US Borders Values** - Set keyword argument `compute_domestic_values` to `true` to include SCC (and optional marginal damage) values disaggregated to the within-borders USA damages.  Calculations of the disaggregated within US borders SCC will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and within borders calculations of the SCC. 
+- **Sectorally Disaggregated Values** (only relevant for Monte Carlo Simulation): Set keyword argument `compute_sectoral_values` to `true` to compute sectorally disaggregated values. Calculations of the disaggregated sectoral SCCs will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and sectoral calculations of the SCC. To compute an isolated sectoral SCC one may run a separate simulation with only that sector's damages turned on.
+- **Within U.S. Borders Values** - Set keyword argument `compute_domestic_values` to `true` to include SCC (and optional marginal damage) values disaggregated to the within-borders USA damages.  Calculations of the disaggregated within U.S. borders SCC will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and within borders calculations of the SCC. 
 
 If all four of these are set to true one would runs something like:
 ```julia
@@ -449,11 +450,9 @@ Below we list the main structure of the model, for information on direct input d
 
 - Citation: Clarke, L., Eom, J., Marten, E. H., Horowitz, R., Kyle, P., Link, R., ... & Zhou, Y. (2018). Effects of long-term climate change on global building energy expenditures. Energy Economics, 72, 667-677.
 
-### Global damages functions (Kalkuhl/Wenz, Nordhaus DICE2016R2, and Howard/Sterner)
+### Global Damages Functions
 
 _Non-default options to use for comparisons etc._
-
-- Citation: Kalkuhl, M., & Wenz, L. (2020). The impact of climate conditions on economic production. Evidence from a global panel of regions. Journal of Environmental Economics and Management, 103, 102360.
 
 - Citation: Nordhaus, W. D. (2017). Revisiting the social cost of carbon. Proceedings of the National Academy of Sciences, 114(7), 1518-1523.
 
