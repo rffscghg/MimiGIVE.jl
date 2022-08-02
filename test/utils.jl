@@ -165,7 +165,7 @@ data in the `valdiationdir`. The `savevars` vector should hold Named Tuples
 function validate_model_data(m::Model, savevars::Vector, validationdir::String)
 
     # TOLERANCE
-    rtol = 1e-9
+    rtol = 1e-6 # use relative tolerance for model data since can't assume orders of magnitude
 
     run(m)
     for tup in savevars
@@ -211,7 +211,7 @@ function validate_scc_data(validationdir::String;
                         )
                             
     # TOLERANCE
-    atol = 1e-9
+    atol = 1e-3 # tolerance set to 1/10th of a cent
 
     # load validation data
     filename = "SCC-$gas.csv"
@@ -277,8 +277,8 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
                             
 
     # TOLERANCE
-    atol = 1e-9
-    rtol = 1e-9
+    atol = 1e-3 # tolerance set to 1/10th of a cent
+    rtol = 1e-6 # use relative tolerance for non-SCC values
 
     # get the model data
     tmpdir = tempdir()
