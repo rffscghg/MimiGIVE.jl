@@ -47,15 +47,46 @@ function save_scc_data(outdir::String;
                         CIAM_GDPcap::Bool = false,
                         pulse_size::Float64=1.
                     )
-        
+    
+    df = DataFrame(:dr_label => [], :prtp => [], :eta => [], :sector => [], :scc => [])
+
+    # global
     results = MimiGIVE.compute_scc(m; year=year, last_year=last_year, discount_rates=discount_rates,
                             gas=gas, CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,
                             pulse_size=pulse_size)
-        
-    df = DataFrame(:dr_label => [], :prtp => [], :eta => [], :scc => [])
     for (k,v) in results
-        append!(df, DataFrame(:dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :scc => v))
+        append!(df, DataFrame(:dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :sector => :global, :scc => v))
     end
+
+    # check which sectors are true
+    run(m)
+    included_sectors = []
+    for sector in [:energy, :ag, :cromar_mortality, :slr]
+        if m[:DamageAggregator, Symbol(:include_, sector)]
+            push!(included_sectors, sector) # add to the list
+            update_param!(m, :DamageAggregator, Symbol(:include_, sector), false) # turn it off
+        end
+    end
+
+    # sectoral
+    for sector in included_sectors
+        update_param!(m, :DamageAggregator, Symbol(:include_, sector), true)
+        results = MimiGIVE.compute_scc(m; year=year, last_year=last_year, discount_rates=discount_rates,
+                            gas=gas, CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,
+                            pulse_size=pulse_size)
+        for (k,v) in results
+            append!(df, DataFrame(:dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :sector => sector, :scc => v))
+        end
+        update_param!(m, :DamageAggregator, Symbol(:include_, sector), false)
+    end
+
+    # turn back on so m is unchanged
+    for sector in [:energy, :ag, :cromar_mortality, :slr]
+        if m[:DamageAggregator, Symbol(:include_, sector)]
+            update_param!(m, :DamageAggregator, Symbol(:include_, sector), true) # turn it on
+        end
+    end
+
     df |> save(joinpath(outdir, "SCC-$gas.csv"))
 end
 
@@ -211,25 +242,61 @@ function validate_scc_data(validationdir::String;
                         )
                             
     # TOLERANCE
-    atol = 1e-6 # tolerance set to 1/1000th of a cent
+    atol = 1e-6 # for SCC dollar values
 
     # load validation data
     filename = "SCC-$gas.csv"
     validation_df = load(joinpath(validationdir, filename)) |> DataFrame
 
-    # get the model data
+    # get the global model data
     results = MimiGIVE.compute_scc(m; year=year, last_year=last_year, discount_rates=discount_rates,
                             gas=gas, CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,
                             pulse_size=pulse_size)
         
-    # test each discount rate
+    # test each discount rate/sector combination
     for (k,v) in results
         validation_scc = validation_df |> 
-            @filter(_.dr_label == k.dr_label) |> 
+            @filter(_.dr_label == k.dr_label && _.sector == "global") |> 
             DataFrame
         validation_scc = (validation_scc.scc)[1]
-
         @test validation_scc ≈ v atol = atol
+    end
+
+    # check which sectors are true
+    run(m)
+    included_sectors = []
+    for sector in [:energy, :ag, :cromar_mortality, :slr]
+        if m[:DamageAggregator, Symbol(:include_, sector)]
+            push!(included_sectors, sector) # add to the list
+            update_param!(m, :DamageAggregator, Symbol(:include_, sector), false) # turn it off
+        end
+    end
+
+    for sector in included_sectors
+
+        # get the sectoral model data
+        update_param!(m, :DamageAggregator, Symbol(:include_, sector), true)
+        results = MimiGIVE.compute_scc(m; year=year, last_year=last_year, discount_rates=discount_rates,
+                            gas=gas, CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,
+                            pulse_size=pulse_size)
+
+        # test each discount rate/sector combination
+        for (k,v) in results
+            validation_scc = validation_df |> 
+                @filter(_.dr_label == k.dr_label && _.sector == string(sector)) |> 
+                DataFrame
+            validation_scc = (validation_scc.scc)[1]
+            @test validation_scc ≈ v atol = atol
+
+        end
+        update_param!(m, :DamageAggregator, Symbol(:include_, sector), false)
+    end
+
+    # turn back on so m is unchanged
+    for sector in [:energy, :ag, :cromar_mortality, :slr]
+        if m[:DamageAggregator, Symbol(:include_, sector)]
+            update_param!(m, :DamageAggregator, Symbol(:include_, sector), true) # turn it on
+        end
     end
 
 end
@@ -277,7 +344,7 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
                             
 
     # TOLERANCE
-    atol = 1e-6 # tolerance set to 1/1000th of a cent
+    atol = 1e-6 # for SCC dollar values
     rtol = 1e-9 # use relative tolerance for non-SCC values
 
     # get the model data
