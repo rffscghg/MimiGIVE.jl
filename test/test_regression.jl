@@ -23,7 +23,13 @@ savevars = [
     (compname = :global_netconsumption, varname = :net_consumption),
     (compname = :global_netconsumption, varname = :net_cpc),
     (compname = :global_netconsumption, varname = :global_gdp),
-    (compname = :global_netconsumption, varname = :global_population),   
+    (compname = :global_netconsumption, varname = :global_population),
+    (compname = :temperature, varname = :T),
+    (compname = :glaciers_small_icecaps, varname = :gsic_sea_level) ,
+    (compname = :antarctic_icesheet, varname = :ais_sea_level),
+    (compname = :greenland_icesheet, varname = :greenland_sea_level),
+    (compname = :thermal_expansion, varname = :te_sea_level),
+    (compname = :landwater_storage, varname = :lws_sea_level)
 ]
 
 # default model
@@ -81,7 +87,13 @@ save_list = [
     (:global_netconsumption, :net_consumption),
     (:global_netconsumption, :net_cpc),
     (:global_netconsumption, :global_gdp),
-    (:global_netconsumption, :global_population),   
+    (:global_netconsumption, :global_population),
+    (:temperature, :T),
+    (:glaciers_small_icecaps, :gsic_sea_level) ,
+    (:antarctic_icesheet, :ais_sea_level),
+    (:greenland_icesheet, :greenland_sea_level),
+    (:thermal_expansion, :te_sea_level),
+    (:landwater_storage, :lws_sea_level)
 ]
 
 n = 3

@@ -7,7 +7,7 @@ include("utils.jl")
 # subfolder of the validation_data folder.
 
 # label of folder to be created
-validation_label = "current"
+validation_label = "commit_482f4a1"
 
 ##------------------------------------------------------------------------------
 ## Model Data
@@ -26,7 +26,13 @@ savevars = [
     (compname = :global_netconsumption, varname = :net_consumption),
     (compname = :global_netconsumption, varname = :net_cpc),
     (compname = :global_netconsumption, varname = :global_gdp),
-    (compname = :global_netconsumption, varname = :global_population),   
+    (compname = :global_netconsumption, varname = :global_population),
+    (compname = :temperature, varname = :T),
+    (compname = :glaciers_small_icecaps, varname = :gsic_sea_level) ,
+    (compname = :antarctic_icesheet, varname = :ais_sea_level),
+    (compname = :greenland_icesheet, varname = :greenland_sea_level),
+    (compname = :thermal_expansion, varname = :te_sea_level),
+    (compname = :landwater_storage, varname = :lws_sea_level)
 ]
 
 # default model
@@ -54,20 +60,18 @@ discount_rates = [
 # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_SCC_2020")
 isdir(outdir) || mkpath(outdir)
-m = MimiGIVE.get_model()
 
-save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :CO2)
-save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :CH4)
-save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :N2O)
+save_scc_data(outdir; m = MimiGIVE.get_model(), year = 2020, discount_rates = discount_rates, gas = :CO2)
+save_scc_data(outdir; m = MimiGIVE.get_model(), year = 2020, discount_rates = discount_rates, gas = :CH4)
+save_scc_data(outdir; m = MimiGIVE.get_model(), year = 2020, discount_rates = discount_rates, gas = :N2O)
 
 # SSP245, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_SCC_2020")
 isdir(outdir) || mkpath(outdir)
-m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 
-save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :CO2)
-save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :CH4)
-save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :N2O)
+save_scc_data(outdir; m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245"), year = 2020, discount_rates = discount_rates, gas = :CO2)
+save_scc_data(outdir; m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245"), year = 2020, discount_rates = discount_rates, gas = :CH4)
+save_scc_data(outdir; m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245"), year = 2020, discount_rates = discount_rates, gas = :N2O)
 
 ##------------------------------------------------------------------------------
 ## Compute SCC MCS Data
@@ -93,7 +97,13 @@ save_list = [
     (:global_netconsumption, :net_consumption),
     (:global_netconsumption, :net_cpc),
     (:global_netconsumption, :global_gdp),
-    (:global_netconsumption, :global_population),   
+    (:global_netconsumption, :global_population),
+    (:temperature, :T),
+    (:glaciers_small_icecaps, :gsic_sea_level) ,
+    (:antarctic_icesheet, :ais_sea_level),
+    (:greenland_icesheet, :greenland_sea_level),
+    (:thermal_expansion, :te_sea_level),
+    (:landwater_storage, :lws_sea_level)
 ]
 
 n = 3
