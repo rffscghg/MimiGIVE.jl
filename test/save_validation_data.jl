@@ -3,8 +3,8 @@ using Random
 
 include("utils.jl")
 
-# This script saves a set of validation data for the give date in the validation_data
-# folder.  These data are used for regression testing by test_regression.jl.
+# This script saves a set of validation data in a post-fixed validation_label 
+# subfolder of the validation_data folder.
 
 # label of folder to be created
 validation_label = "current"
@@ -30,13 +30,13 @@ savevars = [
 ]
 
 # default model
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$curr_date", "default_model")
+outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model")
 isdir(outdir) || mkpath(outdir)
 m = MimiGIVE.get_model()
 save_model_data(m, savevars::Vector, outdir::String)
 
 # SSP245
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$curr_date", "SSP245_model")
+outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model")
 isdir(outdir) || mkpath(outdir)
 m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 save_model_data(m, savevars::Vector, outdir::String)
@@ -52,7 +52,7 @@ discount_rates = [
                 ]
 
 # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$curr_date", "default_model_SCC_2020")
+outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_SCC_2020")
 isdir(outdir) || mkpath(outdir)
 m = MimiGIVE.get_model()
 
@@ -61,7 +61,7 @@ save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas =
 save_scc_data(outdir; m = m, year = 2020, discount_rates = discount_rates, gas = :N2O)
 
 # SSP245, SC-CO2 and SC-CH4 and SC-N2O in year 2020
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$curr_date", "SSP245_model_SCC_2020")
+outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_SCC_2020")
 isdir(outdir) || mkpath(outdir)
 m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 
@@ -101,7 +101,7 @@ seed = 999
 
 # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 for gas in [:CO2, :CH4, :N2O]
-    outdir = joinpath(@__DIR__, "validation_data", "validation_data_$curr_date", "default_model_MCS_SCC_2020", "$gas")
+    outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_MCS_SCC_2020", "$gas")
     isdir(outdir) || mkpath(outdir)
     m = MimiGIVE.get_model()
     save_scc_mcs_data(seed, outdir, n; 
@@ -112,7 +112,7 @@ end
 
 # SSP245, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 for gas in [:CO2, :CH4, :N2O]
-    outdir = joinpath(@__DIR__, "validation_data", "validation_data_$curr_date", "SSP245_model_MCS_SCC_2020", "$gas")
+    outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_MCS_SCC_2020", "$gas")
     isdir(outdir) || mkpath(outdir)
     m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
     save_scc_mcs_data(seed, outdir, n; 
