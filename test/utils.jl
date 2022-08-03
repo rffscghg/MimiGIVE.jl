@@ -81,7 +81,7 @@ function save_scc_data(outdir::String;
     end
 
     # turn back on so m is unchanged
-    for sector in [:energy, :ag, :cromar_mortality, :slr]
+    for sector in included_sectors
         if m[:DamageAggregator, Symbol(:include_, sector)]
             update_param!(m, :DamageAggregator, Symbol(:include_, sector), true) # turn it on
         end
@@ -293,7 +293,7 @@ function validate_scc_data(validationdir::String;
     end
 
     # turn back on so m is unchanged
-    for sector in [:energy, :ag, :cromar_mortality, :slr]
+    for sector in included_sectors
         if m[:DamageAggregator, Symbol(:include_, sector)]
             update_param!(m, :DamageAggregator, Symbol(:include_, sector), true) # turn it on
         end
