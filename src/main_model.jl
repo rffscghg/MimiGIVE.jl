@@ -578,7 +578,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :Agriculture, :floor_on_damages, Agriculture_floor_on_damages)
     update_param!(m, :Agriculture, :ceiling_on_benefits, Agriculture_ceiling_on_benefits)
     update_param!(m, :Agriculture, :agrish0, Array{Float64, 1}(readdlm(joinpath(MooreAg.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:,2]))
-    update_param!(m, :Agriculture, :gtap_df, gtap_df)
 
     connect_param!(m, :Agriculture => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :Agriculture => :income, :Agriculture_aggregator_gdp => :output)
