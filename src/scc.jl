@@ -123,16 +123,16 @@ function compute_scc(m::Model = get_model();
 
     if n==0
         return _compute_scc(mm, 
-                            year=year, 
-                            last_year=last_year, 
-                            prtp=prtp, 
-                            eta=eta, 
-                            discount_rates=discount_rates, 
-                            gas=gas, 
-                            domestic=compute_domestic_values, 
-                            CIAM_foresight=CIAM_foresight,
-                            CIAM_GDPcap=CIAM_GDPcap,
-                            pulse_size=pulse_size
+                            year = year, 
+                            last_year = last_year, 
+                            prtp = prtp, 
+                            eta = eta, 
+                            discount_rates = discount_rates, 
+                            gas = gas, 
+                            domestic = compute_domestic_values, 
+                            CIAM_foresight = CIAM_foresight,
+                            CIAM_GDPcap = CIAM_GDPcap,
+                            pulse_size = pulse_size
                         )
     else
         isnothing(discount_rates) ? error("To run the Monte Carlo compute_scc function (n != 0), please use the `discount_rates` argument.") : nothing
@@ -293,22 +293,22 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     if options.save_md
 
         # global
-        md_values[(region=:globe, sector=:total)][trialnum, :] = total_mds[_damages_idxs]
+        md_values[(region = :globe, sector = :total)][trialnum, :] = total_mds[_damages_idxs]
         if options.compute_sectoral_values
-            md_values[(region=:globe, sector=:cromar_mortality)][trialnum, :]   = cromar_mortality_mds[_damages_idxs]
-            md_values[(region=:globe, sector=:agriculture)][trialnum, :]        = agriculture_mds[_damages_idxs]
-            md_values[(region=:globe, sector=:energy)][trialnum, :]             = energy_mds[_damages_idxs]
-            md_values[(region=:globe, sector=:slr)][trialnum, :]                = slr_mds[_damages_idxs]
+            md_values[(region = :globe, sector = :cromar_mortality)][trialnum, :]   = cromar_mortality_mds[_damages_idxs]
+            md_values[(region = :globe, sector = :agriculture)][trialnum, :]        = agriculture_mds[_damages_idxs]
+            md_values[(region = :globe, sector = :energy)][trialnum, :]             = energy_mds[_damages_idxs]
+            md_values[(region = :globe, sector = :slr)][trialnum, :]                = slr_mds[_damages_idxs]
         end
 
         # domestic
         if options.compute_domestic_values
-            md_values[(region=:domestic, sector=:total)][trialnum, :] = total_mds_domestic[_damages_idxs]
+            md_values[(region = :domestic, sector = :total)][trialnum, :] = total_mds_domestic[_damages_idxs]
             if options.compute_sectoral_values
-                md_values[(region=:domestic, sector=:cromar_mortality)][trialnum, :]   = cromar_mortality_mds_domestic[_damages_idxs]
-                md_values[(region=:domestic, sector=:agriculture)][trialnum, :]        = agriculture_mds_domestic[_damages_idxs]
-                md_values[(region=:domestic, sector=:energy)][trialnum, :]             = energy_mds_domestic[_damages_idxs]
-                md_values[(region=:domestic, sector=:slr)][trialnum, :]                = slr_mds_domestic[_damages_idxs]
+                md_values[(region = :domestic, sector = :cromar_mortality)][trialnum, :]   = cromar_mortality_mds_domestic[_damages_idxs]
+                md_values[(region = :domestic, sector = :agriculture)][trialnum, :]        = agriculture_mds_domestic[_damages_idxs]
+                md_values[(region = :domestic, sector = :energy)][trialnum, :]             = energy_mds_domestic[_damages_idxs]
+                md_values[(region = :domestic, sector = :slr)][trialnum, :]                = slr_mds_domestic[_damages_idxs]
             end
         end
     end
@@ -368,7 +368,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     for dr in discount_rates
         df = [((cpc[year_index]/cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
         if options.certainty_equivalent
-            df_ce = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...] # only used if optionas.certainty_equivalent=true
+            df_ce = [((1. / cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...] # only used if options.certainty_equivalent=true
         end
 
         # totals (sector=:total)
@@ -536,15 +536,15 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     # set some computation options
     options = (
-                compute_sectoral_values=compute_sectoral_values, 
-                compute_domestic_values=compute_domestic_values,
-                save_md=save_md,
-                save_cpc=save_cpc,
-                save_slr_damages=save_slr_damages,
-                CIAM_foresight=CIAM_foresight,
-                CIAM_GDPcap=CIAM_GDPcap,
-                certainty_equivalent=certainty_equivalent,
-                pulse_size=pulse_size
+                compute_sectoral_values = compute_sectoral_values, 
+                compute_domestic_values = compute_domestic_values,
+                save_md = save_md,
+                save_cpc = save_cpc,
+                save_slr_damages = save_slr_damages,
+                CIAM_foresight = CIAM_foresight,
+                CIAM_GDPcap = CIAM_GDPcap,
+                certainty_equivalent = certainty_equivalent,
+                pulse_size = pulse_size
             )
 
     payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
@@ -878,7 +878,7 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::F
         new_emissions = deepcopy(Mimi.model_param(m, model_param_name).values.data)
 
         # update emissions parameter with a pulse
-        new_emissions[pulse_year_index, gas_index] +=  1.0 # add 1 kt hfc
+        new_emissions[pulse_year_index, gas_index] +=  pulse_size # add pulse in kt hfc
         update_param!(m, :emiss_other_ghg, new_emissions)
         
     else
