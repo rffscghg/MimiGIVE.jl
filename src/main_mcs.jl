@@ -1,4 +1,4 @@
-using Distributions, Dates, Mimi, CSVFiles, DataFrames, MooreAg, StatsBase
+using Distributions, Dates, Mimi, CSVFiles, DataFrames, MimiMooreEtAlAgricultureImpacts, StatsBase
 import Mimi: SampleStore, add_RV!, add_transform!, add_save!
 
 """
@@ -181,7 +181,7 @@ function get_mcs(trials;
     end
 
     # add Agriculture mcs over gtap region damage function parameterizations
-    ag_sample_stores = MooreAg.get_probdists_gtap_df(trials)
+    ag_sample_stores = MimiMooreEtAlAgricultureImpacts.get_probdists_gtap_df(trials)
     for coef in [1,2,3] # three coefficients defined with an anonymous dimension
         for (i, region) in enumerate(["USA","CAN","WEU","JPK","ANZ","EEU","FSU","MDE","CAM","LAM","SAS","SEA","CHI","MAF","SSA","SIS"]) # fund regions for ag
             rv_name = Symbol("rv_gtap_coef$(coef)_$region")
