@@ -2,7 +2,7 @@ module TestGetModel
 
 using MimiGIVE
 using Test
-using MooreAg 
+using MimiMooreEtAlAgricultureImpacts 
 
 import MimiGIVE: get_model, compute_scc
 
@@ -80,9 +80,9 @@ for Agriculture_gtap in ["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF
     
     append!(sccs, compute_scc(m, year=2020))
     append!(agcosts, sum(skipmissing(m[:Agriculture, :agcost])))
-    gtap_idx = findfirst(isequal(Agriculture_gtap), MooreAg.gtaps)
+    gtap_idx = findfirst(isequal(Agriculture_gtap), MimiMooreEtAlAgricultureImpacts.gtaps)
 
-    @test m[:Agriculture, :gtap_df] == MooreAg.gtap_df_all[:, :, gtap_idx]
+    @test m[:Agriculture, :gtap_df] == MimiMooreEtAlAgricultureImpacts.gtap_df_all[:, :, gtap_idx]
 end
 
 @test allunique(sccs)

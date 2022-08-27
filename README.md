@@ -4,10 +4,12 @@ This package holds the scripts to run the GIVE integrated assessment model.
 
 # 1. Preparing the Software Environment
 
+You need to install [Julia](https://julialang.org/) version 1.6 to run this model.
+
 To add the package to your current environment, run the following command at the julia package REPL:
 
 ```julia
-pkg> add https://github.com/rffscghg/MimiGIVE.jl.git
+pkg> add MimiGIVE
 
 ```
 You probably also want to install the Mimi package into your julia environment, so that you can use some of the tools from that package:
@@ -440,7 +442,7 @@ Below we list the main structure of the model, for information on direct input d
 ### Agriculture
 
 - Citation: Moore, F.C., Baldos, U., Hertel, T. et al. New science of climate change impacts on agriculture implies higher social cost of carbon. Nat Commun 8, 1607 (2017). https://doi.org/10.1038/s41467-017-01792-x
-- Home Repository: [MooreAg.jl](https://github.com/rffscghg/MooreAg.jl)
+- Home Repository: [MimiMooreEtAlAgricultureImpacts.jl](https://github.com/rffscghg/MimiMooreEtAlAgricultureImpacts.jl)
 
 ### Mortality
 
