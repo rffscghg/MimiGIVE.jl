@@ -29,7 +29,7 @@ XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 [compat]
 CSVFiles = "1"
 DataFrames = "1"
-Distributions = "0.24"
+Distributions = "0.24, 0.25"
 Interpolations = "0.13"
 JSON = "0.21"
 Mimi = "1.4"
