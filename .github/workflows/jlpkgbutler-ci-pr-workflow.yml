@@ -15,9 +15,9 @@ jobs:
         exclude:
           - os: macOS-latest
             julia-arch: x86
-          - os: ubuntu-latest
+          - os: windows-latest
             julia-arch: x86
-            - os: windows-latest
+          - os: ubuntu-latest
             julia-arch: x86
 
     steps:
