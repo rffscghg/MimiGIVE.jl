@@ -459,3 +459,4 @@ _Non-default options to use for comparisons etc._
 - Citation: Nordhaus, W. D. (2017). Revisiting the social cost of carbon. Proceedings of the National Academy of Sciences, 114(7), 1518-1523.
 
 - Citation: Howard, P. H., & Sterner, T. (2017). Few and not so far between: a meta-analysis of climate damage estimates. Environmental and Resource Economics, 68(1), 197-225.
+
