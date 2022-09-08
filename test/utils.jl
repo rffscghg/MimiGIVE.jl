@@ -345,7 +345,7 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
 
     # TOLERANCE
     atol = 1e-3 # for SCC dollar values
-    rtol = 1e-6 # use relative tolerance for non-SCC values
+    rtol = 1e-4 # use relative tolerance for non-SCC values
 
     # get the model data
     tmpdir = tempdir()
