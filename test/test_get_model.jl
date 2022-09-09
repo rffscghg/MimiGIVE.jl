@@ -19,12 +19,9 @@ import MimiGIVE: get_model, compute_scc
 ##------------------------------------------------------------------------------
 ## API - test that run without error
 ##------------------------------------------------------------------------------
-println("Checkpoint 1")
 
 m = get_model()
 run(m)
-
-println("Checkpoint 2")
 
 # RFF socioeconomics
 for Agriculture_gtap in ["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF"]
@@ -73,8 +70,6 @@ end
 ## keyword arguments and values
 ##------------------------------------------------------------------------------
 
-println("Checkpoint 3")
-
 # Agriculture GTAP Parameter (Agriculture_gtap)
 sccs = []
 agcosts = []
@@ -89,8 +84,6 @@ for Agriculture_gtap in ["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF
 
     @test m[:Agriculture, :gtap_df] == MimiMooreEtAlAgricultureImpacts.gtap_df_all[:, :, gtap_idx]
 end
-
-println("Checkpoint 4")
 
 @test allunique(sccs)
 @test allunique(agcosts)
