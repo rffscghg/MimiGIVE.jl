@@ -242,7 +242,7 @@ function validate_scc_data(validationdir::String;
                         )
                             
     # TOLERANCE
-    atol = 1e-3 # for SCC dollar values
+    atol = 1e-4 # for SCC dollar values
 
     # load validation data
     filename = "SCC-$gas.csv"
@@ -344,8 +344,8 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
                             
 
     # TOLERANCE
-    atol = 1e-3 # for SCC dollar values
-    rtol = 1e-4 # use relative tolerance for non-SCC values
+    atol = 1e-4 # for SCC dollar values
+    rtol = 1e-5 # use relative tolerance for non-SCC values
 
     # get the model data
     tmpdir = tempdir()

@@ -90,6 +90,8 @@ for Agriculture_gtap in ["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF
     @test m[:Agriculture, :gtap_df] == MimiMooreEtAlAgricultureImpacts.gtap_df_all[:, :, gtap_idx]
 end
 
+println("Checkpoint 4")
+
 @test allunique(sccs)
 @test allunique(agcosts)
 @test agcosts[4] > agcosts[5] > agcosts[3] # lowDF > midDF > highDF
