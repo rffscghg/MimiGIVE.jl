@@ -4,7 +4,7 @@ using MimiGIVE
 include("new_sector_damages.jl")
 include("DamageAggregator_NewSectorDamages.jl")
 
-function get_new_sector_model()
+function get_modified_model()
 
     # Obtain MimiGIVE model
     m = MimiGIVE.get_model()

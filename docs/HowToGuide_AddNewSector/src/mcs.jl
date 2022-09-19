@@ -3,7 +3,7 @@ using MimiGIVE
 using Distributions
 using Dates
 
-function get_new_sector_mcs(trials; args...)
+function get_modified_mcs(trials; args...)
     mcs = MimiGIVE.get_mcs(trials; args...) # get the original MCS
 
     # add new sector uncertainty
@@ -13,14 +13,14 @@ function get_new_sector_mcs(trials; args...)
     return mcs
 end
 
-function run_new_sector_mcs(;trials::Int64 = 10000, 
+function run_modified_mcs(;trials::Int64 = 10000, 
                             output_dir::Union{String, Nothing} = nothing, 
                             save_trials::Bool = false,
                             fair_parameter_set::Symbol = :random,
                             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                             rffsp_sampling::Symbol = :random,
                             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                            m::Mimi.Model = get_new_sector_model(), 
+                            m::Mimi.Model = get_modified_model(), 
                             save_list::Vector = [],
                             results_in_memory::Bool = true,
                         )
@@ -43,7 +43,7 @@ function run_new_sector_mcs(;trials::Int64 = 10000,
     end
 
     # Get an instance of the mcs
-    mcs = get_new_sector_mcs(trials; 
+    mcs = get_modified_mcs(trials; 
         socioeconomics_source = socioeconomics_source, 
         mcs_years = Mimi.time_labels(m), 
         fair_parameter_set = fair_parameter_set, 
