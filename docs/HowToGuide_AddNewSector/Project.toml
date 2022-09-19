@@ -1,0 +1,8 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Mimi = "e4e893b0-ee5e-52ea-8111-44b3bdec128c"
+MimiGIVE = "08b927d4-7a58-4cf8-85d0-bad32a16dfbc"
+Query = "1a8c2f83-1ff3-5112-b086-8aa67b057ba1"
+VegaLite = "112f6efa-9a02-5b7d-90c0-432ed331239a"
