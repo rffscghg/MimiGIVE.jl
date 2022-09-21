@@ -1,4 +1,5 @@
 using Test, MimiGIVE
+ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
 @testset "Mimi" begin
 
