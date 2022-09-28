@@ -176,8 +176,8 @@ scale_other_ghg = reduce(hcat, scale_other_ghg)'
 scale_other_ghg = DataFrame(scale_other_ghg, :auto)
 # rename with names of minor greenhouse gases, not including our additional three HFCs
 rename!(scale_other_ghg, ["CF4", "C2F6", "C6F14", "HFC23", "HFC32", "HFC43_10", "HFC125", "HFC134a", "HFC143a", "HFC227ea", "HFC245fa", "SF6"])
-# add three columns for the additional three HFCs, with identical scaling factors
-# since all other gases have the same scaling factors in this sample set
+# (HFC ADDITION NOTE) add three columns for the additional three HFCs, with 
+# identical scaling factors since all other gases have the same scaling factors in this sample set
 for hfc in [:HFC152a, :HFC236fa, :HFC365mfc]
     col = length(names(scale_other_ghg)) - 1
     insertcols!(scale_other_ghg, col, hfc => scale_other_ghg.CF4)
