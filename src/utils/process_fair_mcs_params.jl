@@ -57,7 +57,7 @@ n = 2237 # total number of available samples
 fair_params = JSON.parsefile(joinpath(@__DIR__, "..", "..", "data", "FAIR_mcs", "fair-1.6.2-wg3-params.json"));
 
 # Names of minor greenhouse gases and ozone-depleting substances (used or indexing).
-other_ghg_names = ["CF4", "C2F6", "C6F14", "HFC23", "HFC32", "HFC43_10", "HFC125", "HFC134a", "HFC143a", "HFC227ea", "HFC245fa", "SF6"]
+other_ghg_names = other_ghg_names = ["CF4", "C2F6", "C6F14", "HFC23", "HFC32", "HFC43_10", "HFC125", "HFC134a", "HFC143a", "HFC227ea", "HFC245fa", "HFC152a", "HFC236fa", "HFC365mfc", "SF6"]
 ods_names       = ["CFC_11", "CFC_12", "CFC_113", "CFC_114", "CFC_115", "CARB_TET", "MCF", "HCFC_22", "HCFC_141B", "HCFC_142B", "HALON1211", "HALON1202", "HALON1301", "HALON2402", "CH3BR", "CH3CL"]
 
 # Carbon cycle
