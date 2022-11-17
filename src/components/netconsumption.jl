@@ -5,8 +5,8 @@ using Mimi
 @defcomp GlobalNetConsumption begin
     country = Index()
 
-    gdp = Parameter(index=[time,country], unit="billion US\$2005/yr")
-    population  = Parameter(index=[time, country], unit="million")
+    gdp = Parameter(index=[time, country], unit="billion US\$2005/yr")
+    population = Parameter(index=[time, country], unit="million")
     total_damage = Parameter(index=[time], unit="US\$2005/yr")
 
     net_consumption = Variable(index=[time])
@@ -18,8 +18,8 @@ using Mimi
     function run_timestep(p, v, d, t)
 
         # Sum the population and gdp of all countries for the current timestep
-        v.global_population[t] = sum(p.population[t,:])
-        v.global_gdp[t] = sum(p.gdp[t,:])
+        v.global_population[t] = sum(p.population[t, :])
+        v.global_gdp[t] = sum(p.gdp[t, :])
 
         # Convert damages to billions
         total_damage = p.total_damage[t] / 1e9
