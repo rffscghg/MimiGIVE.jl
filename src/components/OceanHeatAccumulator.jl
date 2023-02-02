@@ -1,8 +1,7 @@
 using Mimi
 
-# ------------------------------------------------------------------------------
-# Accumulate the Ocean Heat Content from BRICK Over Time
-# ------------------------------------------------------------------------------
+# Accumulate the ocean heat content from BRICK over time
+# Wong et al., 2017
 
 @defcomp OceanHeatAccumulator begin
 
@@ -11,9 +10,9 @@ using Mimi
 
     function run_timestep(p, v, d, t)
 
-        # The BRICK TE component multiplies ocean heat by 1e22 because it's assuming 
-        # the SNEASY units. FAIR ocean heat is already in units of 10^22, so this
-        # divides by 1e22 just so it can be re-scaled again in the BRICK TE component.
+        # The BRICK TE component multiplies ocean heat by 1e22 because it assumes 
+        # SNEASY units. FAIR ocean heat is already in units of 10^22, so this
+        # divides by 1e22 so it can be re-scaled again in the BRICK TE component.
         if is_first(t)
             v.del_ohc_accum[t] = 0. # FAIR won't provide del_ohc for first period so leave at 0.
         else

@@ -1,8 +1,6 @@
 using Mimi
 
-# ------------------------------------------------------------------------------
-# Calculate the Per Capita GDP
-# ------------------------------------------------------------------------------
+# Calculate the per capita GDP
 
 @defcomp PerCapitaGDP begin
 

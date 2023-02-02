@@ -9,7 +9,7 @@ using MimiRFFSPs # RFF socioeconomic projections and emissions
 using MimiBRICK # Sea Level Rise
 using Mimi_NAS_pH # Ocean PH
 using MimiCIAM # Sea Level Rise Damages
-using MooreAg # Agriculture Damages
+using MimiMooreEtAlAgricultureImpacts # Agriculture Damages
 
 # Constants
 # (10/25/2021) BEA Table 1.1.9, line 1 GDP annual values as linked here: https://apps.bea.gov/iTable/iTable.cfm?reqid=19&step=3&isuri=1&select_all_years=0&nipa_table_list=13&series=a&first_year=2005&last_year=2020&scale=-99&categories=survey&thetable=

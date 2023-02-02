@@ -1,6 +1,15 @@
 using Mimi, CSVFiles, DataFrames, Query, StatsBase, XLSX, Interpolations, DelimitedFiles, Distributions
 
 """
+    get_model(; Agriculture_gtap::String = "midDF",
+                socioeconomics_source::Symbol = :RFF,
+                SSP_scenario::Union{Nothing, String} = nothing,       
+                RFFSPsample::Union{Nothing, Int} = nothing,
+                Agriculture_floor_on_damages::Bool = true,
+                Agriculture_ceiling_on_benefits::Bool = false,
+                vsl::Symbol= :epa
+            )
+                
 Get a GIVE Model with the given argument Settings
 
 -- Socioeconomic -- 
@@ -32,13 +41,15 @@ Get a GIVE Model with the given argument Settings
 
 -- Agriculture -- 
 
-- Agriculture_gtap (default midDF) - specify the `Agriculture_gtap_gtap` input parameter as one of 
+- Agriculture_gtap (default midDF) - specify the `Agriculture_gtap` input parameter as one of 
     `["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF"]`, indicating which 
     gtap damage function the component should use. 
+
  - Agriculture_floor_on_damages (default true) - If `Agriculture_gtap_floor_on_damages` = true, then 
     the agricultural damages (negative values of the `agcost` variable) in each 
     timestep will not be allowed to exceed 100% of the size of the  agricultural 
     sector in each region.
+
 - Agriculture_ceiling_on_benefits (default false) - If `Agriculture_gtap_ceiling_on_benefits` = true, 
     then the agricultural benefits (positive values of the `agcost` variable) in 
     each timestep will not be allowed to exceed 100% of the size of the agricultural 
@@ -73,7 +84,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Restrictions on arguments
     socioeconomics_source_options = [:SSP, :RFF]
     socioeconomics_source in socioeconomics_source_options ? nothing : error("The socioeconomics_source must be one of $(socioeconomics_source_options)")
-    Agriculture_gtap in MooreAg.gtaps ? nothing : error("Unknown GTAP dataframe specification: \"$gtap\". Must be one of the following: $(MooreAg.gtaps)")
+    Agriculture_gtap in MimiMooreEtAlAgricultureImpacts.gtaps ? nothing : error("Unknown GTAP dataframe specification: \"$Agriculture_gtap\". Must be one of the following: $(MimiMooreEtAlAgricultureImpacts.gtaps)")
 
     SSP_scenario_options = [nothing, "SSP119", "SSP126", "SSP245", "SSP370", "SSP585"]
     SSP_scenario in SSP_scenario_options ? nothing : error("The SSP_scenario must be one of $(SSP_scenario_options)")
@@ -121,9 +132,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
         ar6_scenario = lowercase(SSP_scenario)
     end
 
-    # Baseline mortality use SSP2 as a proxy for SSP4 and
-    # SSP1 as a proxy for SSP5 per instructions from the literature (relayed
-    # by David Smith and Bryan Parthum)
+    # Baseline mortality use SSP2 as a proxy for SSP4 and SSP1 as a proxy for 
+    # SSP5 per instructions from the literature
     mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
 
     # Grab the SSP name from the full scenario ie. SSP2 from SSP245
@@ -134,7 +144,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     end
 
     # --------------------------------------------------------------------------    
-    # MODEL CONSTRUCTION
+    # Model Construction
     # --------------------------------------------------------------------------    
 
     # component first and lasts
@@ -154,7 +164,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :segments, segment_fingerprints.segments) # BRICK components
     set_dimension!(m, :ag_mapping_input_regions, countries) # Agriculture Aggregator components
     set_dimension!(m, :ag_mapping_output_regions, fund_regions) # Agriculture Aggregator components
-    set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function (TODO: Update to GCAM subset? Just using all countries for now)
+    set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
 
@@ -174,8 +184,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # We add an identity component that simply passes values through here
     # This makes it easier to later insert the marginal emission modification component
     # between two components that don't use backup data
-    # NOTE we have to add different components instead of the Identity cookie cutter
-    # due to the Mimi bug in #865 and the use of backup data with connector comps later -- fix coming
     add_comp!(m, IdentityComponent_co2, :co2_emissions_identity, before = :co2_cycle);
     add_comp!(m, IdentityComponent_ch4, :ch4_emissions_identity, before = :ch4_cycle);
     add_comp!(m, IdentityComponent_n2o, :n2o_emissions_identity, before = :n2o_cycle);
@@ -210,7 +218,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Add Agriculture components
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_gdp, first = damages_first, after = :Agriculture_aggregator_population);
-    add_comp!(m, MooreAg.Agriculture, :Agriculture, first = damages_first, after = :Agriculture_aggregator_gdp);
+    add_comp!(m, MimiMooreEtAlAgricultureImpacts.Agriculture, :Agriculture, first = damages_first, after = :Agriculture_aggregator_gdp);
 
     # add aggregators for 1990 population and GDP if we are using the GIVE model
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_pop90, first = damages_first, after = :Agriculture_aggregator_gdp) : nothing
@@ -422,7 +430,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # and other, so we will simply let FAIR1.6.2 run with its original settings for land use CO2, which is 
     # consistent with Leach (FAIRv2.0) but just not broken out in that dataset, so this is consistent. 
     # For the RFF SPs we can either let them run with the middle-of the road and best matched (pop and emissions)
-    # ssp245 AR6 scenario, or explicitly connect new data.  Currently do the former.
+    # ssp245 AR6 scenario, or explicitly connect new data. Currently do the former.
 
     # --------------------------------------------------------------------------    
     # PerCapitaGDP
@@ -541,7 +549,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
 	# Agriculture
     # --------------------------------------------------------------------------
 
-    fund_regions != MooreAg.fund_regions && error("FUND regions for RFF Model do not match FUND regions for Agriculture.")
+    fund_regions != MimiMooreEtAlAgricultureImpacts.fund_regions && error("FUND regions for RFF Model do not match FUND regions for Agriculture.")
 
     # Handle in pop and gdp 1990 baseline values
     if socioeconomics_source == :SSP
@@ -563,14 +571,13 @@ function get_model(; Agriculture_gtap::String = "midDF",
     end  
 
     # Access which of the 5 possible DFs to use for the damage function
-    gtap_idx = findfirst(isequal(Agriculture_gtap), MooreAg.gtaps)
-    gtap_df = MooreAg.gtap_df_all[:, :, gtap_idx]
+    gtap_idx = findfirst(isequal(Agriculture_gtap), MimiMooreEtAlAgricultureImpacts.gtaps)
+    gtap_df = MimiMooreEtAlAgricultureImpacts.gtap_df_all[:, :, gtap_idx]
 
     update_param!(m, :Agriculture, :gtap_df, gtap_df)
     update_param!(m, :Agriculture, :floor_on_damages, Agriculture_floor_on_damages)
     update_param!(m, :Agriculture, :ceiling_on_benefits, Agriculture_ceiling_on_benefits)
-    update_param!(m, :Agriculture, :agrish0, Array{Float64, 1}(readdlm(joinpath(MooreAg.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:,2]))
-    update_param!(m, :Agriculture, :gtap_df, gtap_df)
+    update_param!(m, :Agriculture, :agrish0, Array{Float64, 1}(readdlm(joinpath(MimiMooreEtAlAgricultureImpacts.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:,2]))
 
     connect_param!(m, :Agriculture => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :Agriculture => :income, :Agriculture_aggregator_gdp => :output)
@@ -604,21 +611,21 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :energy_damages => :temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------
-    # DICE2016R2 damages
+    # DICE2016R2 Damages
     # --------------------------------------------------------------------------
 
     connect_param!(m, :dice2016R2_damage => :temperature, :TempNorm_1900 => :global_temperature_norm)
     connect_param!(m, :dice2016R2_damage => :gdp, :Socioeconomic => :gdp)
 
     # --------------------------------------------------------------------------
-    # Howard and Sterner damages
+    # Howard and Sterner Damages
     # --------------------------------------------------------------------------
 
     connect_param!(m, :hs_damage => :temperature, :TempNorm_1880 => :global_temperature_norm)
     connect_param!(m, :hs_damage => :gdp,  :Socioeconomic => :gdp)
 
     # --------------------------------------------------------------------------
-	# Damage aggregation
+	# Damage Aggregation
     # --------------------------------------------------------------------------
 
     connect_param!(m, :DamageAggregator => :damage_ag, :Agriculture => :agcost)
@@ -635,7 +642,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :DamageAggregator, :domestic_idxs_energy_countries_dim, domestic_idxs_energy_countries_dim)
 
     # --------------------------------------------------------------------------
-	# Net consumption
+	# Net Consumption
     # --------------------------------------------------------------------------
     
     connect_param!(m, :global_netconsumption => :gdp, :Socioeconomic => :gdp)

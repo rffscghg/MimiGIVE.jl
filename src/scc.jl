@@ -28,18 +28,18 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
                                         :HFC227ea => 1e3, # kt to t
                                         :HFC245fa => 1e3) # kt to t
 """
-    compute_scc(m::Model=get_model(); 
-            year::Union{Int, Nothing} = nothing,
-            last_year::Int = _model_years[end],
-            prtp::Union{Float64,Nothing} = 0.015,
-            eta::Union{Float64,Nothing}=1.45,
-            discount_rates=nothing,
-            certainty_equivalent=false,
+    compute_scc(m::Model = get_model(); 
+            year::Union{Int, Nothing} = nothing, 
+            last_year::Int = _model_years[end], 
+            prtp::Union{Float64,Nothing} = 0.015, 
+            eta::Union{Float64,Nothing} = 1.45,
+            discount_rates = nothing,
+            certainty_equivalent = false,
             fair_parameter_set::Symbol = :random,
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-            n=0,
+            n = 0,
             gas::Symbol = :CO2,
             save_list::Vector = [],
             output_dir::Union{String, Nothing} = nothing,
@@ -50,56 +50,50 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
-            post_mcs_creation_function=nothing,
-            pulse_size::Float64=1.
+            post_mcs_creation_function = nothing,
+            pulse_size::Float64 = 1.
         )
 
 Compute the SC of a gas for the GIVE in USD \$2005
 
-- `m` (default get_model()) - If no model is provided, the default model from MimiGIVE.get_model() is used. 
-- `prtp` (default 0.015) and `eta` (1.45) - Ramsey discounting parameterization
+- `m` (default get_model()) - if no model is provided, the default model from MimiGIVE.get_model() is used. 
+- 'year` (default nothing) - year of which to calculate SC (year of pulse)
+- `last_year` (default 2300) - last year to include in damages summation
+- `prtp` (default 0.015) and `eta` (default 1.45) - Ramsey discounting parameterization
 - `discount_rates` (default nothing) - a vector of Named Tuples ie. [(prpt = 0.03., eta = 1.45), (prtp = 0.015, eta = 1.45)] - required if running n > 1
 - `certainty_equivalent` (default false) - whether to compute the certainty equivalent or expected SCC
-- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be 
-chosen randomly from the provided sets, while :deterministic means they will be 
-based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
+- `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
 - `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 
 to :deterministic, this `n` element vector provides the fair parameter set ids 
 that will be run, otherwise it is set to `nothing` and ignored.
-- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF 
-SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they 
-will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
-- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic, 
-this `n` element vector provides the RFF SP ids that will be run, otherwise it is 
-set to `nothing` and ignored.
+- `rffsp_sampling` (default :random) - which sampling strategy to use for the RFF  SPs, :random means RFF SPs will be chosen randomly, while :deterministic means they will be based on the provided vector of to `rffsp_sampling_ids` keyword argument. 
+- `rffsp_sampling_ids` - (default nothing) - if `rffsp_sampling` is set to :deterministic,  this `n` element vector provides the RFF SP ids that will be run, otherwise it is set to `nothing` and ignored.
 - `n` (default 0) - If `n` is 0, the deterministic version will be run, otherwise, a monte carlo simulation will be run. 
 - `gas` (default :CO2) - the gas for which to compute the SC, options are :CO2, :CH4, and :N2O. 
-- `save_list` (default []) - which parameters and varaibles to save for each trial,
-entered as a vector of Tuples (:component_name, :variable_name)
+- `save_list` (default []) - which parameters and varaibles to save for each trial, entered as a vector of Tuples (:component_name, :variable_name)
 - `output_dir` (default constructed folder name) - folder to hold results 
 - `save_md` (default is false) - save and return the marginal damages from a monte carlo simulation
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
-- CIAM_foresight(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
-- CIAM_GDPcap (default is false) - Limit SLR damages to country-level annual GDP
-- `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size 
-of 1Gt of C for CO2, 1Mt of CH4, and 1Mt of N2O. 
+- `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
+- `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
+- `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size of 1Gt of C for CO2, 1Mt of CH4, and 1Mt of N2O. 
 
 """
-function compute_scc(m::Model=get_model(); 
+function compute_scc(m::Model = get_model(); 
             year::Union{Int, Nothing} = nothing, 
             last_year::Int = _model_years[end], 
             prtp::Union{Float64,Nothing} = 0.015, 
-            eta::Union{Float64,Nothing}=1.45,
-            discount_rates=nothing,
-            certainty_equivalent=false,
+            eta::Union{Float64,Nothing} = 1.45,
+            discount_rates = nothing,
+            certainty_equivalent = false,
             fair_parameter_set::Symbol = :random,
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-            n=0,
+            n = 0,
             gas::Symbol = :CO2,
             save_list::Vector = [],
             output_dir::Union{String, Nothing} = nothing,
@@ -110,8 +104,8 @@ function compute_scc(m::Model=get_model();
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
-            post_mcs_creation_function=nothing,
-            pulse_size::Float64=1.
+            post_mcs_creation_function = nothing,
+            pulse_size::Float64 = 1.
         )
 
     hfc_list = [:HFC23, :HFC32, :HFC43_10, :HFC125, :HFC134a, :HFC143a, :HFC227ea, :HFC245fa]
@@ -134,7 +128,8 @@ function compute_scc(m::Model=get_model();
                             prtp=prtp, 
                             eta=eta, 
                             discount_rates=discount_rates, 
-                            gas=gas, domestic=compute_domestic_values, 
+                            gas=gas, 
+                            domestic=compute_domestic_values, 
                             CIAM_foresight=CIAM_foresight,
                             CIAM_GDPcap=CIAM_GDPcap,
                             pulse_size=pulse_size
@@ -148,10 +143,10 @@ function compute_scc(m::Model=get_model();
 
         return _compute_scc_mcs(mm, 
                                 n, 
-                                year=year, 
-                                last_year=last_year, 
-                                discount_rates=discount_rates, 
-                                certainty_equivalent=certainty_equivalent,
+                                year = year, 
+                                last_year = last_year, 
+                                discount_rates = discount_rates, 
+                                certainty_equivalent = certainty_equivalent,
                                 fair_parameter_set = fair_parameter_set,
                                 fair_parameter_set_ids = fair_parameter_set_ids,
                                 rffsp_sampling = rffsp_sampling,
@@ -167,12 +162,12 @@ function compute_scc(m::Model=get_model();
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
                                 post_mcs_creation_function = post_mcs_creation_function,
-                                pulse_size=pulse_size
+                                pulse_size = pulse_size
                             )
     end
 end
 
-# helper function for computing SCC from a MarginalModel, not to be exported or advertised to users
+# Internal function to compute the SCC from a MarginalModel in a deterministic run
 function _compute_scc(mm::MarginalModel; 
                         year::Int, 
                         last_year::Int, 
@@ -272,6 +267,7 @@ function _compute_scc(mm::MarginalModel;
     end
 end
 
+# Post trial function to to after each trial within the MCS
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
@@ -538,6 +534,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     end
 end
 
+# Internal function to compute the SCC in a Monte Carlo Simulation
 function _compute_scc_mcs(mm::MarginalModel, 
                             n; 
                             year::Int, 
@@ -874,17 +871,18 @@ end
 """
     get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol, pulse_size::Float64)
 
-Creates a Mimi MarginalModel where the provided m is the base model, and the marginal model has additional emissions in year `year`.
-The marginal model will have an additional `pulse_size` of emissions in the specified `year` for gas `gas`, which will be in 
-units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4. If no Model m is provided, the default model from MimiGIVE.get_model() 
-is used as the base model.
+Create a Mimi MarginalModel where the provided m is the base model, and the marginal 
+model has additional emissions in year `year`. The marginal model will have an additional 
+`pulse_size` of emissions in the specified `year` for gas `gas`, which will be in 
+units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4. If no Model m is provided, 
+the default model from MimiGIVE.get_model() is used as the base model.
 """
 function get_marginal_model(m::Model; year::Union{Int, Nothing} = nothing, gas::Symbol, pulse_size::Float64)
     year === nothing ? error("Must specify an emission year. Try `get_marginal_model(m, year=2020)`.") : nothing
     !(year in _model_years) ? error("Cannot add marginal emissions in $year, year must be within the model's time index $_model_years.") : nothing
 
-    # note here that the pulse size will be used as the `delta` parameter for 
-    # the `MarginalModel` and thus allow computation of the SCC to return units of
+    # NOTE: the pulse size will be used as the `delta` parameter for 
+    # the `MarginalModel` and, thus, allow computation of the SCC to return units of
     # dollars per ton, as long as `pulse_size` is interpreted as baseline units
     # of the given gas, which is units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
     mm = create_marginal_model(m, scc_gas_pulse_size_conversions[gas] .* pulse_size)
@@ -897,8 +895,9 @@ end
 """
     add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64)
 
-Adds a marginal emission component to year m which adds the pulse_size of additional emissions in the specified `year` for gas `gas`, 
-which will be in units of GtC for CO2, MtN2 for N2O, and MtCH4 for CH4.
+Add a marginal emission component to year m which adds the pulse_size of additional 
+emissions in the specified `year` for gas `gas`, which will be in units of GtC 
+for CO2, MtN2 for N2O, MtCH4 for CH4, and kt for HFCs.
 """
 function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::Float64) 
 
@@ -951,12 +950,12 @@ function add_marginal_emissions!(m::Model, year::Int, gas::Symbol, pulse_size::F
 
         # perturb hfc emissions
 
-        # For now this will return :emiss_other_ghg because it is treated as a 
+        # for now this will return :emiss_other_ghg because it is treated as a 
         # shared parameter in MimiFAIRv1_6_2, and thus also in this model, but this
         # line keeps us robust if it becomes an unshared parameter.
         model_param_name = Mimi.get_model_param_name(m, :other_ghg_cycles, :emiss_other_ghg)
 
-        # Obtain the base emissions values from the model - the following line 
+        # obtain the base emissions values from the model - the following line 
         # allows us to do so without running the model. If we had run the model
         # we can use deepcopy(m[:other_ghg_cycles, :emiss_other_ghg])
         new_emissions = deepcopy(Mimi.model_param(m, model_param_name).values.data)

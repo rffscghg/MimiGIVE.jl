@@ -113,12 +113,8 @@ function update_ciam!(m, m_give, segment_fingerprints)
     update_param!(m, :slrcost, :ypcc, ypcc) # ypcc in USD in $2010/yr/person
 
     # Calculate the VSL
-    α       = m_give[:VSL, :α]   # VSL scaling parameter.
-    ϵ       = m_give[:VSL, :ϵ]   # Income elasticity of the value of a statistical life.
-    y₀      = m_give[:VSL, :y₀]  # Normalization constant.
-    # mirror the VSL component which follows the FUND mortality equation:  v.vsl[t,c] = p.α * (p.pc_gdp[t,c] / p.y₀) ^ p.ϵ
-    # component expects vsl in millions of US $2010 dollars
-    vsl_ciam_country = (α * (ypcc ./ y₀) .^  ϵ) ./ 1e6
+    # CIAM slrcost component expects vsl in millions of US $2010 dollars
+    vsl_ciam_country = m_give[:VSL, :vsl][time_idxs,country_idxs] .* 1/pricelevel_2010_to_2005 ./ 1e6 # US $2005/yr -> millions of US $2010/yr
     update_param!(m, :slrcost, :vsl_ciam_country, vsl_ciam_country)
 end
 
