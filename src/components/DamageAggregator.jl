@@ -34,9 +34,14 @@ using Mimi
     damage_dice2016R2 = Parameter(index=[time], unit="billion US\$2005/yr")
     damage_hs = Parameter(index=[time], unit="billion US\$2005/yr")
 
+    # damages aggregated by fund regions
+    damage_cromar_mortality_regions = Parameter(index=[time,fund_regions], unit="US\$2005/yr")
+    damage_energy_regions = Parameter(index=[time,fund_regions], unit="billion US\$2005/yr")
+
     gdp = Parameter(index=[time,country], unit="billion US\$2005/yr")
 
     total_damage = Variable(index=[time], unit="US\$2005/yr")
+    total_damage_regions = Variable(index=[time, fund_regions], unit="US\$2005/yr")
     total_damage_share = Variable(index=[time])
     total_damage_domestic = Variable(index=[time], unit="US\$2005/yr")
 
@@ -57,6 +62,14 @@ using Mimi
     end
 
     function run_timestep(p, v, d, t)
+
+        # regional annual aggregates
+        for r in d.fund_regions
+            v.total_damage_regions[t,r] = 
+                (p.include_cromar_mortality ? p.damage_cromar_mortality_regions[t,r] : 0.) +
+                (p.include_ag               ? p.damage_ag[t,r] * 1e9 : 0.) +
+                (p.include_energy           ? p.damage_energy_regions[t,r] * 1e9 : 0.)
+        end
 
         # global annual aggregates - for interim model outputs and partial SCCs
         v.cromar_mortality_damage[t]        = sum(p.damage_cromar_mortality[t,:])

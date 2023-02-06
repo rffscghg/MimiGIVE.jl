@@ -34,6 +34,7 @@ include("components/identity.jl")
 include("components/GlobalTempNorm.jl")
 include("components/OceanHeatAccumulator.jl")
 include("components/GlobalSLRNorm.jl")
+include("components/Damages_RegionAggregatorSum.jl")
 
 # Local Damage Components
 include("components/energy_damages.jl")
