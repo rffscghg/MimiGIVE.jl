@@ -333,6 +333,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         # should be zeroed out pre-emissions year
         ciam_mds.globe[1:year_index] .= 0.
         ciam_mds.domestic[1:year_index] .= 0.
+        ciam_mds.country[1:year_index, :] .= 0.
     end
 
     main_mds = (damages_marginal .- damages_base) .* gas_units_multiplier
@@ -525,6 +526,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             ag_marginal_damages = mm[:Agriculture, :agcost] .* 1e9 # fund regions
             en_marginal_damages = mm[:energy_damages, :energy_costs_dollar] .* 1e9 # country
             health_marginal_damages = mm[:CromarMortality, :mortality_costs] # country
+            slr_marginal_damages = ciam_mds.country # 145 countries (coastal only) -- pad with zeros
 
             pc_gdp_for_health = mm.base[:PerCapitaGDP, :pc_gdp]
             n_regions_for_health = size(pc_gdp_for_health, 2)
@@ -549,10 +551,8 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
             pc_gdp_for_slr = [fill(0., 2020-1750, 145); repeat(ciam_base[:slrcost, :ypcc][1:end-1,:], inner=(10,1)); ciam_base[:slrcost, :ypcc][end:end,:]]
             n_regions_for_slr = size(pc_gdp_for_slr, 2)
-            mds_ciam_country = (ciam_mds.modified_lim_cnt .- ciam_mds.base_lim_cnt) ./ gas_units_multiplier
-            mds_ciam_country = [fill(0., 2020-1750, 145); repeat(mds_ciam_country[1:end-1,:], inner=(10,1)); mds_ciam_country[end:end,:]]
             slr_scc_in_utils = sum(
-                mds_ciam_country[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                slr_marginal_damages[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
                 for (i,t) in enumerate(_model_years), r in 1:n_regions_for_slr if year<=t<=last_year
             )
 
@@ -587,6 +587,17 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             en_marginal_damages = mm[:DamageAggregator, :damage_energy_regions] .* 1e9 # fund regions 
             health_marginal_damages = mm[:DamageAggregator, :damage_cromar_mortality_regions] # fund regions
 
+            all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
+            idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
+            mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
+            # mm.base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
+            n_ciam_countries = length(idxs)
+
+            slr_marginal_damages = zeros(551, n_regions)
+            for i in 1:n_ciam_countries
+                slr_marginal_damages[:, mapping[i]] += ciam_mds.country[:,i]
+            end
+
             pc_consumption = mm.base[:regional_netconsumption, :net_cpc]
             n_regions = size(pc_consumption, 2)
 
@@ -605,13 +616,15 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
             )
 
-            # TODO Add CIAM
-            # slr_scc_in_utils = 
+            slr_scc_in_utils = sum(
+                slr_marginal_damages[i,r] / pc_consumption[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
+            )
 
             normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :fund_regions))
 
             scc = mm.base[:regional_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * (
-                health_scc_in_utils + ag_scc_in_utils + en_scc_in_utils # + slr_scc_in_utils
+                health_scc_in_utils + ag_scc_in_utils + en_scc_in_utils + slr_scc_in_utils
             ) 
 
             scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
@@ -628,8 +641,8 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 scc = mm.base[:regional_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * en_scc_in_utils
                 scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
-                # scc = mm.base[:regional_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * slr_scc_in_utils
-                # scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
+                scc = mm.base[:regional_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * slr_scc_in_utils
+                scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
             end
         else
             error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp, or :consumption.")
@@ -942,6 +955,9 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         modified_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
     end
 
+    # country
+    damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+
     # domestic
     domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
     domestic_idxs = indexin(domestic_countries, dim_keys(ciam_base, :ciam_country))
@@ -961,6 +977,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
+            country             = [fill(0., 2020 - _model_years[1], 145); damages_marginal_country], # billion USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
