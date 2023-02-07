@@ -327,7 +327,8 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     mm = Mimi.MarginalModel(base, marginal, 1/gas_units_multiplier)
 
     if include_slr
-        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) # NamedTuple with globe and domestic
+        # return a NamedTuple with globe and domestic and country as well as other helper values
+        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) 
         # zero out the CIAM marginal damages from start year (2020) through emissions
         # year - they will be non-zero due to foresight but saved marginal damages
         # should be zeroed out pre-emissions year
@@ -526,7 +527,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             ag_marginal_damages = mm[:Agriculture, :agcost] .* 1e9 # fund regions
             en_marginal_damages = mm[:energy_damages, :energy_costs_dollar] .* 1e9 # country
             health_marginal_damages = mm[:CromarMortality, :mortality_costs] # country
-            slr_marginal_damages = ciam_mds.country # 145 countries (coastal only) -- pad with zeros
+            slr_marginal_damages = ciam_mds.country # 145 countries (coastal only)
 
             pc_gdp_for_health = mm.base[:PerCapitaGDP, :pc_gdp]
             n_regions_for_health = size(pc_gdp_for_health, 2)
@@ -587,6 +588,9 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             en_marginal_damages = mm[:DamageAggregator, :damage_energy_regions] .* 1e9 # fund regions 
             health_marginal_damages = mm[:DamageAggregator, :damage_cromar_mortality_regions] # fund regions
 
+            pc_consumption = mm.base[:regional_netconsumption, :net_cpc]
+            n_regions = size(pc_consumption, 2)
+
             all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
             idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
             mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
@@ -597,9 +601,6 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             for i in 1:n_ciam_countries
                 slr_marginal_damages[:, mapping[i]] += ciam_mds.country[:,i]
             end
-
-            pc_consumption = mm.base[:regional_netconsumption, :net_cpc]
-            n_regions = size(pc_consumption, 2)
 
             health_scc_in_utils = sum(
                 health_marginal_damages[i,r] / pc_consumption[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
@@ -955,9 +956,6 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         modified_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
     end
 
-    # country
-    damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
-
     # domestic
     domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
     domestic_idxs = indexin(domestic_countries, dim_keys(ciam_base, :ciam_country))
@@ -974,13 +972,18 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
+    # country
+    damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+    damages_marginal_country = damages_marginal_country .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal_country = damages_marginal_country .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
+
     # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
             country             = [fill(0., 2020 - _model_years[1], 145); damages_marginal_country], # billion USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
-            damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
+            damages_base_domestic = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
             damages_modified_domestic = [fill(0., 2020 - _model_years[1]); damages_modified_domestic], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
