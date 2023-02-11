@@ -106,7 +106,7 @@ function compute_scc(m::Model = get_model();
         discount_rates_compatible = Array{NamedTuple}(undef, length(discount_rates))
         for (i, dr) in enumerate(discount_rates) 
             if !hasfield(typeof(dr), :ew) # old version without the ew specification
-                discount_rates_compatible[i] = (label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=false, ew_norm_region=nothing)
+                discount_rates_compatible[i] = (label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=nothing, ew_norm_region=nothing)
             else
                 discount_rates_compatible[i] = dr
             end
@@ -455,11 +455,11 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             # domestic totals (sector=:total)
             if options.compute_domestic_values
                 scc = sum(df .* total_mds_domestic[year_index:last_year_index])
-                scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=false)][trialnum] = scc
+                scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
                 if options.certainty_equivalent
                     intermediate_ce_scc = sum(df_ce .* total_mds_domestic[year_index:last_year_index])
-                    intermediate_ce_scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta)][trialnum] = intermediate_ce_scc
+                    intermediate_ce_scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region))][trialnum] = intermediate_ce_scc
                 end
             end
 
