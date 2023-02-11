@@ -99,10 +99,6 @@ function compute_scc(m::Model = get_model();
     # TODO - consider how to make these flags simple for the users (ie. should we 
     # use nothings, symbols, strings, a combo, etc.)
     if discount_rates !== nothing
-        ew_calcs = sum([!isnothing(dr.ew)==true for dr in discount_rates]) > 0
-        (certainty_equivalent && ew_calcs) ? error("Cannot calculate certainty equivalents for equity weighting approach.") : nothing
-        (compute_domestic_values && ew_calcs) ? error("Equity weighting cannot be applied to domestically calculated values.") : nothing # TODO - we could allow this in the mcs for non ew/domestic pairs but be conservative for now
-
         discount_rates_compatible = Array{NamedTuple}(undef, length(discount_rates))
         for (i, dr) in enumerate(discount_rates) 
             if !hasfield(typeof(dr), :ew) # old version without the ew specification
@@ -115,6 +111,11 @@ function compute_scc(m::Model = get_model();
         # are still going to have extra elements, but we need these to initialize, 
         # so in some ways this is a breaking change in terms of post-processing.
         discount_rates = copy(discount_rates_compatible) 
+
+        ew_calcs = sum([!isnothing(dr.ew)==true for dr in discount_rates]) > 0
+        (certainty_equivalent && ew_calcs) ? error("Cannot calculate certainty equivalents for equity weighting approach.") : nothing
+        (compute_domestic_values && ew_calcs) ? error("Equity weighting cannot be applied to domestically calculated values.") : nothing # TODO - we could allow this in the mcs for non ew/domestic pairs but be conservative for now
+
     end
 
     mm = get_marginal_model(m; year = year, gas = gas, pulse_size = pulse_size)
@@ -459,7 +460,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
                 if options.certainty_equivalent
                     intermediate_ce_scc = sum(df_ce .* total_mds_domestic[year_index:last_year_index])
-                    intermediate_ce_scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region))][trialnum] = intermediate_ce_scc
+                    intermediate_ce_scc_values[(region=:domestic, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = intermediate_ce_scc
                 end
             end
 

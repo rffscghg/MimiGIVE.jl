@@ -68,11 +68,11 @@ scc = compute_scc(year = 2025, last_year = 2200, discount_rates = drs, gas  = :C
 
 # discount rate
 @test compute_scc(year = 2020, prtp = 0.01, eta = 0.0) > compute_scc(year = 2020, prtp = 0.02, eta = 0.0) > compute_scc(year = 2020, prtp = 0.03, eta = 0.0) 
-drs = [(label = "CR 1%", prtp = 0.01, eta = 0.0), 
-        (label = "CR 2%", prtp = 0.02, eta = 0.0),
-        (label = "CR 3%", prtp = 0.03, eta = 0.0)]
+drs = [(label = "CR 1%", prtp = 0.01, eta = 0.0, ew = nothing, ew_norm_region = nothing), 
+        (label = "CR 2%", prtp = 0.02, eta = 0.0, ew = nothing, ew_norm_region = nothing),
+        (label = "CR 3%", prtp = 0.03, eta = 0.0, ew = nothing, ew_norm_region = nothing)]
 sccs = compute_scc(year = 2020; discount_rates = drs)
-@test sccs[(dr_label = "CR 1%", prtp = 0.01, eta = 0.0)] > sccs[(dr_label = "CR 2%", prtp = 0.02, eta = 0.0)] > sccs[(dr_label = "CR 3%", prtp = 0.03, eta = 0.0)]
+@test sccs[(dr_label = "CR 1%", prtp = 0.01, eta = 0.0, ew = nothing, ew_norm_region = nothing)] > sccs[(dr_label = "CR 2%", prtp = 0.02, eta = 0.0, ew = nothing, ew_norm_region = nothing)] > sccs[(dr_label = "CR 3%", prtp = 0.03, eta = 0.0, ew = nothing, ew_norm_region = nothing)]
 
 # gas
 @test compute_scc(year = 2020, gas = :CO2) < compute_scc(year = 2020, gas = :CH4) < compute_scc(year = 2020, gas = :N2O)
