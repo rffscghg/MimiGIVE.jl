@@ -180,6 +180,9 @@ function _compute_scc(mm::MarginalModel;
                         pulse_size::Float64
                     )
 
+    year_index = findfirst(isequal(year), _model_years)
+    last_year_index = findfirst(isequal(last_year), _model_years)
+
     # Run all model years even if taking a shorter last_year - running unnecessary 
     # timesteps but simplifies accumulation             
     run(mm)
@@ -192,24 +195,35 @@ function _compute_scc(mm::MarginalModel;
     ciam_base = Mimi.build(ciam_base)
     ciam_modified = Mimi.build(ciam_modified)
 
+    # calculate ciam marginal damages (for globe, country, and domestic) only if 
+    # we are including slr
+    if mm.base[:DamageAggregator, :include_slr]
+
+        all_ciam_marginal_damages = _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,  pulse_size=pulse_size)
+    
+        # zero out the CIAM marginal damages from start year (2020) through emissions
+        # year - they will be non-zero due to foresight but saved marginal damages
+        # should be zeroed out pre-emissions year
+        all_ciam_marginal_damages.globe[1:year_index] .= 0.
+        all_ciam_marginal_damages.domestic[1:year_index] .= 0.
+        all_ciam_marginal_damages.country[1:year_index, :] .= 0.
+    end
+    
     # Units Note:
     #   main_marginal_damages: the marginal model will handle pulse size, we handle molecular mass conversion explicilty
     #   ciam_marginal_damages: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
     if domestic
         main_marginal_damages = mm[:DamageAggregator, :total_damage_domestic] .* scc_gas_molecular_conversions[gas] 
-        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,  pulse_size=pulse_size).domestic : fill(0., length(_model_years)) 
+        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? all_ciam_marginal_damages.domestic : fill(0., length(_model_years)) 
     else
         main_marginal_damages = mm[:DamageAggregator, :total_damage] .* scc_gas_molecular_conversions[gas] 
-        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap, pulse_size=pulse_size).globe : fill(0., length(_model_years)) 
+        ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? all_ciam_marginal_damages.globe : fill(0., length(_model_years)) 
     end
 
     marginal_damages = main_marginal_damages .+ ciam_marginal_damages
     
     # We don't care about units here because we are only going to use ratios
     cpc = mm.base[:global_netconsumption, :net_cpc]
-
-    year_index = findfirst(isequal(year), _model_years)
-    last_year_index = findfirst(isequal(last_year), _model_years)
 
     if discount_rates!==nothing
         sccs = Dict{NamedTuple{(:dr_label,:prtp,:eta,:ew,:ew_norm_region),Tuple{Any,Float64,Float64,Union{Nothing, Symbol},Union{Nothing, String}}}, Float64}()
@@ -221,9 +235,10 @@ function _compute_scc(mm::MarginalModel;
 
             elseif dr.ew==:gdp # equity weight using gdp per capita
                 
-                ag_marginal_damages = mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 # fund regions
-                en_marginal_damages = mm[:energy_damages, :energy_costs_dollar] .* scc_gas_molecular_conversions[gas] * 1e9 # country
-                health_marginal_damages = mm[:CromarMortality, :mortality_costs] .* scc_gas_molecular_conversions[gas] # country
+                ag_marginal_damages     = mm.base[:DamageAggregator, :include_ag] ? mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 : fill(0., length(_model_years)) # fund regions
+                en_marginal_damages     = mm.base[:DamageAggregator, :include_energy] ? mm[:energy_damages, :energy_costs_dollar] .* scc_gas_molecular_conversions[gas] * 1e9 : fill(0., length(_model_years)) # country
+                health_marginal_damages = mm.base[:DamageAggregator, :include_cromar_mortality] ? mm[:CromarMortality, :mortality_costs] .* scc_gas_molecular_conversions[gas] : fill(0., length(_model_years)) # country
+                slr_marginal_damages    = mm.base[:DamageAggregator, :include_slr] ? all_ciam_marginal_damages.country : fill(0., length(_model_years)) # 145 countries (coastal only)
 
                 pc_gdp_for_health = mm.base[:PerCapitaGDP, :pc_gdp]
                 n_regions_for_health = size(pc_gdp_for_health, 2)
@@ -246,13 +261,17 @@ function _compute_scc(mm::MarginalModel;
                     for (i,t) in enumerate(_model_years), r in 1:n_regions_for_en if year<=t<=last_year
                 )
 
-                # TODO Add CIAM
-                # slr_scc_in_utils = 
+                pc_gdp_for_slr = [fill(0., 2020-1750, 145); repeat(ciam_base[:slrcost, :ypcc][1:end-1,:], inner=(10,1)); ciam_base[:slrcost, :ypcc][end:end,:]]
+                n_regions_for_slr = size(pc_gdp_for_slr, 2)
+                slr_scc_in_utils = sum(
+                    slr_marginal_damages[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                    for (i,t) in enumerate(_model_years), r in 1:n_regions_for_slr if year<=t<=last_year
+                )
 
                 normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :country))
 
                 scc = mm.base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * (
-                    health_scc_in_utils + ag_scc_in_utils + en_scc_in_utils # + slr_scc_in_utils
+                    health_scc_in_utils + ag_scc_in_utils + en_scc_in_utils  + slr_scc_in_utils
                 )
 
             elseif dr.ew==:consumption # equity weight using gdp per capita
@@ -266,13 +285,30 @@ function _compute_scc(mm::MarginalModel;
                     for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
                 )
 
-                # TODO Add CIAM
-                # slr_scc_in_utils = 
+                slr_marginal_damages = zeros(551, n_regions)
+
+                if mm.base[:DamageAggregator, :include_slr]
+                    all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
+                    idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
+                    mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
+                    # mm.base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
+                    n_ciam_countries = length(idxs)
+                    
+                    # aggregate from ciam countries to fund regions
+                    for i in 1:n_ciam_countries
+                        slr_marginal_damages[:, mapping[i]] += all_ciam_marginal_damages.country[:,i]
+                    end
+                end
+
+                slr_scc_in_utils = sum(
+                    slr_marginal_damages[i,r] / pc_consumption[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                    for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
+                )
 
                 normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :fund_regions))
 
                 scc = mm.base[:regional_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * (
-                    non_slr_scc_in_utils # + slr_scc_in_utils
+                    non_slr_scc_in_utils + slr_scc_in_utils
                 ) 
                 
             else
@@ -324,8 +360,6 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     #   slr_mds: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
     gas_units_multiplier = scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* options.pulse_size)
     include_slr = base[:DamageAggregator, :include_slr]
-
-    mm = Mimi.MarginalModel(base, marginal, 1/gas_units_multiplier)
 
     if include_slr
         # return a NamedTuple with globe and domestic and country as well as other helper values
@@ -525,10 +559,20 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
         elseif dr.ew==:gdp # equity weight with gdp
 
-            ag_marginal_damages = mm[:Agriculture, :agcost] .* 1e9 # fund regions
-            en_marginal_damages = mm[:energy_damages, :energy_costs_dollar] .* 1e9 # country
-            health_marginal_damages = mm[:CromarMortality, :mortality_costs] # country
-            slr_marginal_damages = ciam_mds.country # 145 countries (coastal only)
+            # get a marginal model to handle the units conversion up front 
+            # equity weighting approach of :gdp or :consumption -- this uses a
+            # a delta of 1/gas_units_multiplier which is a bit of an extended
+            # use of the "delta" element but fine for here.
+            #
+            # TODO this is convenient but might confuse users re. units since it is
+            # distinct from the mm passed to the compute_scc functions -- option 
+            # to revise code so entire function uses this mm configuration 
+            mm = Mimi.MarginalModel(base, marginal, 1/gas_units_multiplier)
+
+            ag_marginal_damages = mm.base[:DamageAggregator, :include_ag] ? mm[:Agriculture, :agcost] .* 1e9 : fill(0., length(_model_years)) # fund regions
+            en_marginal_damages = mm.base[:DamageAggregator, :include_energy] ? mm[:energy_damages, :energy_costs_dollar] .* 1e9 : fill(0., length(_model_years)) # country
+            health_marginal_damages = mm.base[:DamageAggregator, :include_cromar_mortality] ? mm[:CromarMortality, :mortality_costs] : fill(0., length(_model_years)) # country
+            slr_marginal_damages =  mm.base[:DamageAggregator, :include_slr] ? ciam_mds.country : fill(0., length(_model_years)) # 145 countries (coastal only)
 
             pc_gdp_for_health = mm.base[:PerCapitaGDP, :pc_gdp]
             n_regions_for_health = size(pc_gdp_for_health, 2)
@@ -583,24 +627,38 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
             end
 
-        elseif dr.ew == :consumption # equity weight with consumption
+        elseif dr.ew==:consumption # equity weight with consumption
+
+            # get a marginal model to handle the units conversion up front 
+            # equity weighting approach of :gdp or :consumption -- this uses a
+            # a delta of 1/gas_units_multiplier which is a bit of an extended
+            # use of the "delta" element but fine for here.
+            #
+            # TODO this is convenient but might confuse users re. units since it is
+            # distinct from the mm passed to the compute_scc functions -- option 
+            # to revise code so entire function uses this mm configuration 
+            mm = Mimi.MarginalModel(base, marginal, 1/gas_units_multiplier)
                 
-            ag_marginal_damages = mm[:Agriculture, :agcost] .* 1e9 # fund regions
-            en_marginal_damages = mm[:DamageAggregator, :damage_energy_regions] .* 1e9 # fund regions 
-            health_marginal_damages = mm[:DamageAggregator, :damage_cromar_mortality_regions] # fund regions
+            ag_marginal_damages = mm.base[:DamageAggregator, :include_ag] ? mm[:Agriculture, :agcost] .* 1e9 : fill(0., length(_model_years)) # fund regions
+            en_marginal_damages = mm.base[:DamageAggregator, :include_energy] ? mm[:DamageAggregator, :damage_energy_regions] .* 1e9 : fill(0., length(_model_years)) # fund regions 
+            health_marginal_damages = mm.base[:DamageAggregator, :include_cromar_mortality] ? mm[:DamageAggregator, :damage_cromar_mortality_regions] : fill(0., length(_model_years)) # fund regions
 
             pc_consumption = mm.base[:regional_netconsumption, :net_cpc]
             n_regions = size(pc_consumption, 2)
 
-            all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
-            idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
-            mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
-            # mm.base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
-            n_ciam_countries = length(idxs)
-
             slr_marginal_damages = zeros(551, n_regions)
-            for i in 1:n_ciam_countries
-                slr_marginal_damages[:, mapping[i]] += ciam_mds.country[:,i]
+
+            if mm.base[:DamageAggregator, :include_slr]
+                all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
+                idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
+                mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
+                # mm.base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
+                n_ciam_countries = length(idxs)
+                
+                # aggregate from ciam countries to fund regions
+                for i in 1:n_ciam_countries
+                    slr_marginal_damages[:, mapping[i]] += ciam_mds.country[:,i]
+                end
             end
 
             health_scc_in_utils = sum(
