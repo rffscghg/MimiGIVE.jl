@@ -634,10 +634,10 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
             slr_marginal_damages = zeros(551, n_regions)
 
-            if mm.base[:DamageAggregator, :include_slr] # only run ciam if including slr
+            if post_trial_mm.base[:DamageAggregator, :include_slr] # only run ciam if including slr
                 all_countries = base[:Damages_RegionAggregatorSum, :input_region_names]
                 idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
-                mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
+                mapping = post_trial_mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
                 # base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
                 n_ciam_countries = length(idxs)
                 
