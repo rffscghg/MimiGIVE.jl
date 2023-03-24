@@ -238,7 +238,7 @@ function _compute_scc(mm::MarginalModel;
                 ag_marginal_damages     = mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 # fund regions
                 en_marginal_damages     = mm[:energy_damages, :energy_costs_dollar] .* scc_gas_molecular_conversions[gas] * 1e9 # country
                 health_marginal_damages = mm[:CromarMortality, :mortality_costs] .* scc_gas_molecular_conversions[gas] # country
-                slr_marginal_damages    = mm.base[:DamageAggregator, :include_slr] ? all_ciam_marginal_damages.country : fill(0., length(_model_years)) # 145 countries (coastal only), only run ciam if needed
+                # note slr_marginal_damages allocated below for conciseness of variables
 
                 pc_gdp_for_health = mm.base[:PerCapitaGDP, :pc_gdp]
                 n_regions_for_health = size(pc_gdp_for_health, 2)
@@ -263,6 +263,7 @@ function _compute_scc(mm::MarginalModel;
 
                 pc_gdp_for_slr = [fill(0., 2020-1750, 145); repeat(ciam_base[:slrcost, :ypcc][1:end-1,:], inner=(10,1)); ciam_base[:slrcost, :ypcc][end:end,:]]
                 n_regions_for_slr = size(pc_gdp_for_slr, 2)
+                slr_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? all_ciam_marginal_damages.country : fill(0., length(_model_years), n_regions_for_slr) # 145 countries (coastal only), only run ciam if needed
                 slr_scc_in_utils = sum(
                     slr_marginal_damages[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
                     for (i,t) in enumerate(_model_years), r in 1:n_regions_for_slr if year<=t<=last_year
@@ -564,7 +565,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             ag_marginal_damages = post_trial_mm[:Agriculture, :agcost] .* 1e9 # fund regions
             en_marginal_damages = post_trial_mm[:energy_damages, :energy_costs_dollar] .* 1e9 # country
             health_marginal_damages = post_trial_mm[:DamageAggregator, :damage_cromar_mortality] # country
-            slr_marginal_damages =  post_trial_mm.base[:DamageAggregator, :include_slr] ? ciam_mds.country : fill(0., length(_model_years)) # 145 countries (coastal only), only run ciam if included
+            # note slr_marginal_damages allocated below for conciseness of variables
 
             pc_gdp_for_health = base[:PerCapitaGDP, :pc_gdp]
             n_regions_for_health = size(pc_gdp_for_health, 2)
@@ -589,6 +590,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
             pc_gdp_for_slr = [fill(0., 2020-1750, 145); repeat(ciam_base[:slrcost, :ypcc][1:end-1,:], inner=(10,1)); ciam_base[:slrcost, :ypcc][end:end,:]]
             n_regions_for_slr = size(pc_gdp_for_slr, 2)
+            slr_marginal_damages =  post_trial_mm.base[:DamageAggregator, :include_slr] ? ciam_mds.country : fill(0., length(_model_years), n_regions_for_slr) # 145 countries (coastal only), only run ciam if included
             slr_scc_in_utils = sum(
                 slr_marginal_damages[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
                 for (i,t) in enumerate(_model_years), r in 1:n_regions_for_slr if year<=t<=last_year
