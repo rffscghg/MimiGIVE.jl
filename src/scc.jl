@@ -563,7 +563,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
             ag_marginal_damages = post_trial_mm[:Agriculture, :agcost] .* 1e9 # fund regions
             en_marginal_damages = post_trial_mm[:energy_damages, :energy_costs_dollar] .* 1e9 # country
-            health_marginal_damages = post_trial_mm[:DamageAggregator, :include_cromar_mortality] # country
+            health_marginal_damages = post_trial_mm[:DamageAggregator, :damage_cromar_mortality] # country
             slr_marginal_damages =  post_trial_mm.base[:DamageAggregator, :include_slr] ? ciam_mds.country : fill(0., length(_model_years)) # 145 countries (coastal only), only run ciam if included
 
             pc_gdp_for_health = base[:PerCapitaGDP, :pc_gdp]
