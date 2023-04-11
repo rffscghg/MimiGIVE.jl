@@ -233,11 +233,13 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Add Howard and Sterner damage components
     add_comp!(m, hs_damage, :hs_damage, first = damages_first, after = :dice2016R2_damage);
        
-    # Add DamageAggregator component
+    # Add DamageAggregator component and regional damages aggregator helper function
+    add_comp!(m, Damages_RegionAggregatorSum, first = damages_first);
     add_comp!(m, DamageAggregator, first = damages_first);
 
-    # Add net consumption component
+    # Add net consumption components (global and regional)
     add_comp!(m, GlobalNetConsumption, :global_netconsumption, first = damages_first, after=:DamageAggregator)
+    add_comp!(m, RegionalNetConsumption, :regional_netconsumption, first = damages_first, after=:global_netconsumption)
 
     # --------------------------------------------------------------------------
 	# Shared Model Parameters
@@ -628,6 +630,14 @@ function get_model(; Agriculture_gtap::String = "midDF",
 	# Damage Aggregation
     # --------------------------------------------------------------------------
 
+    # small regional damage aggregator helper component
+    connect_param!(m, :Damages_RegionAggregatorSum, :input_region_names, :model_ag_mapping_input_regions)
+    connect_param!(m, :Damages_RegionAggregatorSum, :output_region_names, :model_ag_mapping_output_regions)
+    connect_param!(m, :Damages_RegionAggregatorSum, :input_output_mapping, :model_ag_mapping)
+    connect_param!(m, :Damages_RegionAggregatorSum => :damage_cromar_mortality, :CromarMortality => :mortality_costs)
+    connect_param!(m, :Damages_RegionAggregatorSum => :damage_energy, :energy_damages => :energy_costs_dollar)
+
+    # main damage aggregator
     connect_param!(m, :DamageAggregator => :damage_ag, :Agriculture => :agcost)
     connect_param!(m, :DamageAggregator => :damage_cromar_mortality, :CromarMortality => :mortality_costs)
     connect_param!(m, :DamageAggregator => :gdp, :Socioeconomic => :gdp)
@@ -635,6 +645,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :DamageAggregator => :damage_dice2016R2, :dice2016R2_damage => :damages)
     connect_param!(m, :DamageAggregator => :damage_hs, :hs_damage => :damages)
 
+    connect_param!(m, :DamageAggregator => :damage_cromar_mortality_regions, :Damages_RegionAggregatorSum => :damage_cromar_mortality_regions)
+    connect_param!(m, :DamageAggregator => :damage_energy_regions, :Damages_RegionAggregatorSum => :damage_energy_regions)
+    
     domestic_idxs_country_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)))  
     update_param!(m, :DamageAggregator, :domestic_idxs_country_dim, domestic_idxs_country_dim)
 
@@ -645,9 +658,15 @@ function get_model(; Agriculture_gtap::String = "midDF",
 	# Net Consumption
     # --------------------------------------------------------------------------
     
+    # global
     connect_param!(m, :global_netconsumption => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :global_netconsumption => :population, :Socioeconomic => :population)
     connect_param!(m, :global_netconsumption => :total_damage, :DamageAggregator => :total_damage)
     
+    # regional
+    connect_param!(m, :regional_netconsumption => :population, :Agriculture_aggregator_population => :output)
+    connect_param!(m, :regional_netconsumption => :gdp, :Agriculture_aggregator_gdp => :output)
+    connect_param!(m, :regional_netconsumption => :total_damage, :DamageAggregator => :total_damage_regions)
+
     return m
 end
