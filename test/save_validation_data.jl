@@ -7,7 +7,7 @@ include("utils.jl")
 # subfolder of the validation_data folder.
 
 # label of folder to be created
-validation_label = "commit_482f4a1"
+validation_label = "04112023"
 
 ##------------------------------------------------------------------------------
 ## Model Data
