@@ -44,7 +44,7 @@ NetCDF = "0.11"
 PDMats = "0.11"
 Query = "1"
 StatsBase = "0.33"
-XLSX = "0.7, 0.8"
+XLSX = "0.7, 0.8, 0.9"
 julia = "1.6"
 
 [extras]
