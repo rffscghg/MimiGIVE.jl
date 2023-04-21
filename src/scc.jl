@@ -204,13 +204,20 @@ function _compute_scc(mm::MarginalModel;
         ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap, pulse_size=pulse_size).globe : fill(0., length(_model_years)) 
     end
 
+    year_index = findfirst(isequal(year), _model_years)
+    last_year_index = findfirst(isequal(last_year), _model_years)
+    
+    # zero out the CIAM marginal damages from start year (2020) through emissions
+    # year - they will be non-zero due to foresight but saved marginal damages
+    # should be zeroed out pre-emissions year
+    if mm.base[:DamageAggregator, :include_slr] 
+        ciam_marginal_damages[1:year_index] .= 0.  
+    end
+
     marginal_damages = main_marginal_damages .+ ciam_marginal_damages
     
     # We don't care about units here because we are only going to use ratios
     cpc = mm.base[:global_netconsumption, :net_cpc]
-
-    year_index = findfirst(isequal(year), _model_years)
-    last_year_index = findfirst(isequal(last_year), _model_years)
 
     if discount_rates!==nothing
         sccs = Dict{NamedTuple{(:dr_label, :prtp,:eta),Tuple{Any, Float64,Float64}}, Float64}()
