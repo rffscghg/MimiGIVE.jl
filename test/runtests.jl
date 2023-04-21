@@ -1,7 +1,7 @@
 using Test, MimiGIVE
 ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
-@testset "Mimi" begin
+# @testset "Mimi" begin
 
     @info("test_get_model.jl")
     @time include("test_get_model.jl")
@@ -12,4 +12,4 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
     @info("test_regression.jl")
     @time include("test_regression.jl")
     
-end
+# end
