@@ -35,7 +35,7 @@ Compute the SC of a gas for the GIVE in USD \$2005
 - 'year` (default nothing) - year of which to calculate SC (year of pulse)
 - `last_year` (default 2300) - last year to include in damages summation
 - `prtp` (default 0.015) and `eta` (default 1.45) - Ramsey discounting parameterization
-- `discount_rates` (default nothing) - a vector of Named Tuples ie. [(prpt = 0.03., eta = 1.45), (prtp = 0.015, eta = 1.45)] - required if running n > 1
+- `discount_rates` (default nothing) - a vector of Named Tuples ie. [(label = "dr1", prtp = 0.03., eta = 1.45, ew = :consumption, ew_norm_region = "USA"), (label = "dr2", prtp = 0.015, eta = 1.45, ew = nothing, ew_norm_region = nothing)] - required if running n > 1 
 - `certainty_equivalent` (default false) - whether to compute the certainty equivalent or expected SCC
 - `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
 - `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set 

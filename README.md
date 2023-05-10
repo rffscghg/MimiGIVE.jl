@@ -283,7 +283,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - 'year` (default nothing) - year of which to calculate SC (year of pulse)
 - `last_year` (default 2300) - last year to include in damages summation
 - `prtp` (default 0.015) and `eta` (default 1.45) - Ramsey discounting parameterization
-- `discount_rates` (default nothing) - a vector of Named Tuples ie. [(prpt = 0.03., eta = 1.45), (prtp = 0.015, eta = 1.45)] - required if running n > 1
+- `discount_rates` (default nothing) - a vector of Named Tuples ie. [(label = "dr1", prtp = 0.03., eta = 1.45, ew = :consumption, ew_norm_region = "USA"), (label = "dr2", prtp = 0.015, eta = 1.45, ew = nothing, ew_norm_region = nothing)] - required if running n > 1
 - `certainty_equivalent` (default false) - whether to compute the certainty equivalent or expected SCC
 - `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
 - `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set to :deterministic, this `n` element vector provides the fair parameter set ids that will be run, otherwise it is set to `nothing` and ignored.
@@ -331,15 +331,23 @@ update_param!(m, :DamageAggregator, :include_energy, false)
 MimiGIVE.compute_scc(m, year=2020, prtp=0.03, eta=0.)
 ```
 
-You can also pass `compute_scc` a vector of `NamedTuple`s to the `discount_rates` argument if you would like to compute the SCC for a few different discounting schemes.  For example:
+You can also pass `compute_scc` a vector of `NamedTuple`s to the `discount_rates` argument if you would like to compute the SCC for a few different discounting schemes.  Each `NamedTuple` should have five elements:
+
+- label - a `String` label for the discount rate
+- prtp - a `Float64` for the pure rate of time preference Ramsey parameter
+- eta - a `Float64` for the risk aversion Ramsey parameter
+- ew - a member of `[nothing, :gdp, :consumption]` indication whether to equity weight, and if so, whether to use gdp or consumption to do so
+- ew_norm_region - a `String` dictating the normalizationr egion for equity weighting (a country if using `:gdp` or a FUND region if using `:consumption`)
+
+For example:
 
 ```julia
-discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45), (label="Constant 2%", prtp=0.02, eta=0.)]
+discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45, ew=nothing, ew_norm_region=nothing), (label="Constant 2%", prtp=0.02, eta=0., ew=nothing, ew_norm_region=nothing)]
 MimiGIVE.compute_scc(m, year=2020, discount_rates = discount_rates)
 ```
 **Returned `result` Object Structure**
 
-If only one discount rate specification is provided, the `compute_scc(...)` function run deterministically will return a single number. If a vector of discount rates are provided via the `discount_rates` argument, then the returned object is a Dictionary with keys being `NamedTuples` with elements (dr_label, prtp, eta) corresponding to the `discount_rates` elements (label, prtp, eta).
+If only one discount rate specification is provided, the `compute_scc(...)` function run deterministically will return a single number. If a vector of discount rates are provided via the `discount_rates` argument, then the returned object is a Dictionary with keys being `NamedTuples` with elements (dr_label, prtp, eta, ew, ew_norm_region) corresponding to the `discount_rates` elements (label, prtp, eta).
 
 ## 4b. Monte Carlo Simulation (MCS) SCC Calculation
 
@@ -360,7 +368,7 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 
 If all four of these are set to true one would runs something like:
 ```julia
-discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45), (label="Constant 2%", prtp=0.02, eta=0.)]
+discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45, ew=nothing, ew_norm_region=nothing), (label="Constant 2%", prtp=0.02, eta=0., ew=nothing, ew_norm_region=nothing)]
 result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 5, compute_sectoral_values = true, compute_domestic_values = true, save_md = true, save_cpc = true)
 ```
 **Returned `result` Object Structure**
@@ -373,7 +381,7 @@ The object returned by `result = MimiGIVE.compute_scc(...)` for a MCS is a `Dict
 Below we show examples of accessing these values:
 
 ```julia
-discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45), (label="Constant 2%", prtp=0.02, eta=0.)]
+discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45, ew=nothing, ew_norm_region=nothing), (label="Constant 2%", prtp=0.02, eta=0., ew=nothing, ew_norm_region=nothing)]
 
 # run the simulation with all optional outputs 
 result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 5, compute_sectoral_values = true, compute_domestic_values = true, save_md = true, save_cpc = true)
