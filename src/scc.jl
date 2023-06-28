@@ -780,8 +780,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
     # CIAM starts in 2020 so pad with zeros at the beginning
-    return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
-            domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
+    return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # USD $2005
+            domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
