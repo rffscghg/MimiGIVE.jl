@@ -283,7 +283,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - 'year` (default nothing) - year of which to calculate SC (year of pulse)
 - `last_year` (default 2300) - last year to include in damages summation
 - `prtp` (default 0.015) and `eta` (default 1.45) - Ramsey discounting parameterization
-- `discount_rates` (default nothing) - a vector of Named Tuples ie. [(label = "dr1", prtp = 0.03., eta = 1.45, ew = :consumption, ew_norm_region = "USA"), (label = "dr2", prtp = 0.015, eta = 1.45, ew = nothing, ew_norm_region = nothing)] - required if running n > 1
+- `discount_rates` (default nothing) - a vector of Named Tuples ie. [(label = "dr1", prtp = 0.03., eta = 1.45, ew = :consumption_region, ew_norm_region = "USA"), (label = "dr2", prtp = 0.015, eta = 1.45, ew = nothing, ew_norm_region = nothing)] - required if running n > 1
 - `certainty_equivalent` (default false) - whether to compute the certainty equivalent or expected SCC
 - `fair_parameter_set` (default :random) - :random means FAIR mcs samples will be chosen randomly from the provided sets, while :deterministic means they will be  based on the provided vector of to `fair_parameter_set_ids` keyword argument. 
 - `fair_parameter_set_ids` - (default nothing) - if `fair_parameter_set` is set to :deterministic, this `n` element vector provides the fair parameter set ids that will be run, otherwise it is set to `nothing` and ignored.
@@ -336,8 +336,8 @@ You can also pass `compute_scc` a vector of `NamedTuple`s to the `discount_rates
 - label - a `String` label for the discount rate
 - prtp - a `Float64` for the pure rate of time preference Ramsey parameter
 - eta - a `Float64` for the risk aversion Ramsey parameter
-- ew - a member of `[nothing, :gdp, :consumption, :consumption_countries]` indication whether to equity weight, and if so, whether to use gdp or consumption to do so
-- ew_norm_region - a `String` dictating the normalizationr egion for equity weighting (a country if using `:gdp` or `:consumption_countries` or a FUND region if using `:consumption`)
+- ew - a member of `[nothing, :gdp, :consumption_region, :consumption_country]` indication whether to equity weight, and if so, whether to use gdp or consumption to do so
+- ew_norm_region - a `String` dictating the normalization region for equity weighting (a country if using `:gdp` or `:consumption_country` or a FUND region if using `:consumption_region`)
 
 For example:
 

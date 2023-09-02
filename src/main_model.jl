@@ -241,6 +241,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Add net consumption components (global and regional)
     add_comp!(m, GlobalNetConsumption, :global_netconsumption, first = damages_first, after=:DamageAggregator)
     add_comp!(m, RegionalNetConsumption, :regional_netconsumption, first = damages_first, after=:global_netconsumption)
+    add_comp!(m, CountryNetConsumption, :country_netconsumption, first = damages_first, after = :regional_netconsumption)
 
     # --------------------------------------------------------------------------
 	# Shared Model Parameters
@@ -681,6 +682,11 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :regional_netconsumption => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :regional_netconsumption => :gdp, :Agriculture_aggregator_gdp => :output)
     connect_param!(m, :regional_netconsumption => :total_damage, :DamageAggregator => :total_damage_regions)
+
+    # country
+    connect_param!(m, :country_netconsumption => :gdp, :Socioeconomic => :gdp)
+    connect_param!(m, :country_netconsumption => :population, :Socioeconomic => :population)
+    connect_param!(m, :country_netconsumption => :total_damage, :DamageAggregator => :total_damage_countries)
 
     return m
 end
