@@ -725,15 +725,15 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             en_marginal_damages = post_trial_mm[:energy_damages, :energy_costs_dollar] .* 1e9
             health_marginal_damages = post_trial_mm[:DamageAggregator, :damage_cromar_mortality]
             
-            slr_marginal_damages = zeros(551, n_regions) # all countries initialized to 0
-            if mm.base[:DamageAggregator, :include_slr] # only run if including slr
-                idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(mm.base, :country)) # subset for the slr cost coastal countries
-                slr_marginal_damages[:,idxs] .= all_ciam_marginal_damages.country
-            end
-
             # don't care about units here because just using ratios
             pc_consumption = base[:country_netconsumption, :net_cpc]
             n_regions = size(pc_consumption, 2)
+
+            slr_marginal_damages = zeros(551, n_regions) # all countries initialized to 0
+            if post_trial_mm.base[:DamageAggregator, :include_slr] # only run if including slr
+                idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(post_trial_mm.base, :country)) # subset for the slr cost coastal countries
+                slr_marginal_damages[:,idxs] .= ciam_mds.country
+            end
 
             health_scc_in_utils = sum(
                 health_marginal_damages[i,r] / pc_consumption[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
