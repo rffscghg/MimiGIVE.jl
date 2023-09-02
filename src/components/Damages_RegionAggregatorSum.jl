@@ -11,8 +11,8 @@ using Mimi
     input_output_mapping = Parameter{String}(index=[ag_mapping_input_regions]) # one element per input region containing it's corresponding output region
     input_output_mapping_int = Variable{Int}(index=[ag_mapping_input_regions]) # internally computed for speed up
 
-    input_region_names = Parameter{Vector{String}}(index=ag_mapping_input_regions)
-    output_region_names = Parameter{Vector{String}}(index=ag_mapping_output_regions)
+    input_region_names = Parameter{Vector{String}}(index=[ag_mapping_input_regions])
+    output_region_names = Parameter{Vector{String}}(index=[ag_mapping_output_regions])
 
     damage_cromar_mortality = Parameter(index=[time,ag_mapping_input_regions], unit="US\$2005/yr")
     damage_energy = Parameter(index=[time,ag_mapping_input_regions], unit="billion US\$2005/yr")

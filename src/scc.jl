@@ -316,9 +316,9 @@ function _compute_scc(mm::MarginalModel;
                     non_slr_scc_in_utils + slr_scc_in_utils
                 ) 
                 
-            elseif dr.ew==:consumption_countries # equity weight using consumption at country level where ag is disaggregated via method in AgricultureDamagesDissagregator
+            elseif dr.ew==:consumption_countries # equity weight using consumption at country level where ag is disaggregated via method in AgricultureDamagesDisaggregator
 
-                
+                # TODO
 
             else
                 error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp, or :consumption.")
