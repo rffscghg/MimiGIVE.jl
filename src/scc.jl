@@ -279,7 +279,7 @@ function _compute_scc(mm::MarginalModel;
                 normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :country))
                 scc = mm.base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * total_utils
 
-            elseif dr.ew==:consumption # equity weight using gdp per capita
+            elseif dr.ew==:consumption # equity weight using consumption
 
                 non_slr_marginal_damages = mm[:DamageAggregator, :total_damage_regions] .* scc_gas_molecular_conversions[gas] # fund regions
                 pc_consumption = mm.base[:regional_netconsumption, :net_cpc]
@@ -316,6 +316,10 @@ function _compute_scc(mm::MarginalModel;
                     non_slr_scc_in_utils + slr_scc_in_utils
                 ) 
                 
+            elseif dr.ew==:consumption_countries # equity weight using consumption at country level where ag is disaggregated via method in AgricultureDamagesDissagregator
+
+                
+
             else
                 error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp, or :consumption.")
             end # end ew conditional

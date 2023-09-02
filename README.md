@@ -336,8 +336,8 @@ You can also pass `compute_scc` a vector of `NamedTuple`s to the `discount_rates
 - label - a `String` label for the discount rate
 - prtp - a `Float64` for the pure rate of time preference Ramsey parameter
 - eta - a `Float64` for the risk aversion Ramsey parameter
-- ew - a member of `[nothing, :gdp, :consumption]` indication whether to equity weight, and if so, whether to use gdp or consumption to do so
-- ew_norm_region - a `String` dictating the normalizationr egion for equity weighting (a country if using `:gdp` or a FUND region if using `:consumption`)
+- ew - a member of `[nothing, :gdp, :consumption, :consumption_countries]` indication whether to equity weight, and if so, whether to use gdp or consumption to do so
+- ew_norm_region - a `String` dictating the normalizationr egion for equity weighting (a country if using `:gdp` or `:consumption_countries` or a FUND region if using `:consumption`)
 
 For example:
 
