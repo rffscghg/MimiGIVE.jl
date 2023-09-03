@@ -56,7 +56,6 @@ end
 
             # Multiply by 1e3 because net_consumption is in billion, and population is in million
             v.net_cpc[t,r] = v.net_consumption[t,r] * 1e3 / p.population[t,r]
-
         end
     end
 end
@@ -84,7 +83,6 @@ end
 
             # Multiply by 1e3 because net_consumption is in billion, and population is in million
             v.net_cpc[t,c] = v.net_consumption[t,c] * 1e3 / p.population[t,c]
-
         end
     end
 end

@@ -64,8 +64,8 @@ end
     end
 end
 
-# Component to disaggregate the agricultural damages to country level based on 
-# share of gdp country/region
+# Component to disaggregate the agricultural damages from agriculture regions (FUND
+# regions) to individual ISO3 countries
 @defcomp AgricultureDamagesDisaggregator begin
 
     ag_mapping_input_regions = Index()
@@ -84,7 +84,7 @@ end
     damages_ag_fund_region = Parameter(index=[time, ag_mapping_output_regions])
 
     # Disaggregation
-    gdp_share   = Variable(index=[time, ag_mapping_input_regions])
+    gdp_share = Variable(index=[time, ag_mapping_input_regions]) # share of region's GDP in a given country in a given year
     damages_ag_country = Variable(index=[time, ag_mapping_input_regions])
 
     function init(p,v,d)
@@ -99,6 +99,5 @@ end
             v.gdp_share[t,c] = p.gdp_country[t, c] / p.gdp_fund_region[t, v.mapping_int[c]]
             v.damages_ag_country[t,c] = p.damages_ag_fund_region[t, v.mapping_int[c]] * v.gdp_share[t,c]
         end
-
     end
 end
