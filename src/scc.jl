@@ -279,53 +279,47 @@ function _compute_scc(mm::MarginalModel;
                 normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :country))
                 scc = mm.base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * total_utils
 
-            elseif dr.ew==:consumption_region # equity weight using regional consumption
-
-                non_slr_marginal_damages = mm[:DamageAggregator, :total_damage_regions] .* scc_gas_molecular_conversions[gas] # fund regions
-                pc_consumption = mm.base[:regional_netconsumption, :net_cpc]
-                n_regions = size(pc_consumption, 2)
-
-                non_slr_scc_in_utils = sum(
-                    non_slr_marginal_damages[i,r] / pc_consumption[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
-                    for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
-                )
-
-                slr_marginal_damages = zeros(551, n_regions)
-
-                if mm.base[:DamageAggregator, :include_slr] # only run ciam if including slr
-                    all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
-                    idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
-                    mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
-                    # mm.base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
-                    n_ciam_countries = length(idxs)
-                    
-                    # aggregate from ciam countries to fund regions
-                    for i in 1:n_ciam_countries
-                        slr_marginal_damages[:, mapping[i]] += all_ciam_marginal_damages.country[:,i]
-                    end
-                end
-
-                slr_scc_in_utils = sum(
-                    slr_marginal_damages[i,r] / pc_consumption[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
-                    for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
-                )
-
-                normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :fund_regions))
-
-                scc = mm.base[:regional_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * (
-                    non_slr_scc_in_utils + slr_scc_in_utils
-                ) 
+            elseif dr.ew==:consumption_region || dr.ew==:consumption_country # equity weight using consumption
                 
-            elseif dr.ew==:consumption_country # equity weight using country-level consumption
+                if dr.ew==:consumption_region
 
-                non_slr_marginal_damages = mm[:DamageAggregator, :total_damage_countries] .* scc_gas_molecular_conversions[gas]
-                pc_consumption = mm.base[:country_netconsumption, :net_cpc]
-                n_regions = size(pc_consumption, 2)
+                    net_cpc_component_name = :regional_netconsumption
+                    spatial_key_name = :fund_regions # dimension key name for fund regions
 
-                slr_marginal_damages = zeros(551, n_regions) # all countries initialized to 0
-                if mm.base[:DamageAggregator, :include_slr] # only run if including slr
-                    idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(mm.base, :country)) # subset for the slr cost coastal countries
-                    slr_marginal_damages[:,idxs] .= all_ciam_marginal_damages.country # insert country values into matching rows for marginal damages Matrix
+                    non_slr_marginal_damages = mm[:DamageAggregator, :total_damage_regions] .* scc_gas_molecular_conversions[gas] # fund regions
+                    pc_consumption = mm.base[net_cpc_component_name, :net_cpc]
+                    n_regions = size(pc_consumption, 2)
+                    
+                    slr_marginal_damages = zeros(551, n_regions) # all regions initialized to 0
+
+                    if mm.base[:DamageAggregator, :include_slr] # only run ciam if including slr
+                        all_countries = mm.base[:Damages_RegionAggregatorSum, :input_region_names]
+                        idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
+                        mapping = mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
+                        # mm.base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
+                        n_ciam_countries = length(idxs)
+                        
+                        # aggregate from ciam countries to fund regions
+                        for i in 1:n_ciam_countries
+                            slr_marginal_damages[:, mapping[i]] += all_ciam_marginal_damages.country[:,i]
+                        end
+                    end
+                    
+                elseif dr.ew==:consumption_country
+                
+                    spatial_key_name = :country # dimension key name for countries
+                    net_cpc_component_name = :country_netconsumption
+
+                    non_slr_marginal_damages = mm[:DamageAggregator, :total_damage_countries] .* scc_gas_molecular_conversions[gas]
+                    pc_consumption = mm.base[net_cpc_component_name, :net_cpc]
+                    n_regions = size(pc_consumption, 2)
+
+                    slr_marginal_damages = zeros(551, n_regions) # all countries initialized to 0
+
+                    if mm.base[:DamageAggregator, :include_slr] # only run if including slr
+                        idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(mm.base, :country)) # subset for the slr cost coastal countries
+                        slr_marginal_damages[:,idxs] .= all_ciam_marginal_damages.country # insert country values into matching rows for marginal damages Matrix
+                    end
                 end
 
                 marginal_damages = non_slr_marginal_damages .+ slr_marginal_damages
@@ -335,10 +329,9 @@ function _compute_scc(mm::MarginalModel;
                     for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
                 )
 
-                normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, :country))
+                normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(mm.base, spatial_key_name))
+                scc = pc_consumption[year_index,normalization_region_index]^dr.eta * (scc_in_utils) 
 
-                scc = mm.base[:country_netconsumption, :net_cpc][year_index,normalization_region_index]^dr.eta * (scc_in_utils) 
-                
             else
                 error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp, :consumption_region, or :consumption_country.")
             end # end ew conditional
@@ -695,7 +688,6 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                     idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(post_trial_mm.base, spatial_key_name)) # subset for the slr cost coastal countries
                     slr_marginal_damages[:,idxs] .= ciam_mds.country # insert country values into matching rows for marginal damages Matrix
                 end
-
             end
 
             health_scc_in_utils = sum(
