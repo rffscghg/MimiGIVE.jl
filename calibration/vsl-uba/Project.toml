@@ -1,0 +1,5 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Mimi = "e4e893b0-ee5e-52ea-8111-44b3bdec128c"
+MimiRFFSPs = "2561df7e-f865-450a-9449-e82e8f8f9a2f"
+Query = "1a8c2f83-1ff3-5112-b086-8aa67b057ba1"

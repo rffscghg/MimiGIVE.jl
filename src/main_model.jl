@@ -451,6 +451,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     elseif vsl==:epa
 	    update_param!(m, :VSL, :α,  7.73514707e6)                                   # 2020 EPA VSL in 2005$. See DataExplainer.ipynb for information
         update_param!(m, :VSL, :y₀, 48_726.60)                                      # 2020 U.S. income per capita in 2005$; See DataExplainer.ipynb for information  
+    elseif vsl==:uba
+	    update_param!(m, :VSL, :α,  5_920_000. / pricelevel_2005_to_2020)           # 2020 UBA VSL in 2005$
+        update_param!(m, :VSL, :y₀, 44_646.78)                                      # 2020 German income per capita in 2005$
     else
         error("Invalid vsl argument of $vsl.")
     end
