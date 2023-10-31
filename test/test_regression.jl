@@ -1,4 +1,4 @@
-# module TestRegression
+module TestRegression
 
 using MimiGIVE
 include("utils.jl")
@@ -135,5 +135,5 @@ for gas in [:CO2, :N2O, :CH4]
                         )
 end
 
-# end # module
+end # module
 
