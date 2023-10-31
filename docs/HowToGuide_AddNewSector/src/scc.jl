@@ -496,7 +496,7 @@ function _compute_modified_scc_mcs(mm::MarginalModel,
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
                 i -> rename!(i, ciam_country_names) |>
-                i -> insertcols!(i, 1, :time => MimiGIVE.MimiGIVE._damages_years) |> 
+                i -> insertcols!(i, 1, :time => MimiGIVE._damages_years) |> 
                 i -> stack(i, Not(:time)) |>
                 i -> insertcols!(i, 1, :trial => fill(trial, length(MimiGIVE._damages_years) * 145)) |>
                 i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
@@ -525,7 +525,7 @@ function _compute_modified_scc_mcs(mm::MarginalModel,
     expected_mu_in_year_of_emission = Dict()
 
     if certainty_equivalent
-        year_index = findfirst(isequal(year),MimiGIVE. MimiGIVE._damages_years)
+        year_index = findfirst(isequal(year), MimiGIVE._damages_years)
         # In this case the normalization from utils to $ hasn't happened in the post trial function
         # and instead we now do this here, based on expected per capita consumption in the year
         # of the marginal emission pulse
