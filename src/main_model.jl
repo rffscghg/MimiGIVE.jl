@@ -175,7 +175,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
         add_comp!(m, MimiSSPs.SSPs, :Socioeconomic, first = damages_first, before = :ch4_cycle);
     end
 
-    # Add PerCapitaGDP components
+    # Add PerCapitaGDP component
 	add_comp!(m, PerCapitaGDP, :PerCapitaGDP, first=damages_first, after = :Socioeconomic);
 
     # Add VSL component
