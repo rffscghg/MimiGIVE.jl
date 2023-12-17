@@ -233,7 +233,7 @@ function _compute_scc(mm::MarginalModel;
                 df = [((cpc[year_index]/cpc[i])^dr.eta * 1/(1+dr.prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
                 scc = sum(df .* marginal_damages[year_index:last_year_index])
 
-            elseif dr.ew==:gdp # equity weight using gdp per capita
+            elseif dr.ew==:gdp_country # equity weight using gdp per capita
                 
                 ag_marginal_damages     = mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 # fund regions
                 en_marginal_damages     = mm[:energy_damages, :energy_costs_dollar] .* scc_gas_molecular_conversions[gas] * 1e9 # country
@@ -333,7 +333,7 @@ function _compute_scc(mm::MarginalModel;
                 scc = pc_consumption[year_index,normalization_region_index]^dr.eta * (scc_in_utils) 
 
             else
-                error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp, :consumption_region, or :consumption_country.")
+                error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp_country, :consumption_region, or :consumption_country.")
             end # end ew conditional
 
             # fill in the computed scc value
@@ -576,20 +576,61 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 end
             end
 
-        elseif dr.ew==:gdp # equity weight with gdp
+        elseif dr.ew==:gdp_region || dr.ew==:gdp_country # equity weight with gdp
+            if dr.ew==:gdp_region
 
-            ag_marginal_damages = post_trial_mm[:Agriculture, :agcost] .* 1e9 # fund regions
-            en_marginal_damages = post_trial_mm[:energy_damages, :energy_costs_dollar] .* 1e9 # country
-            health_marginal_damages = post_trial_mm[:DamageAggregator, :damage_cromar_mortality] # country
-            # note slr_marginal_damages allocated below for conciseness of variables
+                pc_gdp_component_name = :regional_netconsumption # used later for equity weighting
+                spatial_key_name = :fund_regions # dimension key name for fund regions
 
-            pc_gdp_for_health = base[:PerCapitaGDP, :pc_gdp]
-            n_regions_for_health = size(pc_gdp_for_health, 2)
+                en_marginal_damages = post_trial_mm[:DamageAggregator, :damage_energy_regions] .* 1e9 # fund regions 
+                health_marginal_damages = post_trial_mm[:DamageAggregator, :damage_cromar_mortality_regions] # fund regions
+
+                # don't care about units here because just using ratios
+                pc_gdp = base[pc_gdp_component_name, :pc_gdp]
+                n_regions = size(pc_gdp, 2)
+
+                slr_marginal_damages = zeros(551, n_regions)
+
+                if post_trial_mm.base[:DamageAggregator, :include_slr] # only run ciam if including slr
+                    all_countries = base[:Damages_RegionAggregatorSum, :input_region_names]
+                    idxs = indexin(dim_keys(ciam_base, :ciam_country), all_countries) # subset for the slr cost coastal countries
+                    mapping = post_trial_mm.base[:Damages_RegionAggregatorSum, :input_output_mapping_int][idxs] # mapping from ciam coastal countries to region index
+                    # base[:Damages_RegionAggregatorSum, :input_region_names][idxs] == dim_keys(ciam_base, :ciam_country) # this check should be true
+                    n_ciam_countries = length(idxs)
+                    
+                    # aggregate from ciam countries to fund regions
+                    for i in 1:n_ciam_countries
+                        slr_marginal_damages[:, mapping[i]] += ciam_mds.country[:,i]
+                    end
+                end
+
+            elseif dr.ew==:gdp_country
+
+                pc_gdp_component_name = :PerCapitaGDP # used later for equity weighting
+                spatial_key_name = :country # dimension key name for fund regions
+
+                en_marginal_damages = post_trial_mm[:energy_damages, :energy_costs_dollar] .* 1e9
+                health_marginal_damages = post_trial_mm[:DamageAggregator, :damage_cromar_mortality]
+                
+                # don't care about units here because just using ratios
+                pc_gdp = base[pc_gdp_component_name, :pc_gdp]
+                n_regions = size(pc_gdp, 2)
+
+                slr_marginal_damages = zeros(551, n_regions) # all countries initialized to 0
+                if post_trial_mm.base[:DamageAggregator, :include_slr] # only run if including slr
+                    idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(post_trial_mm.base, spatial_key_name)) # subset for the slr cost coastal countries
+                    slr_marginal_damages[:,idxs] .= ciam_mds.country # insert country values into matching rows for marginal damages Matrix
+                end
+
+            end
+
             health_scc_in_utils = sum(
-                health_marginal_damages[i,r] / pc_gdp_for_health[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
-                for (i,t) in enumerate(_model_years), r in 1:n_regions_for_health if year<=t<=last_year
+                health_marginal_damages[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
             )
 
+            # do this regardless of regional choice # TODO CHECK THIS WITH DAVID
+            ag_marginal_damages     = mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 # fund regions
             pc_gdp_for_ag = base[:Agriculture, :income] ./ base[:Agriculture, :population] .* 1000.0
             n_regions_for_ag = size(pc_gdp_for_ag, 2)
             ag_scc_in_utils = sum(
@@ -597,19 +638,14 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 for (i,t) in enumerate(_model_years), r in 1:n_regions_for_ag if year<=t<=last_year
             )
 
-            pc_gdp_for_en = base[:PerCapitaGDP, :pc_gdp]
-            n_regions_for_en = size(pc_gdp_for_en, 2)
             en_scc_in_utils = sum(
-                en_marginal_damages[i,r] / pc_gdp_for_en[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
-                for (i,t) in enumerate(_model_years), r in 1:n_regions_for_en if year<=t<=last_year
+                en_marginal_damages[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
             )
 
-            pc_gdp_for_slr = [fill(0., 2020-1750, 145); repeat(ciam_base[:slrcost, :ypcc][1:end-1,:], inner=(10,1)); ciam_base[:slrcost, :ypcc][end:end,:]]
-            n_regions_for_slr = size(pc_gdp_for_slr, 2)
-            slr_marginal_damages =  post_trial_mm.base[:DamageAggregator, :include_slr] ? ciam_mds.country : fill(0., length(_model_years), n_regions_for_slr) # 145 countries (coastal only), only run ciam if included
             slr_scc_in_utils = sum(
-                slr_marginal_damages[i,r] / pc_gdp_for_slr[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
-                for (i,t) in enumerate(_model_years), r in 1:n_regions_for_slr if year<=t<=last_year
+                slr_marginal_damages[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
             )
 
             # sum up total utils for included sectors to calculate scc
@@ -619,23 +655,23 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 (base[:DamageAggregator, :include_energy]           ? en_scc_in_utils : 0.) +
                 (base[:DamageAggregator, :include_slr]              ? slr_scc_in_utils : 0.)
 
-            normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(base, :country))
-            scc = base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * total_utils
+            normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(base, spatial_key_name))
+            scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * total_utils
             scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
             # sectoral
             if options.compute_sectoral_values
 
-                scc = base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * health_scc_in_utils
+                scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * health_scc_in_utils
                 scc_values[(region=:globe, sector=:cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
-                scc = base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * ag_scc_in_utils
+                scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * ag_scc_in_utils
                 scc_values[(region=:globe, sector=:agriculture, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
                 
-                scc = base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * en_scc_in_utils
+                scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * en_scc_in_utils
                 scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
-                scc = base[:PerCapitaGDP, :pc_gdp][year_index,normalization_region_index]^dr.eta * slr_scc_in_utils
+                scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * slr_scc_in_utils
                 scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
             end
@@ -748,7 +784,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 end
             end
         else
-            error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp, :consumption_region, or :consumption_country.")
+            error("$(dr.ew) is not a valid option for equity weighting method, must be nothing, :gdp_region, :gdp_country, :consumption_region, or :consumption_country.")
         end # end ew conditional
     end # end discount rates loop
 end

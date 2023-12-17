@@ -42,6 +42,7 @@ end
     population  = Parameter(index=[time, fund_regions], unit="million")
     total_damage = Parameter(index=[time,fund_regions], unit="US\$2005/yr")
 
+    pc_gdp = Variable(index=[time,fund_regions])
     net_consumption = Variable(index=[time,fund_regions])
     net_cpc = Variable(index=[time,fund_regions])
 
@@ -56,6 +57,11 @@ end
 
             # Multiply by 1e3 because net_consumption is in billion, and population is in million
             v.net_cpc[t,r] = v.net_consumption[t,r] * 1e3 / p.population[t,r]
+
+            # calculate regional per capita gdp
+            for d in d.fund_regions
+                v.pc_gdp[t, d] = (p.gdp[t, d]) ./ (p.population[t, d]) * 1e3 
+            end
         end
     end
 end
