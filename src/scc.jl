@@ -579,7 +579,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         elseif dr.ew==:gdp_region || dr.ew==:gdp_country # equity weight with gdp
             if dr.ew==:gdp_region
 
-                pc_gdp_component_name = :regional_netconsumption # used later for equity weighting
+                pc_gdp_component_name = :RegionalPerCapitaGDP # used later for equity weighting
                 spatial_key_name = :fund_regions # dimension key name for fund regions
 
                 en_marginal_damages = post_trial_mm[:DamageAggregator, :damage_energy_regions] .* 1e9 # fund regions 
