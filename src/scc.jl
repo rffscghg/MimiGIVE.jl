@@ -630,7 +630,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             )
 
             # do this regardless of regional choice # TODO CHECK THIS WITH DAVID
-            ag_marginal_damages     = mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 # fund regions
+            ag_marginal_damages = post_trial_mm[:Agriculture, :agcost] .* scc_gas_molecular_conversions[gas] * 1e9 # fund regions
             pc_gdp_for_ag = base[:Agriculture, :income] ./ base[:Agriculture, :population] .* 1000.0
             n_regions_for_ag = size(pc_gdp_for_ag, 2)
             ag_scc_in_utils = sum(
