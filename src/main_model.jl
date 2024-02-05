@@ -225,8 +225,11 @@ function get_model(; Agriculture_gtap::String = "midDF",
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_pop90, first = damages_first, after = :Agriculture_aggregator_gdp) : nothing
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_gdp90, first = damages_first, after = :Agriculture_aggregator_pop90) : nothing
 
+    # Add a Regional Per Capita GDP component that takes inputs from the Agiculture aggregator components
+    add_comp!(m, RegionalPerCapitaGDP, :RegionalPerCapitaGDP, first=damages_first, after = :AgricultureDamagesDisaggregator);
+
     # Add Energy components
-    add_comp!(m, energy_damages, :energy_damages, first = damages_first, after = :AgricultureDamagesDisaggregator);
+    add_comp!(m, energy_damages, :energy_damages, first = damages_first, after = :RegionalPerCapitaGDP);
 
     # Add DICE2016R2 damage component
     add_comp!(m, dice2016R2_damage, :dice2016R2_damage, first = damages_first, after = :energy_damages);
@@ -586,6 +589,13 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :Agriculture => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :Agriculture => :income, :Agriculture_aggregator_gdp => :output)
 	connect_param!(m, :Agriculture => :temp, :TempNorm_1995to2005 => :global_temperature_norm)
+
+    # --------------------------------------------------------------------------
+	# Regional Per Capita GDP
+    # --------------------------------------------------------------------------
+
+    connect_param!(m, :RegionalPerCapitaGDP => :population, :Agriculture_aggregator_population => :output)
+    connect_param!(m, :RegionalPerCapitaGDP => :gdp, :Agriculture_aggregator_gdp => :output)
 
     # --------------------------------------------------------------------------
 	# Agriculture Damages Disaggregator
