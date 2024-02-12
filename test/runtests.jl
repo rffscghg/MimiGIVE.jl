@@ -11,5 +11,5 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
     @info("test_regression.jl")
     @time include("test_regression.jl")
-    
+
 end
