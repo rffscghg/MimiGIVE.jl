@@ -92,7 +92,6 @@ function compute_scc(m::Model = get_model();
     !(last_year in _model_years) ? error("Invalid value of $last_year for last_year. last_year must be within the model's time index $_model_years.") : nothing
     !(year in _model_years) ? error("Cannot compute the scc for year $year, year must be within the model's time index $_model_years.") : nothing
     !(gas in gases_list) ? error("Invalid value of $gas for gas, gas must be one of $(gases_list).") : nothing
-    n>0 && certainty_equivalent && !save_cpc && error("certainty_equivalent=true also requires save_cpc=true")
     
     # equity weighting checks and post-process the entered discount rates to allow 
     # for backwards compatibility
@@ -113,7 +112,6 @@ function compute_scc(m::Model = get_model();
         discount_rates = copy(discount_rates_compatible) 
 
         ew_calcs = sum([!isnothing(dr.ew)==true for dr in discount_rates]) > 0
-        (certainty_equivalent && ew_calcs) ? error("Cannot calculate certainty equivalents for equity weighting approach.") : nothing
         (compute_domestic_values && ew_calcs) ? error("Equity weighting cannot be applied to domestically calculated values.") : nothing # TODO - we could allow this in the mcs for non ew/domestic pairs but be conservative for now
 
     end
@@ -358,7 +356,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -504,6 +502,8 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             if options.certainty_equivalent
                 intermediate_ce_scc = sum(df_ce .* total_mds[year_index:last_year_index])
                 intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = intermediate_ce_scc
+
+                norm_cpc_values_ce[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = cpc[year_index]
             end
 
             # domestic totals (sector=:total)
@@ -659,6 +659,11 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * total_utils
             scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
+            if options.certainty_equivalent
+                intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = total_utils
+                norm_cpc_values_ce[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]
+            end
+
             # sectoral
             if options.compute_sectoral_values
 
@@ -674,6 +679,12 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * slr_scc_in_utils
                 scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
 
+                if options.certainty_equivalent
+                    intermediate_ce_scc_values[(region=:globe, sector=:cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = health_scc_in_utils
+                    intermediate_ce_scc_values[(region=:globe, sector=:agriculture, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = ag_scc_in_utils
+                    intermediate_ce_scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = en_scc_in_utils
+                    intermediate_ce_scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = slr_scc_in_utils    
+                end
             end
 
         elseif dr.ew==:consumption_region || dr.ew==:consumption_country # equity weight with consumption
@@ -766,6 +777,11 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(base, spatial_key_name))
                 scc = base[net_cpc_component_name, :net_cpc][year_index,normalization_region_index]^dr.eta * total_utils
                 scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
+
+                if options.certainty_equivalent
+                    intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = total_utils
+                    norm_cpc_values_ce[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]
+                end
                 
                 # sectoral
                 if options.compute_sectoral_values
@@ -781,6 +797,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
                     scc = base[net_cpc_component_name, :net_cpc][year_index,normalization_region_index]^dr.eta * slr_scc_in_utils
                     scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = scc
+
+                    if options.certainty_equivalent
+                        intermediate_ce_scc_values[(region=:globe, sector=:cromar_mortality, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = health_scc_in_utils
+                        intermediate_ce_scc_values[(region=:globe, sector=:agriculture, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = ag_scc_in_utils
+                        intermediate_ce_scc_values[(region=:globe, sector=:energy, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = en_scc_in_utils
+                        intermediate_ce_scc_values[(region=:globe, sector=:slr, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = slr_scc_in_utils    
+                    end
                 end
             end
         else
@@ -842,6 +865,7 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Union{Float64, Missing}}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
+    norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
     
@@ -885,7 +909,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                 pulse_size=pulse_size
             )
 
-    payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -900,7 +924,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
     
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
     if save_slr_damages
@@ -980,20 +1004,6 @@ function _compute_scc_mcs(mm::MarginalModel,
         df |> save("$output_dir/results/slr_damages_modified_lim_counts.csv")
     end
 
-    expected_mu_in_year_of_emission = Dict()
-
-    if certainty_equivalent
-        year_index = findfirst(isequal(year), _damages_years)
-        # In this case the normalization from utils to $ hasn't happened in the post trial function
-        # and instead we now do this here, based on expected per capita consumption in the year
-        # of the marginal emission pulse
-        cpc_in_year_of_emission = view(cpc_values[(region=:globe, sector=:total)], :, year_index)
-        
-        for k in keys(scc_values)
-            expected_mu_in_year_of_emission[k] = mean(1 ./ (cpc_in_year_of_emission .^ k.eta))
-        end    
-    end
-
     # Construct the returned result object
     result = Dict()
 
@@ -1001,11 +1011,18 @@ function _compute_scc_mcs(mm::MarginalModel,
     result[:scc] = Dict()
     for (k,v) in scc_values
         if certainty_equivalent
+            # In this case the normalization from utils to $ hasn't happened in the post trial function
+            # and instead we now do this here, based on expected per capita consumption in the year
+            # of the marginal emission pulse
+            cpc_in_year_of_emission = norm_cpc_values_ce[k]
+            
+            expected_mu_in_year_of_emission = mean(1 ./ (cpc_in_year_of_emission .^ k.eta))
+
             result[:scc][k] = (
                 expected_scc = mean(v),
                 se_expected_scc = std(v) / sqrt(n),
-                ce_scc = mean(intermediate_ce_scc_values[k]) ./ expected_mu_in_year_of_emission[k],
-                ce_sccs= intermediate_ce_scc_values[k] ./ expected_mu_in_year_of_emission[k],
+                ce_scc = mean(intermediate_ce_scc_values[k]) ./ expected_mu_in_year_of_emission,
+                ce_sccs= intermediate_ce_scc_values[k] ./ expected_mu_in_year_of_emission,
                 sccs = v,                
             )
         else
