@@ -30,6 +30,7 @@ using Mimi
 
     damage_cromar_mortality = Parameter(index=[time,country], unit="US\$2005/yr")
     damage_ag = Parameter(index=[time,fund_regions], unit="billion US\$2005/yr")
+    damage_ag_countries = Parameter(index=[time,country], unit="billion US\$2005/yr") # ag damages disaggregated via method in AgricultureDamagesDisaggregator
     damage_energy = Parameter(index=[time,energy_countries], unit="billion US\$2005/yr")
     damage_dice2016R2 = Parameter(index=[time], unit="billion US\$2005/yr")
     damage_hs = Parameter(index=[time], unit="billion US\$2005/yr")
@@ -42,6 +43,7 @@ using Mimi
 
     total_damage = Variable(index=[time], unit="US\$2005/yr")
     total_damage_regions = Variable(index=[time, fund_regions], unit="US\$2005/yr")
+    total_damage_countries = Variable(index=[time, country], unit="US\$2005/yr") # ag damages disaggregated via method in AgricultureDamagesDisaggregator
     total_damage_share = Variable(index=[time])
     total_damage_domestic = Variable(index=[time], unit="US\$2005/yr")
 
@@ -70,6 +72,13 @@ using Mimi
                 (p.include_ag               ? p.damage_ag[t,r] * 1e9 : 0.) +
                 (p.include_energy           ? p.damage_energy_regions[t,r] * 1e9 : 0.)
         end
+
+        # country level aggregates where ag damages disaggregated via method in
+        # AgricultureDamagesDisaggregator
+        v.total_damage_countries[t,:] =
+            (p.include_cromar_mortality ? p.damage_cromar_mortality[t,:] : 0.) +
+            (p.include_ag               ? p.damage_ag_countries[t,:] * 1e9 : 0.) +
+            (p.include_energy           ? p.damage_energy[t,:] * 1e9 : 0.)
 
         # global annual aggregates - for interim model outputs and partial SCCs
         v.cromar_mortality_damage[t]        = sum(p.damage_cromar_mortality[t,:])
