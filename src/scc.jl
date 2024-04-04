@@ -1,4 +1,4 @@
-using Dates, CSVFiles, DataFrames
+using Dates, CSVFiles, DataFrames, FileIO, Mimi, Query
 
 const _model_years = collect(1750:2300)
 const _damages_years = collect(2020:2300)
@@ -47,6 +47,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
             compute_sectoral_values::Bool = false,
+            stream_disagg_damages::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
@@ -76,6 +77,7 @@ that will be run, otherwise it is set to `nothing` and ignored.
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
+- `stream_disagg_damages` (default is false) - stream out the spatially disaggregated sectoral damages
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
@@ -101,6 +103,7 @@ function compute_scc(m::Model = get_model();
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
             compute_sectoral_values::Bool = false,
+            stream_disagg_damages::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
@@ -158,6 +161,7 @@ function compute_scc(m::Model = get_model();
                                 save_cpc = save_cpc,
                                 save_slr_damages = save_slr_damages,
                                 compute_sectoral_values = compute_sectoral_values,
+                                stream_disagg_damages = stream_disagg_damages,
                                 compute_domestic_values = compute_domestic_values,
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
@@ -242,7 +246,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options, streams = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -252,6 +256,12 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     base, marginal = mcs.models 
     damages_base = base[:DamageAggregator, :total_damage]
     damages_marginal = marginal[:DamageAggregator, :total_damage]
+
+    # stream out sectoral damages disaggregated by country along with the socioeconomics
+    if options.stream_disagg_damages
+        _stream_disagg_damages(base, streams["output_dir"], trialnum, streams)
+        _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)
+    end
 
     if options.compute_domestic_values
         damages_base_domestic = base[:DamageAggregator, :total_damage_domestic]
@@ -272,6 +282,10 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         # should be zeroed out pre-emissions year
         ciam_mds.globe[1:year_index] .= 0.
         ciam_mds.domestic[1:year_index] .= 0.
+
+        if options.stream_disagg_damages
+            _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)
+        end
     end
 
     main_mds = (damages_marginal .- damages_base) .* gas_units_multiplier
@@ -476,6 +490,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             save_cpc::Bool,
                             save_slr_damages::Bool,
                             compute_sectoral_values::Bool,
+                            stream_disagg_damages::Bool,
                             compute_domestic_values::Bool,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
@@ -508,7 +523,30 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     regions = compute_domestic_values ? [:globe, :domestic] : [:globe]
     sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :slr] : [:total]
+    
+    if stream_disagg_damages
+        streams = Dict()
+        streams["output_dir"] = output_dir
+    else
+        streams = nothing
+    end
 
+    # create a set of subdirectories for streaming spatially and sectorally 
+    # disaggregated damages files - one per region
+    if stream_disagg_damages
+        # clear out streams folders
+        top_path = "$output_dir/results/model_1/stream_disagg_damages/"
+        ispath(top_path) ? rm(top_path, recursive=true) : nothing
+
+        mkpath("$top_path/cromar_mortality")
+        mkpath("$top_path/energy")
+        mkpath("$top_path/agriculture")
+        mkpath("$top_path/country_socioeconomics")
+        mkpath("$top_path/region_socioeconomics")
+
+        # slr only if we are including sea level rise
+        mm.base[:DamageAggregator, :include_slr] && mkpath("$top_path/slr")
+    end
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
@@ -544,6 +582,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     # set some computation options
     options = (
                 compute_sectoral_values = compute_sectoral_values, 
+                stream_disagg_damages=stream_disagg_damages,
                 compute_domestic_values = compute_domestic_values,
                 save_md = save_md,
                 save_cpc = save_cpc,
@@ -554,7 +593,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                 pulse_size = pulse_size
             )
 
-    payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options, streams]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -569,8 +608,13 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, intermediate_ce_scc_values, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options, streams = Mimi.payload2(sim_results)
     
+    if !isnothing(streams) 
+        delete!(streams, "output_dir")
+        close.(values(streams)) # use broadcasting to close all stream 
+    end
+
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
     if save_slr_damages
         isdir("$output_dir/results/model_1") || mkpath("$output_dir/results/model_1")
@@ -788,8 +832,120 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             damages_modified_domestic = [fill(0., 2020 - _model_years[1]); damages_modified_domestic], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
-            damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005 # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
-    )
+            damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005, # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
+            damages_base_country = OptimalCost_base_country .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
+        )
+end
+
+
+function _stream_disagg_damages(m::Mimi.Model, output_dir::String, trialnum::Int, streams::Dict)
+    # println("Streaming out trialnum $trialnum ...")
+    cromar_mortality_damages = getdataframe(m, :DamageAggregator, :damage_cromar_mortality) |> 
+                                    @filter(_.time > 2019) |> 
+                                    @rename(:damage_cromar_mortality => :damages) |>
+                                    DataFrame |>
+                                    i -> insertcols!(i, 1, :trialnum => trialnum)
+
+    energy_damages = getdataframe(m, :DamageAggregator, :damage_energy) |> 
+                        @filter(_.time > 2019) |> 
+                        @mutate(damage_energy = _.damage_energy * 1e9) |> # billions of USD to USD
+                        @rename(:damage_energy => :damages, :energy_countries => :country) |>
+                        DataFrame |>
+                        i -> insertcols!(i, 1, :trialnum => trialnum)
+
+    ag_damages = getdataframe(m, :DamageAggregator, :damage_ag) |> 
+                            @filter(_.time > 2019) |> 
+                            @mutate(damage_ag = _.damage_ag * 1e9) |> # billions of USD to USD
+                            @rename(:damage_ag => :damages, :fund_regions => :region) |>
+                            DataFrame |>
+                            i -> insertcols!(i, 1, :trialnum => trialnum) 
+
+    for country in unique(cromar_mortality_damages.country)
+        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/cromar_mortality/$(country).csv")
+        trial_df = cromar_mortality_damages |> @filter(_.country == country) |> @select(:trialnum, :time, :damages) |> DataFrame
+        if haskey(streams, filename)
+            write(streams[filename], trial_df)
+        else
+            streams[filename] = savestreaming(filename, trial_df)
+        end
+    end
+    
+    for country in unique(energy_damages.country)
+        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/energy/$(country).csv")
+        trial_df = energy_damages |> @filter(_.country == country) |> @select(:trialnum, :time, :damages) |> DataFrame
+        if haskey(streams, filename)
+            write(streams[filename], trial_df)
+        else
+            streams[filename] = savestreaming(filename, trial_df)
+        end
+    end
+
+    for region in unique(ag_damages.region)
+        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/agriculture/$(region).csv")
+        trial_df = ag_damages |> @filter(_.region == region) |> @select(:trialnum, :time, :damages) |> DataFrame
+        if haskey(streams, filename)
+            write(streams[filename], trial_df)
+        else
+            streams[filename] = savestreaming(filename, trial_df)
+        end
+    end
+end
+
+function _stream_disagg_socioeconomics(m::Mimi.Model, output_dir::String, trialnum::Int, streams::Dict)
+    # println("Streaming out trialnum $trialnum ...")
+
+    country_pop = getdataframe(m, :Socioeconomic, :population) |> @filter(_.time > 2019) |> DataFrame # millions
+    country_pc_gdp = getdataframe(m, :PerCapitaGDP, :pc_gdp) |> @filter(_.time > 2019) |> DataFrame  # USD per capita
+    country_data = innerjoin(country_pop, country_pc_gdp, on = [:time, :country]) |> i -> insertcols!(i, 1, :trialnum => trialnum)
+
+    for country in unique(country_data.country)
+        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/country_socioeconomics/$(country).csv")
+        trial_df = country_data |> @filter(_.country == country) |> @select(:trialnum, :time, :population, :pc_gdp) |> DataFrame
+        if haskey(streams, filename)
+            write(streams[filename], trial_df)
+        else
+            streams[filename] = savestreaming(filename, trial_df)
+        end
+    end
+
+    region_pop = getdataframe(m, :Agriculture, :population) |> @filter(_.time > 2019) |> DataFrame # millions
+    region_gdp = getdataframe(m, :Agriculture, :income) |> @filter(_.time > 2019) |> DataFrame # billions USD per capita
+    region_data = innerjoin(region_pop, region_gdp, on = [:time, :fund_regions])
+    region_data = insertcols!(region_data, :pc_gdp => (region_data.income ./ region_data.population) * 1e3) |>
+                        @select(:time, :fund_regions, :population, :pc_gdp) |>
+                        DataFrame |>
+                        i -> insertcols!(i, 1, :trialnum => trialnum)
+
+    for region in unique(region_data.fund_regions)
+        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/region_socioeconomics/$(region).csv")
+        trial_df = region_data |> @filter(_.fund_regions == region) |> @select(:trialnum, :time, :population, :pc_gdp) |> DataFrame
+        if haskey(streams, filename)
+            write(streams[filename], trial_df)
+        else
+            streams[filename] = savestreaming(filename, trial_df)
+        end
+    end
+end
+
+function _stream_disagg_damages_slr(ciam_base, data, output_dir::String, trialnum::Int, streams::Dict)
+    slr_damages = DataFrame(data, dim_keys(ciam_base, :ciam_country)) |>
+                    i -> insertcols!(i, 1, :time => _damages_years) |>
+                    i -> stack(i, Not(:time)) |>
+                    @filter(_.time > 2019) |>
+                    @rename(:variable => :country, :value => :damages) |>
+                    DataFrame |>
+                    i -> insertcols!(i, 1, :trialnum => trialnum)
+
+          
+    for country in unique(slr_damages.country)
+        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/slr/$(country).csv")
+        trial_df = slr_damages |> @filter(_.country == country) |> @select(:trialnum, :time, :damages) |> DataFrame
+        if haskey(streams, filename)
+            write(streams[filename], trial_df)
+        else
+            streams[filename] = savestreaming(filename, trial_df)
+        end
+    end
 end
 
 """
