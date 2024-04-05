@@ -47,7 +47,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
             compute_sectoral_values::Bool = false,
-            stream_disagg_damages::Bool = false,
+            compute_disaggregated_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
@@ -77,7 +77,7 @@ that will be run, otherwise it is set to `nothing` and ignored.
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
-- `stream_disagg_damages` (default is false) - stream out the spatially disaggregated sectoral damages
+- `compute_disaggregated_values` (default is false) - compute spatially disaggregated sectoral damages, marginal damages, and socioeconomic variables
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
@@ -103,7 +103,7 @@ function compute_scc(m::Model = get_model();
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
             compute_sectoral_values::Bool = false,
-            stream_disagg_damages::Bool = false,
+            compute_disaggregated_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
@@ -161,7 +161,7 @@ function compute_scc(m::Model = get_model();
                                 save_cpc = save_cpc,
                                 save_slr_damages = save_slr_damages,
                                 compute_sectoral_values = compute_sectoral_values,
-                                stream_disagg_damages = stream_disagg_damages,
+                                compute_disaggregated_values = compute_disaggregated_values,
                                 compute_domestic_values = compute_domestic_values,
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
@@ -258,7 +258,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     damages_marginal = marginal[:DamageAggregator, :total_damage]
 
     # stream out sectoral damages disaggregated by country along with the socioeconomics
-    if options.stream_disagg_damages
+    if options.compute_disaggregated_values
         _stream_disagg_damages(base, streams["output_dir"], trialnum, streams)
         _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)
     end
@@ -283,7 +283,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         ciam_mds.globe[1:year_index] .= 0.
         ciam_mds.domestic[1:year_index] .= 0.
 
-        if options.stream_disagg_damages
+        if options.compute_disaggregated_values
             _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)
         end
     end
@@ -490,7 +490,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             save_cpc::Bool,
                             save_slr_damages::Bool,
                             compute_sectoral_values::Bool,
-                            stream_disagg_damages::Bool,
+                            compute_disaggregated_values::Bool,
                             compute_domestic_values::Bool,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
@@ -524,7 +524,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     regions = compute_domestic_values ? [:globe, :domestic] : [:globe]
     sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :slr] : [:total]
     
-    if stream_disagg_damages
+    if compute_disaggregated_values
         streams = Dict()
         streams["output_dir"] = output_dir
     else
@@ -533,16 +533,16 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     # create a set of subdirectories for streaming spatially and sectorally 
     # disaggregated damages files - one per region
-    if stream_disagg_damages
+    if compute_disaggregated_values
         # clear out streams folders
-        top_path = "$output_dir/results/model_1/stream_disagg_damages/"
+        top_path = "$output_dir/results/model_1/disaggregated_values/"
         ispath(top_path) ? rm(top_path, recursive=true) : nothing
 
-        mkpath("$top_path/cromar_mortality")
-        mkpath("$top_path/energy")
-        mkpath("$top_path/agriculture")
-        mkpath("$top_path/country_socioeconomics")
-        mkpath("$top_path/region_socioeconomics")
+        mkpath("$top_path/damages_cromar_mortality")
+        mkpath("$top_path/damages_energy")
+        mkpath("$top_path/damages_agriculture")
+        mkpath("$top_path/socioeconomics_country")
+        mkpath("$top_path/socioeconomics_region")
 
         # slr only if we are including sea level rise
         mm.base[:DamageAggregator, :include_slr] && mkpath("$top_path/slr")
@@ -582,7 +582,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     # set some computation options
     options = (
                 compute_sectoral_values = compute_sectoral_values, 
-                stream_disagg_damages=stream_disagg_damages,
+                compute_disaggregated_values=compute_disaggregated_values,
                 compute_domestic_values = compute_domestic_values,
                 save_md = save_md,
                 save_cpc = save_cpc,
@@ -861,7 +861,7 @@ function _stream_disagg_damages(m::Mimi.Model, output_dir::String, trialnum::Int
                             i -> insertcols!(i, 1, :trialnum => trialnum) 
 
     for country in unique(cromar_mortality_damages.country)
-        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/cromar_mortality/$(country).csv")
+        filename = joinpath("$output_dir/results/model_1/disaggregated_values/damages_cromar_mortality/$(country).csv")
         trial_df = cromar_mortality_damages |> @filter(_.country == country) |> @select(:trialnum, :time, :damages) |> DataFrame
         if haskey(streams, filename)
             write(streams[filename], trial_df)
@@ -871,7 +871,7 @@ function _stream_disagg_damages(m::Mimi.Model, output_dir::String, trialnum::Int
     end
     
     for country in unique(energy_damages.country)
-        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/energy/$(country).csv")
+        filename = joinpath("$output_dir/results/model_1/disaggregated_values/damages_energy/$(country).csv")
         trial_df = energy_damages |> @filter(_.country == country) |> @select(:trialnum, :time, :damages) |> DataFrame
         if haskey(streams, filename)
             write(streams[filename], trial_df)
@@ -881,7 +881,7 @@ function _stream_disagg_damages(m::Mimi.Model, output_dir::String, trialnum::Int
     end
 
     for region in unique(ag_damages.region)
-        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/agriculture/$(region).csv")
+        filename = joinpath("$output_dir/results/model_1/disaggregated_values/damages_agriculture/$(region).csv")
         trial_df = ag_damages |> @filter(_.region == region) |> @select(:trialnum, :time, :damages) |> DataFrame
         if haskey(streams, filename)
             write(streams[filename], trial_df)
@@ -899,7 +899,7 @@ function _stream_disagg_socioeconomics(m::Mimi.Model, output_dir::String, trialn
     country_data = innerjoin(country_pop, country_pc_gdp, on = [:time, :country]) |> i -> insertcols!(i, 1, :trialnum => trialnum)
 
     for country in unique(country_data.country)
-        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/country_socioeconomics/$(country).csv")
+        filename = joinpath("$output_dir/results/model_1/disaggregated_values/socioeconomics_country/$(country).csv")
         trial_df = country_data |> @filter(_.country == country) |> @select(:trialnum, :time, :population, :pc_gdp) |> DataFrame
         if haskey(streams, filename)
             write(streams[filename], trial_df)
@@ -917,7 +917,7 @@ function _stream_disagg_socioeconomics(m::Mimi.Model, output_dir::String, trialn
                         i -> insertcols!(i, 1, :trialnum => trialnum)
 
     for region in unique(region_data.fund_regions)
-        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/region_socioeconomics/$(region).csv")
+        filename = joinpath("$output_dir/results/model_1/disaggregated_values/socioeconomics_region/$(region).csv")
         trial_df = region_data |> @filter(_.fund_regions == region) |> @select(:trialnum, :time, :population, :pc_gdp) |> DataFrame
         if haskey(streams, filename)
             write(streams[filename], trial_df)
@@ -938,7 +938,7 @@ function _stream_disagg_damages_slr(ciam_base, data, output_dir::String, trialnu
 
           
     for country in unique(slr_damages.country)
-        filename = joinpath("$output_dir/results/model_1/stream_disagg_damages/slr/$(country).csv")
+        filename = joinpath("$output_dir/results/model_1/disaggregated_values/damages_slr/$(country).csv")
         trial_df = slr_damages |> @filter(_.country == country) |> @select(:trialnum, :time, :damages) |> DataFrame
         if haskey(streams, filename)
             write(streams[filename], trial_df)
