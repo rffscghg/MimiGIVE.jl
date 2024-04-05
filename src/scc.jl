@@ -276,6 +276,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         # should be zeroed out pre-emissions year
         ciam_mds.globe[1:year_index] .= 0.
         ciam_mds.domestic[1:year_index] .= 0.
+        ciam_mds.country[1:year_index,:] .= 0.
     end
 
     main_mds = (damages_marginal .- damages_base) .* gas_units_multiplier
@@ -303,9 +304,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     # stream out sectoral damages disaggregated by country along with the socioeconomics
     if options.compute_disaggregated_values
         _stream_disagg_damages(base, streams["output_dir"], trialnum, streams)
-        include_slr ? _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams) : nothing
         _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)
-        _stream_disagg_md(base, marginal, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
+        if include_slr
+            _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)
+            _stream_disagg_md(base, marginal, ciam_base, ciam_mds.country, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
+        else
+            _stream_disagg_md(base, marginal, nothing, nothing, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
+        end
     end
 
     # Save marginal damages
@@ -805,7 +810,6 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     end
 
     # Limit Country-Level Sea Level Rise Damages to Country-Level GDP
-
     if CIAM_GDPcap
         # Obtain annual country-level GDP, select 2020:2300 and CIAM countries, convert from $2005 to $2010 to match CIAM
         gdp = base[:Socioeconomic, :gdp][_damages_idxs, indexin(dim_keys(ciam_base, :ciam_country), dim_keys(base, :country))] .* 1 / pricelevel_2010_to_2005
@@ -819,6 +823,10 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
         base_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
         modified_lim_cnt = fill(0., length(_damages_years), num_ciam_countries)
     end
+
+    # country
+    damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 .* gas_units_multiplier # adjust for the (1) price level (2) molecular mass and (3) pulse size
+    damages_marginal_country = damages_marginal_country .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
     # domestic
     domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
@@ -839,6 +847,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # USD $2005
+            country             = [fill(0., 2020 - _model_years[1], num_ciam_countries); damages_marginal_country], # USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
@@ -962,7 +971,8 @@ function _stream_disagg_damages_slr(m::Mimi.ModelInstance, data::Array, output_d
     end
 end
 
-function _stream_disagg_md(m_base::Mimi.Model, m_modified::Mimi.Model, output_dir::String, trialnum::Int, streams::Dict; gas_units_multiplier::Float64)
+function _stream_disagg_md(m_base::Mimi.Model, m_modified::Mimi.Model, ciam_base::Union{Nothing, Mimi.ModelInstance}, md_ciam::Union{Nothing, Array}, 
+                            output_dir::String, trialnum::Int, streams::Dict; gas_units_multiplier::Float64)
 
     # get marginal damages in USD $2005 and be sure to adjust for # adjust for the (1) molecular mass and (2) pulse size, as well as billions of USD to USD for ag and energy
     md_cromar_mortality = (view(m_modified[:DamageAggregator, :damage_cromar_mortality], _damages_idxs,:) .- view(m_base[:DamageAggregator, :damage_cromar_mortality], _damages_idxs,:)) .* gas_units_multiplier
@@ -988,7 +998,15 @@ function _stream_disagg_md(m_base::Mimi.Model, m_modified::Mimi.Model, output_di
     end
 
     # save country level mds
-    md_country_df = DataFrame(md_cromar_mortality .+ md_energy, dim_keys(m_base, :country)) |>
+
+    # aggregate ciam marginal damages
+    md_ciam_all_countries = fill(0., size(md_cromar_mortality))
+    if !isnothing(ciam_base)
+        country_idxs = indexin(dim_keys(ciam_base, :ciam_country), dim_keys(m_base, :country))
+        md_ciam_all_countries[:, country_idxs] = md_ciam[_damages_idxs,:]
+    end
+
+    md_country_df = DataFrame(md_cromar_mortality .+ md_energy .+ md_ciam_all_countries, dim_keys(m_base, :country)) |>
                     i -> insertcols!(i, 1, :time => _damages_years) |>
                     i -> stack(i, Not(:time)) |>
                     @rename(:variable => :country, :value => :md) |>
