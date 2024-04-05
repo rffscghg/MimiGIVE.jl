@@ -835,11 +835,6 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
 
-    # country
-    damages_marginal_country = (OptimalCost_modified_country . - OptimalCost_base_country) .* pricelevel_2010_to_2005
-    damages_marginal_country = damages_marginal_country .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal_country = damages_marginal_country .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
-
     # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # USD $2005
@@ -851,7 +846,6 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
             damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005, # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
-            damages_base_country = OptimalCost_base_country .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
         )
 end
 
@@ -964,40 +958,6 @@ function _stream_disagg_damages_slr(m::Mimi.Model, data::Array, output_dir::Stri
             streams[filename] = savestreaming(filename, trial_df)
         end
     end
-end
-
-function _stream_disagg_md(m_base::Mimi.Model, m_modified::Mimi.Model, ciam_country_mds::Array,
-                            output_dir::String, trialnum::Int, streams::Dict;
-                            gas::Symbol, pulse_size::Float64, gas_units_multiplier::Float64)
-        
-        # get marginal damages in USD $2005 and be sure to adjust for # adjust for the (1) molecular mass and (2) pulse size, as well as billions of USD to USD for ag and energy
-        md_cromar_mortality = (view(m_modified[:DamageAggregator, :damage_cromar_mortality], _damages_idxs,:) .- view(m_base[:DamageAggregator, :damage_cromar_mortality], _damages_idxs,:)) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # USD $2005
-        md_energy           = (view(m_modified[:DamageAggregator, :damage_energy], _damages_idxs,:) .- view(m_base[:DamageAggregator, :damage_energy], _damages_idxs,:)) .* 1e9 .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size)
-        md_ag               = (view(m_modified[:DamageAggregator, :damage_ag], _damages_idxs,:) .- view(m_base[:DamageAggregator, :damage_ag], _damages_idxs,:)) .* 1e9 .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size)
-
-        # save agriculture
-        md_ag_df = DataFrame(md_ag, dim_keys(m_base, :fund_regions)) |>
-                        i -> insertcols!(i, 1, :time => _damages_years) |>
-                        i -> stack(i, Not(:time)) |>
-                        @rename(:variable => :region, :value => :md) |>
-                        DataFrame |>
-                        i-> insertcols!(i, 1, :trialnum => trialnum)
-
-        for region in unique(ag_damages.region)
-            filename = joinpath("$output_dir/results/disaggregated_mds/mds_region_ag_only/$(region).csv")
-            trial_df = ag_damages |> @filter(_.region == region) |> @select(:trialnum, :time, :md) |> DataFrame
-            if haskey(streams, filename)
-                write(streams[filename], trial_df)
-            else
-                streams[filename] = savestreaming(filename, trial_df)
-            end
-        end
-
-        # convert ciam country marginal damages into matrix with 185 countries
-        ciam_country_mds_184 = zeros()
-
-        # save country level mds
-        
 end
 
 """
