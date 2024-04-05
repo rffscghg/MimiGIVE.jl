@@ -540,15 +540,9 @@ function _compute_scc_mcs(mm::MarginalModel,
         # clear out streams folders
         ispath(top_path) ? rm(top_path, recursive=true) : nothing
 
-        # DataFrames with metadata
-        DataFrame(  :variable => [:damages, :md, :population, :pc_gdp],
-                    :units => ["USD 2005", "USD 2005", "millions of persons", "USD 2005 per capita"],
-                    :notes => ["baseline run", "difference between pulse run and baseline run", "baseline run", "baseline run"]
-                ) |> save(joinpath(top_path, "disaggregated_values_README.csv"))
-
         mkpath(joinpath(top_path, "damages_cromar_mortality"))
         mkpath(joinpath(top_path, "damages_energy"))
-        mmkpath(joinpath(top_path, "damages_agriculture"))
+        mkpath(joinpath(top_path, "damages_agriculture"))
         mm.base[:DamageAggregator, :include_slr] && mkpath(joinpath(top_path, "damages_slr")) # slr only if we are including sea level rise
 
         mkpath(joinpath(top_path, "socioeconomics_country"))
@@ -556,6 +550,12 @@ function _compute_scc_mcs(mm::MarginalModel,
 
         mkpath(joinpath(top_path, "mds_country_no_ag"))
         mkpath(joinpath(top_path, "mds_region_ag_only"))
+
+        # DataFrames with metadata
+        DataFrame(  :variable => [:damages, :md, :population, :pc_gdp],
+                    :units => ["USD 2005", "USD 2005", "millions of persons", "USD 2005 per capita"],
+                    :notes => ["baseline run", "difference between pulse run and baseline run", "baseline run", "baseline run"]
+                ) |> save(joinpath(top_path, "disaggregated_values_README.csv"))
 
     end
     
@@ -838,7 +838,6 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # USD $2005
-            country             = [fill(0., 2020 - _model_years[1]), num_ciam_countries; damages_marginal_country], # USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             damages_base_domestic       = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
@@ -846,6 +845,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
             damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005, # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
+            damages_base_country = OptimalCost_base_country .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
         )
 end
 
@@ -938,7 +938,8 @@ function _stream_disagg_socioeconomics(m::Mimi.Model, output_dir::String, trialn
     end
 end
 
-function _stream_disagg_damages_slr(m::Mimi.Model, data::Array, output_dir::String, trialnum::Int, streams::Dict)
+# note we pass a ModelInstance because ciam_base and ciam_modified are instances
+function _stream_disagg_damages_slr(m::Mimi.ModelInstance, data::Array, output_dir::String, trialnum::Int, streams::Dict)
     slr_damages = DataFrame(data, dim_keys(m, :ciam_country)) |>
                     i -> insertcols!(i, 1, :time => _damages_years) |>
                     i -> stack(i, Not(:time)) |>
