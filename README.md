@@ -298,7 +298,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
-- `compute_disaggregated_values` (default is false) - compute spatially disaggregated sectoral damages, marginal damages, and socioeconomic variables
+- `compute_disaggregated_values` (default is false) - compute spatially disaggregated marginal damages, sectoral damages, and socioeconomic variables
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
@@ -358,7 +358,10 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 - **Marginal Damages** (only relevant for Monte Carlo Simulation): Set keyword argument `save_md` to `true` to include undiscounted marginal damages in the returned results. 
 - **Net Per Capita Consumption** (only relevant for Monte Carlo Simulation): Set keyword argument `save_cpc` to `true` to include net per capita consumption in the returned results.
 - **Sectorally Disaggregated Values** (only relevant for Monte Carlo Simulation): Set keyword argument `compute_sectoral_values` to `true` to compute sectorally disaggregated values. Calculations of the disaggregated sectoral SCCs will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and sectoral calculations of the SCC. To compute an isolated sectoral SCC one may run a separate simulation with only that sector's damages turned on.
-- **Spatially and Sectorally Disaggregated Baseline Damages** One can additionally set the `compute_disaggregated_values` flag to `true` to get country (or regional for agricultural) values streamed out to file including baseline run sectoral damages, marginal damages, and socioeconomic variables.
+- **Spatially and Sectorally Disaggregated Baseline Damages** One can additionally set the `compute_disaggregated_values` flag to `true` to get country (or regional for agricultural) values streamed out to file including baseline run sectoral damages, marginal damages, and socioeconomic variables. These will be output to a `disaggregated_values` folder along with a small README file detailing units and important notes. Output variables include:
+    - damages for all four damage functions at the lowest spatial resolution available (FUND region for agriculture, country for all others)
+    - marginal damages for (1) agriculture at FUND region level (2) all other sectors summed up at the country level
+    - population and gdp per capita at both the country and FUND region level
 - **Within U.S. Borders Values** - Set keyword argument `compute_domestic_values` to `true` to include SCC (and optional marginal damage) values disaggregated to the within-borders USA damages.  Calculations of the disaggregated within U.S. borders SCC will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and within borders calculations of the SCC. 
 
 If all four of these are set to true one would runs something like:

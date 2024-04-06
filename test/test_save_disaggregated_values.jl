@@ -1,4 +1,4 @@
-# module TestComputeSCC
+module TestSaveDisaggregatedValues
 
 using MimiGIVE
 using Test
@@ -62,4 +62,4 @@ md_usa_pri = copy(md_usa)
 md_usa_pri.md = md_usa.md .+ md_pri.md
 @test md_usa_pri.md ≈ md_nonag_domestic.value atol = atol
 
-# end # module
+end # module

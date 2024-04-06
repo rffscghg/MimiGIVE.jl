@@ -77,7 +77,7 @@ that will be run, otherwise it is set to `nothing` and ignored.
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
-- `compute_disaggregated_values` (default is false) - compute spatially disaggregated sectoral damages, marginal damages, and socioeconomic variables
+- `compute_disaggregated_values` (default is false) - compute spatially disaggregated marginal damages, sectoral damages, and socioeconomic variables
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
