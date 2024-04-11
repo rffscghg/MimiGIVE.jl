@@ -10,9 +10,7 @@ using Mimi
 atol = 1e-9
 rtol = 1e-4
 
-# output_dir = mktempdir()
-output_dir = "/Users/lisarennels/.julia/dev/MimiGIVE/output/test"
-mkpath(output_dir)
+output_dir = mktempdir()
 n = 3
 m = MimiGIVE.get_model()
 discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45)]
@@ -169,3 +167,4 @@ md_usa_pri.md = md_usa.md .+ md_pri.md
 @test md_usa_pri.md ≈ md_nonag_domestic.value
 
 end # module
+
