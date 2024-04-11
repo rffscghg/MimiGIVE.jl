@@ -358,17 +358,18 @@ result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 
 - **Marginal Damages** (only relevant for Monte Carlo Simulation): Set keyword argument `save_md` to `true` to include undiscounted marginal damages in the returned results. 
 - **Net Per Capita Consumption** (only relevant for Monte Carlo Simulation): Set keyword argument `save_cpc` to `true` to include net per capita consumption in the returned results.
 - **Sectorally Disaggregated Values** (only relevant for Monte Carlo Simulation): Set keyword argument `compute_sectoral_values` to `true` to compute sectorally disaggregated values. Calculations of the disaggregated sectoral SCCs will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and sectoral calculations of the SCC. To compute an isolated sectoral SCC one may run a separate simulation with only that sector's damages turned on.
-- **Spatially and Sectorally Disaggregated Baseline Damages** One can additionally set the `compute_disaggregated_values` flag to `true` to get country (or regional for agricultural) values streamed out to file including baseline run sectoral damages, marginal damages, and socioeconomic variables. These will be output to a `disaggregated_values` folder along with a small README file detailing units and important notes. Output variables include:
-    - damages for all four damage functions at the lowest spatial resolution available (FUND region for agriculture, country for all others)
-    - marginal damages for (1) agriculture at FUND region level (2) all other sectors summed up at the country level
-    - population and gdp per capita at both the country and FUND region level
 - **Within U.S. Borders Values** - Set keyword argument `compute_domestic_values` to `true` to include SCC (and optional marginal damage) values disaggregated to the within-borders USA damages.  Calculations of the disaggregated within U.S. borders SCC will use global consumption to calculate discount factors, and thus the discount factors are consistent between the global and within borders calculations of the SCC. 
 
-If all four of these are set to true one would runs something like:
+If all five of these are set to true one would runs something like:
 ```julia
 discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45), (label="Constant 2%", prtp=0.02, eta=0.)]
 result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 5, compute_sectoral_values = true, compute_domestic_values = true, save_md = true, save_cpc = true)
 ```
+- **Spatially and Sectorally Disaggregated Baseline Damages** One can additionally set the `compute_disaggregated_values` flag to `true` to get country (or regional for agricultural) values streamed out to file including baseline run sectoral damages, marginal damages, and socioeconomic variables. These will be output to a `disaggregated_values` folder along with a small README file detailing units and important notes. Output variables include:
+    - damages for all four damage functions at the lowest spatial resolution available (FUND region for agriculture, country for all others)
+    - marginal damages for (1) agriculture at FUND region level (2) all other sectors summed up at the country level
+    - population and gdp per capita at both the country and FUND region level
+
 **Returned `result` Object Structure**
 
 The object returned by `result = MimiGIVE.compute_scc(...)` for a MCS is a `Dictionary` with 1-3 keys: `scc` (always), `:mds` (if `save_md` is set to `true`) and `:cpc` (if `save_cpc` is set to `true`). The structure of the values returned by these keys is as follows:
