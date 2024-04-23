@@ -510,6 +510,8 @@ function _compute_scc_mcs(mm::MarginalModel,
         socioeconomics_source = :RFF
     end
 
+    Agriculture_gtap = _get_mooreag_gtap(mm.base)
+
     mcs = get_mcs(n; 
                     socioeconomics_source=socioeconomics_source, 
                     mcs_years = _model_years, 
@@ -517,7 +519,8 @@ function _compute_scc_mcs(mm::MarginalModel,
                     fair_parameter_set_ids = fair_parameter_set_ids,
                     rffsp_sampling = rffsp_sampling,
                     rffsp_sampling_ids = rffsp_sampling_ids,
-                    save_list = save_list
+                    save_list = save_list,
+                    Agriculture_gtap = Agriculture_gtap
                 )
     
     if post_mcs_creation_function!==nothing
