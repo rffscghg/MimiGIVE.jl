@@ -575,6 +575,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     gtap_df = MimiMooreEtAlAgricultureImpacts.gtap_df_all[:, :, gtap_idx]
 
     update_param!(m, :Agriculture, :gtap_df, gtap_df)
+    update_param!(m, :Agriculture, :gtap_name, Agriculture_gtap)
     update_param!(m, :Agriculture, :floor_on_damages, Agriculture_floor_on_damages)
     update_param!(m, :Agriculture, :ceiling_on_benefits, Agriculture_ceiling_on_benefits)
     update_param!(m, :Agriculture, :agrish0, Array{Float64, 1}(readdlm(joinpath(MimiMooreEtAlAgricultureImpacts.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:,2]))
