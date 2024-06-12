@@ -232,7 +232,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
 Currently, this Monte Carlo Simulation includes the following uncertain parameters:
 
 **Climate**
-- The implementation of FAIRv1.6.2 uses the 2337 constrained parameter sets used in the AR6 (see description of details [here](https://github.com/rffscghg/MimiGIVE.jl/blob/main/docs/DataExplainer.ipynb) under the FAIR v1.6.2 heading.
+- The implementation of FAIRv1.6.2 uses the 2237 constrained parameter sets used in the AR6 (see description of details [here](https://github.com/rffscghg/MimiGIVE.jl/blob/main/docs/DataExplainer.ipynb) under the FAIR v1.6.2 heading.
 
 - Sea Level Rise - The BRICK model varies a land water storage parameter.
 
