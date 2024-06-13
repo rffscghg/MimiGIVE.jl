@@ -3,7 +3,7 @@ using Mimi
 # Aggregate from countries to FUND regions using sum function
 
 @defcomp Agriculture_RegionAggregatorSum begin
-    
+
     ag_mapping_input_regions = Index()
     ag_mapping_output_regions = Index()
 
@@ -16,17 +16,17 @@ using Mimi
     input = Parameter(index=[time, ag_mapping_input_regions])
     output = Variable(index=[time, ag_mapping_output_regions])
 
-    function init(p,v,d)
+    function init(p, v, d)
         idxs = indexin(p.input_output_mapping, p.output_region_names)
         !isnothing(findfirst(i -> isnothing(i), idxs)) ? error("All provided region names in the Agriculture_RegionAggregatorSum's input_output_mapping Parameter must exist in the output_region_names Parameter.") : nothing
         v.input_output_mapping_int[:] = idxs
     end
 
-    function run_timestep(p,v,d,t)
+    function run_timestep(p, v, d, t)
         v.output[t, :] .= 0.
 
         for i in d.ag_mapping_input_regions
-            v.output[t, v.input_output_mapping_int[i]] += p.input[t,i]
+            v.output[t, v.input_output_mapping_int[i]] += p.input[t, i]
         end
     end
 end
@@ -34,7 +34,7 @@ end
 # Version of above with no time dimension
 
 @defcomp Agriculture_RegionAggregatorSum_NoTime begin
-    
+
     ag_mapping_input_regions = Index()
     ag_mapping_output_regions = Index()
 
@@ -47,7 +47,7 @@ end
     input = Parameter(index=[ag_mapping_input_regions])
     output = Variable(index=[ag_mapping_output_regions])
 
-    function init(p,v,d)
+    function init(p, v, d)
         idxs = indexin(p.input_output_mapping, p.output_region_names)
         !isnothing(findfirst(i -> isnothing(i), idxs)) ? error("All provided region names in the Agriculture_RegionAggregatorSum's input_output_mapping Parameter must exist in the output_region_names Parameter.") : nothing
         v.input_output_mapping_int[:] = idxs
@@ -59,9 +59,7 @@ end
         end
     end
 
-    function run_timestep(p,v,d,t)
+    function run_timestep(p, v, d, t)
         # blank
     end
 end
-
-
