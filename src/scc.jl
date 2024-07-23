@@ -559,7 +559,7 @@ function _compute_scc_mcs(mm::MarginalModel,
 
         # DataFrames with metadata
         DataFrame(  :variable => [:damages, :md, :population, :pc_gdp],
-                    :units => ["USD 2005", "USD 2005", "millions of persons", "USD 2005 per capita"],
+                    :units => ["USD 2005", "USD 2005 per tonne of CO2", "millions of persons", "USD 2005 per capita"],
                     :notes => ["baseline run", "difference between pulse run and baseline run", "baseline run", "baseline run"]
                 ) |> save(joinpath(top_path, "disaggregated_values_README.csv"))
 
