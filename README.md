@@ -232,7 +232,7 @@ const scc_gas_pulse_size_conversions = Dict(:CO2 => 1e9, # Gt to t
 Currently, this Monte Carlo Simulation includes the following uncertain parameters:
 
 **Climate**
-- The implementation of FAIRv1.6.2 uses the 2337 constrained parameter sets used in the AR6 (see description of details [here](https://github.com/rffscghg/MimiGIVE.jl/blob/main/docs/DataExplainer.ipynb) under the FAIR v1.6.2 heading.
+- The implementation of FAIRv1.6.2 uses the 2237 constrained parameter sets used in the AR6 (see description of details [here](https://github.com/rffscghg/MimiGIVE.jl/blob/main/docs/DataExplainer.ipynb) under the FAIR v1.6.2 heading.
 
 - Sea Level Rise - The BRICK model varies a land water storage parameter.
 
@@ -269,6 +269,7 @@ function compute_scc(m::Model = get_model();
                     save_cpc::Bool = false,
                     save_slr_damages::Bool = false,
                     compute_sectoral_values::Bool = false,
+                    compute_disaggregated_values::Bool = false,
                     compute_domestic_values::Bool = false,
                     CIAM_foresight::Symbol = :perfect,
                     CIAM_GDPcap::Bool = false,
@@ -297,6 +298,7 @@ This function computes the social cost of a gas for an emissions pulse in `year`
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
+- `compute_disaggregated_values` (default is false) - compute spatially disaggregated marginal damages, sectoral damages, and socioeconomic variables
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
@@ -371,6 +373,13 @@ If all four of these are set to true one would runs something like:
 discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45, ew=nothing, ew_norm_region=nothing), (label="Constant 2%", prtp=0.02, eta=0., ew=nothing, ew_norm_region=nothing)]
 result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 5, compute_sectoral_values = true, compute_domestic_values = true, save_md = true, save_cpc = true)
 ```
+**Spatially and Sectorally Disaggregated Baseline Damages**
+
+One can additionally set the `compute_disaggregated_values` flag to `true` to get country (or regional for agricultural) values streamed out to file including baseline run sectoral damages, marginal damages, and socioeconomic variables. These will be output to a `disaggregated_values` folder along with a small README file detailing units and important notes. Output variables include:
+- damages for all four damage functions at the lowest spatial resolution available (FUND region for agriculture, country for all others)
+- marginal damages for (1) agriculture at FUND region level (2) all other sectors summed up at the country level
+- population and gdp per capita at both the country and FUND region level
+
 **Returned `result` Object Structure**
 
 The object returned by `result = MimiGIVE.compute_scc(...)` for a MCS is a `Dictionary` with 1-3 keys: `scc` (always), `:mds` (if `save_md` is set to `true`) and `:cpc` (if `save_cpc` is set to `true`). The structure of the values returned by these keys is as follows:

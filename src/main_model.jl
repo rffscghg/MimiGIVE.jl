@@ -101,7 +101,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     cromar_regions      = (load(joinpath(@__DIR__, "..", "data", "Dimension_cromar_mortality_regions.csv")) |> @select(:cromar_mortality_region) |> DataFrame |> Matrix)[:] # not currently a dimension in model
     domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
 
-    # Create country-region (FUND derived) mapping for Agriculture damage functiony
+    # Create country-region (FUND derived) mapping for Agriculture damage function
     ag_mapping = load(joinpath(@__DIR__, "..", "data", "Mapping_countries_to_fund_regions.csv")) |> DataFrame
     ag_mapping.ISO3 != countries && error("FUND mapping file ISO3 column must match model countries vector exactly.")
     sort(unique(ag_mapping.fundregion)) != sort(fund_regions) && error("FUND mapping file fund_regions column must match model fund_regions vector exactly (when both are sorted).")
@@ -585,6 +585,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     gtap_df = MimiMooreEtAlAgricultureImpacts.gtap_df_all[:, :, gtap_idx]
 
     update_param!(m, :Agriculture, :gtap_df, gtap_df)
+    update_param!(m, :Agriculture, :gtap_name, Agriculture_gtap)
     update_param!(m, :Agriculture, :floor_on_damages, Agriculture_floor_on_damages)
     update_param!(m, :Agriculture, :ceiling_on_benefits, Agriculture_ceiling_on_benefits)
     update_param!(m, :Agriculture, :agrish0, Array{Float64, 1}(readdlm(joinpath(MimiMooreEtAlAgricultureImpacts.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:,2]))
