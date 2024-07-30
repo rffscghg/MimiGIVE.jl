@@ -11,6 +11,9 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 
     @info("test_regression.jl")
     @time include("test_regression.jl")
+
+    @info("test_disaggregated_values.jl")
+    @time include("test_save_disaggregated_values.jl")
     
 end
 
