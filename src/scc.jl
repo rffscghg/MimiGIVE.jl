@@ -1075,6 +1075,10 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     
     # Obtain a key mapping segment ids to ciam country ids, both of which
     # line up with the orders of dim_keys of ciam_base
+
+    # IMPORTANT here to note that the segment ID refers here to the row, or equivalently
+    # the index of the segment in a CIAM model created using MimiGIVE.get_ciam(),
+    # NOT the segid field in many of the key files
     xsc = ciam_base[:slrcost, :xsc]::Dict{Int, Tuple{Int, Int, Int}} 
     ciam_country_mapping = DataFrame(:segment_id => collect(keys(xsc)), :ciam_country_id => first.(collect(values(xsc))))
     
