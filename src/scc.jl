@@ -1,6 +1,7 @@
 using Dates, CSVFiles, DataFrames
 
-include("scc_constants.jl")
+include("utils/scc_constants.jl")
+include("utils/scc_streaming.jl")
 
 """
     compute_scc(m::Model = get_model(); 
@@ -22,6 +23,7 @@ include("scc_constants.jl")
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
             compute_sectoral_values::Bool = false,
+            compute_disaggregated_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
@@ -51,6 +53,7 @@ that will be run, otherwise it is set to `nothing` and ignored.
 - `save_cpc` (default is false) - save and return the per capita consumption from a monte carlo simulation
 - `save_slr_damages`(default is false) - save global sea level rise damages from CIAM to disk
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
+- `compute_disaggregated_values` (default is false) - compute spatially disaggregated marginal damages, sectoral damages, and socioeconomic variables
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
@@ -155,6 +158,7 @@ function compute_scc(m::Model = get_model();
                                 save_cpc = save_cpc,
                                 save_slr_damages = save_slr_damages,
                                 compute_sectoral_values = compute_sectoral_values,
+                                compute_disaggregated_values = compute_disaggregated_values,
                                 compute_domestic_values = compute_domestic_values,
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
@@ -356,7 +360,7 @@ end
 function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int, tup)
 
     # Unpack the payload object 
-    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(mcs)
+    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, streams, options = Mimi.payload2(mcs)
 
     # Compute some useful indices
     year_index = findfirst(isequal(year), _model_years)
@@ -408,6 +412,18 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
             cromar_mortality_mds_domestic = post_trial_mm[:DamageAggregator, :cromar_mortality_damage_domestic]
             agriculture_mds_domestic = post_trial_mm[:DamageAggregator, :agriculture_damage_domestic]
             energy_mds_domestic = post_trial_mm[:DamageAggregator, :energy_damage_domestic]
+        end
+    end
+
+    # stream out sectoral damages disaggregated by country along with the socioeconomics	
+    if options.compute_disaggregated_values	
+        _stream_disagg_damages(base, streams["output_dir"], trialnum, streams)	
+        _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)	
+        if include_slr	
+            _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)	
+            _stream_disagg_md(base, marginal, ciam_base, ciam_mds.country, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)	
+        else	
+            _stream_disagg_md(base, marginal, nothing, nothing, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)	
         end
     end
 
@@ -830,13 +846,14 @@ function _compute_scc_mcs(mm::MarginalModel,
                             save_cpc::Bool,
                             save_slr_damages::Bool,
                             compute_sectoral_values::Bool,
+                            compute_disaggregated_values::Bool,
                             compute_domestic_values::Bool,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
                             post_mcs_creation_function,
                             pulse_size::Float64
                         )
-                        
+
     models = [mm.base, mm.modified]
 
     socioeconomics_module = _get_module_name(mm.base, :Socioeconomic)
@@ -846,6 +863,8 @@ function _compute_scc_mcs(mm::MarginalModel,
         socioeconomics_source = :RFF
     end
 
+    Agriculture_gtap = _get_mooreag_gtap(mm.base)
+
     mcs = get_mcs(n; 
                     socioeconomics_source=socioeconomics_source, 
                     mcs_years = _model_years, 
@@ -853,7 +872,8 @@ function _compute_scc_mcs(mm::MarginalModel,
                     fair_parameter_set_ids = fair_parameter_set_ids,
                     rffsp_sampling = rffsp_sampling,
                     rffsp_sampling_ids = rffsp_sampling_ids,
-                    save_list = save_list
+                    save_list = save_list,
+                    Agriculture_gtap = Agriculture_gtap
                 )
     
     if post_mcs_creation_function!==nothing
@@ -862,6 +882,39 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     regions = compute_domestic_values ? [:globe, :domestic] : [:globe]
     sectors = compute_sectoral_values ? [:total,  :cromar_mortality, :agriculture, :energy, :slr] : [:total]
+
+    if compute_disaggregated_values	
+        streams = Dict()	
+        streams["output_dir"] = output_dir	
+    else	
+        streams = nothing	
+    end	
+
+    # create a set of subdirectories for streaming spatially and sectorally 	
+    # disaggregated damages files - one per region	
+    if compute_disaggregated_values
+        top_path = joinpath(output_dir, "results", "disaggregated_values")
+
+        # clear out streams folders
+        ispath(top_path) ? rm(top_path, recursive=true) : nothing	
+
+        mkpath(joinpath(top_path, "damages_cromar_mortality"))	
+        mkpath(joinpath(top_path, "damages_energy"))	
+        mkpath(joinpath(top_path, "damages_agriculture"))	
+        mm.base[:DamageAggregator, :include_slr] && mkpath(joinpath(top_path, "damages_slr")) # slr only if we are including sea level rise	
+
+        mkpath(joinpath(top_path, "socioeconomics_country"))	
+        mkpath(joinpath(top_path, "socioeconomics_region"))	
+
+        mkpath(joinpath(top_path, "mds_country_no_ag"))	
+        mkpath(joinpath(top_path, "mds_region_ag_only"))	
+
+        # DataFrames with metadata	
+        DataFrame(  :variable => [:damages, :md, :population, :pc_gdp],	
+                    :units => ["USD 2005", "USD 2005 per tonne of CO2", "millions of persons", "USD 2005 per capita"],	
+                    :notes => ["baseline run", "difference between pulse run and baseline run", "baseline run", "baseline run"]	
+                ) |> save(joinpath(top_path, "disaggregated_values_README.csv"))	
+    end
 
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Union{Float64, Missing}}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
@@ -909,7 +962,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                 pulse_size=pulse_size
             )
 
-    payload = [scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options]
+    payload = [scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, streams, options]
 
     Mimi.set_payload2!(mcs, payload)
 
@@ -924,7 +977,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                     )
 
     # unpack the payload object
-    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, options = Mimi.payload2(sim_results)
+    scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, streams, options = Mimi.payload2(sim_results)
     
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
     if save_slr_damages
@@ -1139,7 +1192,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     # CIAM starts in 2020 so pad with zeros at the beginning
     return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
             domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
-            country             = [fill(0., 2020 - _model_years[1], 145); damages_marginal_country], # billion USD $2005
+            country             = [fill(0., 2020 - _model_years[1], num_ciam_countries); damages_marginal_country], # billion USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             damages_base_domestic = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
