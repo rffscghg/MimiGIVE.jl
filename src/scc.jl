@@ -1,4 +1,4 @@
-using Dates, CSVFiles, DataFrames
+using Dates, CSVFiles, DataFrames, FileIO, Mimi, Query
 
 include("utils/scc_constants.jl")
 include("utils/scc_streaming.jl")
@@ -79,6 +79,7 @@ function compute_scc(m::Model = get_model();
             save_cpc::Bool = false,
             save_slr_damages::Bool = false,
             compute_sectoral_values::Bool = false,
+            compute_disaggregated_values::Bool = false,
             compute_domestic_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
@@ -96,26 +97,25 @@ function compute_scc(m::Model = get_model();
     !(year in _model_years) ? error("Cannot compute the scc for year $year, year must be within the model's time index $_model_years.") : nothing
     !(gas in gases_list) ? error("Invalid value of $gas for gas, gas must be one of $(gases_list).") : nothing
     
-    # equity weighting checks and post-process the entered discount rates to allow 
-    # for backwards compatibility
-    # TODO - consider how to make these flags simple for the users (ie. should we 
-    # use nothings, symbols, strings, a combo, etc.)
+    # post-process the provided discount rates to allow for backwards compatibility
+    # with Named Tuples that did not include equity weighting args ew and ew_norm_region
     if discount_rates !== nothing
+
+        # create new Vector of discount rates that include equity weighting fields
         discount_rates_compatible = Array{NamedTuple}(undef, length(discount_rates))
         for (i, dr) in enumerate(discount_rates) 
-            if !hasfield(typeof(dr), :ew) # old version without the ew specification
+            if !hasfield(typeof(dr), :ew) # deprecated version without the ew specification
                 discount_rates_compatible[i] = (label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=nothing, ew_norm_region=nothing)
             else
                 discount_rates_compatible[i] = dr
             end
         end
-        # replace variable with the augmented discount rates -- TODO - the outputs 
-        # are still going to have extra elements, but we need these to initialize, 
-        # so in some ways this is a breaking change in terms of post-processing.
+
+        # replace discount rates with the agumented ones
         discount_rates = copy(discount_rates_compatible) 
 
         ew_calcs = sum([!isnothing(dr.ew)==true for dr in discount_rates]) > 0
-        (compute_domestic_values && ew_calcs) ? error("Equity weighting cannot be applied to domestically calculated values.") : nothing # TODO - we could allow this in the mcs for non ew/domestic pairs but be conservative for now
+        (compute_domestic_values && ew_calcs) ? error("Equity weighting cannot be used when calculating domestic values. More specifically, the `compute_domestic_values` cannot be set to `true` if the `ew` field of the discount rate Named Tuple is not nothing.") : nothing
 
     end
 
@@ -123,16 +123,16 @@ function compute_scc(m::Model = get_model();
 
     if n==0
         return _compute_scc(mm, 
-                            year=year, 
-                            last_year=last_year, 
-                            prtp=prtp, 
-                            eta=eta, 
-                            discount_rates=discount_rates, 
-                            gas=gas, 
-                            domestic=compute_domestic_values, 
-                            CIAM_foresight=CIAM_foresight,
-                            CIAM_GDPcap=CIAM_GDPcap,
-                            pulse_size=pulse_size
+                            year = year,
+                            last_year = last_year,
+                            prtp = prtp,
+                            eta = eta,
+                            discount_rates = discount_rates,
+                            gas = gas,
+                            domestic = compute_domestic_values,
+                            CIAM_foresight = CIAM_foresight,
+                            CIAM_GDPcap = CIAM_GDPcap,
+                            pulse_size = pulse_size
                         )
     else
         isnothing(discount_rates) ? error("To run the Monte Carlo compute_scc function (n != 0), please use the `discount_rates` argument.") : nothing
@@ -142,10 +142,10 @@ function compute_scc(m::Model = get_model();
         isdir("$output_dir/results") || mkpath("$output_dir/results")
 
         return _compute_scc_mcs(mm, 
-                                n, 
-                                year = year, 
-                                last_year = last_year, 
-                                discount_rates = discount_rates, 
+                                n,
+                                year = year,
+                                last_year = last_year,
+                                discount_rates = discount_rates,
                                 certainty_equivalent = certainty_equivalent,
                                 fair_parameter_set = fair_parameter_set,
                                 fair_parameter_set_ids = fair_parameter_set_ids,
@@ -169,12 +169,12 @@ function compute_scc(m::Model = get_model();
 end
 
 # Internal function to compute the SCC from a MarginalModel in a deterministic run
-function _compute_scc(mm::MarginalModel; 
-                        year::Int, 
-                        last_year::Int, 
-                        prtp, 
-                        eta, 
-                        discount_rates, 
+function _compute_scc(mm::MarginalModel;
+                        year::Int,
+                        last_year::Int,
+                        prtp,
+                        eta,
+                        discount_rates,
                         gas::Symbol,
                         domestic::Bool,
                         CIAM_foresight::Symbol,
@@ -346,9 +346,7 @@ function _compute_scc(mm::MarginalModel;
         return sccs
     else
 
-        # TODO - Note we do not have an option for equity weighting if the user 
-        # enters prtp and eta manually as opposed to using the discount_rates
-        # array of Tuples -- fine for now
+        # Note that to use equity weighitng, users will have to use the Named Tuple format of discount rates argument
         df = [((cpc[year_index]/cpc[i])^eta * 1/(1+prtp)^(t-year) for (i,t) in enumerate(_model_years) if year<=t<=last_year)...]
         scc = sum(df .* marginal_damages[year_index:last_year_index])
 
@@ -385,6 +383,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     if include_slr
         # return a NamedTuple with globe and domestic and country as well as other helper values
         ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) 
+        
         # zero out the CIAM marginal damages from start year (2020) through emissions
         # year - they will be non-zero due to foresight but saved marginal damages
         # should be zeroed out pre-emissions year
@@ -645,7 +644,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
             )
 
-            # do this regardless of regional choice # TODO CHECK THIS WITH DAVID
+            # do this regardless of regional choice # TODO review how this impacts country vs. region approach to equity weighting
             ag_marginal_damages = post_trial_mm[:Agriculture, :agcost] .* 1e9 # fund regions
             pc_gdp_for_ag = base[:Agriculture, :income] ./ base[:Agriculture, :population] .* 1000.0
             n_regions_for_ag = size(pc_gdp_for_ag, 2)
@@ -951,7 +950,8 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     # set some computation options
     options = (
-                compute_sectoral_values=compute_sectoral_values, 
+                compute_sectoral_values=compute_sectoral_values,
+                compute_disaggregated_values=compute_disaggregated_values,
                 compute_domestic_values=compute_domestic_values,
                 save_md=save_md,
                 save_cpc=save_cpc,
@@ -979,6 +979,11 @@ function _compute_scc_mcs(mm::MarginalModel,
     # unpack the payload object
     scc_values, intermediate_ce_scc_values, norm_cpc_values_ce, md_values, cpc_values, slr_damages, year, last_year, discount_rates, gas, ciam_base, ciam_modified, segment_fingerprints, streams, options = Mimi.payload2(sim_results)
     
+    if !isnothing(streams) 
+        delete!(streams, "output_dir")
+        close.(values(streams)) # use broadcasting to close all stream 
+    end
+
     # Write out the slr damages to disk in the same place that variables from the save_list would be written out
     if save_slr_damages
         isdir("$output_dir/results/model_1") || mkpath("$output_dir/results/model_1")
@@ -1107,6 +1112,9 @@ function _compute_scc_mcs(mm::MarginalModel,
 end
 
 function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight, CIAM_GDPcap, pulse_size)
+
+    gas_units_multiplier = scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
+
     update_ciam!(ciam_base, base, segment_fingerprints)
     update_ciam!(ciam_modified, modified, segment_fingerprints)
 
@@ -1174,25 +1182,25 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_base_domestic = vec(sum(OptimalCost_base_country[:,domestic_idxs],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified_domestic = vec(sum(OptimalCost_modified_country[:,domestic_idxs],dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
-    damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to just USD here
+    damages_marginal_domestic = (damages_modified_domestic .- damages_base_domestic) .* gas_units_multiplier # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal_domestic = damages_marginal_domestic .* 1e9  # Unit at this point is billion USD $2005, we convert to USD here
     
     # global
     damages_base = vec(sum(OptimalCost_base_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     damages_modified = vec(sum(OptimalCost_modified_country,dims=2)) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
 
-    damages_marginal = (damages_modified .- damages_base) .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
+    damages_marginal = (damages_modified .- damages_base) .* gas_units_multiplier # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to USD here
 
     # country
     damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
-    damages_marginal_country = damages_marginal_country .* scc_gas_molecular_conversions[gas] ./ (scc_gas_pulse_size_conversions[gas] .* pulse_size) # adjust for the (1) molecular mass and (2) pulse size
-    damages_marginal_country = damages_marginal_country .* 1e9 # Unit at this point is billion USD $2005, we convert to just USD here
+    damages_marginal_country = damages_marginal_country .* gas_units_multiplier # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal_country = damages_marginal_country .* 1e9 # Unit at this point is billion USD $2005, we convert to USD here
 
     # CIAM starts in 2020 so pad with zeros at the beginning
-    return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # billion USD $2005
-            domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # billion USD $2005
-            country             = [fill(0., 2020 - _model_years[1], num_ciam_countries); damages_marginal_country], # billion USD $2005
+    return (globe               = [fill(0., 2020 - _model_years[1]); damages_marginal], # USD $2005
+            domestic            = [fill(0., 2020 - _model_years[1]); damages_marginal_domestic], # USD $2005
+            country             = [fill(0., 2020 - _model_years[1], num_ciam_countries); damages_marginal_country], # USD $2005
             damages_base        = [fill(0., 2020 - _model_years[1]); damages_base], # billion USD $2005
             damages_modified    = [fill(0., 2020 - _model_years[1]); damages_modified], # billion USD $2005
             damages_base_domestic = [fill(0., 2020 - _model_years[1]); damages_base_domestic], # billion USD $2005
