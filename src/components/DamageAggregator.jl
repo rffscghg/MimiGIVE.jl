@@ -75,10 +75,11 @@ using Mimi
 
         # country level aggregates where ag damages disaggregated via method in
         # AgricultureDamagesDisaggregator
+        num_countries = length(d.country)
         v.total_damage_countries[t,:] =
-            (p.include_cromar_mortality ? p.damage_cromar_mortality[t,:] : 0.) +
-            (p.include_ag               ? p.damage_ag_countries[t,:] * 1e9 : 0.) +
-            (p.include_energy           ? p.damage_energy[t,:] * 1e9 : 0.)
+            (p.include_cromar_mortality ? p.damage_cromar_mortality[t,:] : fill(0., num_countries)) +
+            (p.include_ag               ? p.damage_ag_countries[t,:] * 1e9 : fill(0., num_countries)) +
+            (p.include_energy           ? p.damage_energy[t,:] * 1e9 : fill(0., num_countries))
 
         # global annual aggregates - for interim model outputs and partial SCCs
         v.cromar_mortality_damage[t]        = sum(p.damage_cromar_mortality[t,:])
