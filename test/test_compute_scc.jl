@@ -74,6 +74,15 @@ drs = [(label = "CR 1%", prtp = 0.01, eta = 0.0, ew = nothing, ew_norm_region = 
 sccs = compute_scc(year = 2020; discount_rates = drs)
 @test sccs[(dr_label = "CR 1%", prtp = 0.01, eta = 0.0, ew = nothing, ew_norm_region = nothing)] > sccs[(dr_label = "CR 2%", prtp = 0.02, eta = 0.0, ew = nothing, ew_norm_region = nothing)] > sccs[(dr_label = "CR 3%", prtp = 0.03, eta = 0.0, ew = nothing, ew_norm_region = nothing)]
 
+# deprecated form of discount rates - internally should add the ew and ew_norm_region fields to the discount rates Named Tuples
+drs = [(label = "CR 1%", prtp = 0.01, eta = 0.0), 
+        (label = "CR 2%", prtp = 0.02, eta = 0.0),
+        (label = "CR 3%", prtp = 0.03, eta = 0.0)]
+sccs = compute_scc(year = 2020; discount_rates = drs)
+@test haskey(sccs, (dr_label = "CR 1%", prtp = 0.01, eta = 0.0, ew = nothing, ew_norm_region = nothing))
+@test haskey(sccs, (dr_label = "CR 2%", prtp = 0.02, eta = 0.0, ew = nothing, ew_norm_region = nothing))
+@test haskey(sccs, (dr_label = "CR 3%", prtp = 0.03, eta = 0.0, ew = nothing, ew_norm_region = nothing))
+
 # gas
 @test compute_scc(year = 2020, gas = :CO2) < compute_scc(year = 2020, gas = :CH4) < compute_scc(year = 2020, gas = :N2O)
 

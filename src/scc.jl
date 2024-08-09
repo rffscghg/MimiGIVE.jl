@@ -415,14 +415,14 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
     end
 
     # stream out sectoral damages disaggregated by country along with the socioeconomics	
-    if options.compute_disaggregated_values	
-        _stream_disagg_damages(base, streams["output_dir"], trialnum, streams)	
-        _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)	
-        if include_slr	
-            _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)	
-            _stream_disagg_md(base, marginal, ciam_base, ciam_mds.country, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)	
-        else	
-            _stream_disagg_md(base, marginal, nothing, nothing, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)	
+    if options.compute_disaggregated_values
+        _stream_disagg_damages(base, streams["output_dir"], trialnum, streams)
+        _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)
+        if include_slr
+            _stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)
+            _stream_disagg_md(base, marginal, ciam_base, ciam_mds.country, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
+        else
+            _stream_disagg_md(base, marginal, nothing, nothing, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
         end
     end
 
@@ -992,69 +992,69 @@ function _compute_scc_mcs(mm::MarginalModel,
         # global 
         df = DataFrame(slr_damages[:base], :auto) |> 
             i -> rename!(i, Symbol.(_damages_years)) |> 
-            i -> insertcols!(i, 1, :trial => 1:n) |> 
-            i -> stack(i, Not(:trial)) |>
-            i -> rename!(i, [:trial, :time, :slr_damages]) |>
+            i -> insertcols!(i, 1, :trialnum => 1:n) |> 
+            i -> stack(i, Not(:trialnum)) |>
+            i -> rename!(i, [:trialnum, :time, :slr_damages]) |>
             save("$output_dir/results/model_1/slr_damages.csv")
 
         df = DataFrame(slr_damages[:modified], :auto) |> 
             i -> rename!(i, Symbol.(_damages_years)) |> 
-            i -> insertcols!(i, 1, :trial => 1:n) |> 
-            i -> stack(i, Not(:trial)) |>
-            i -> rename!(i, [:trial, :time, :slr_damages]) |>
+            i -> insertcols!(i, 1, :trialnum => 1:n) |> 
+            i -> stack(i, Not(:trialnum)) |>
+            i -> rename!(i, [:trialnum, :time, :slr_damages]) |>
             save("$output_dir/results/model_2/slr_damages.csv")
 
         segments = Symbol.(dim_keys(ciam_base, :segments))
         df = DataFrame(slr_damages[:base_segments_2100], :auto) |> 
             i -> rename!(i, segments) |>
-            i -> insertcols!(i, 1, :trial => 1:n) |> 
-            i -> stack(i, Not(:trial)) |>
-            i -> rename!(i, [:trial, :segment, :slr_damages_2100]) |>
+            i -> insertcols!(i, 1, :trialnum => 1:n) |> 
+            i -> stack(i, Not(:trialnum)) |>
+            i -> rename!(i, [:trialnum, :segment, :slr_damages_2100]) |>
             save("$output_dir/results/model_1/slr_damages_2100_by_segment.csv")
             
         # domestic 
         if compute_domestic_values
                 df = DataFrame(slr_damages[:base_domestic], :auto) |> 
                     i -> rename!(i, Symbol.(_damages_years)) |> 
-                    i -> insertcols!(i, 1, :trial => 1:n) |> 
-                    i -> stack(i, Not(:trial)) |>
-                    i -> rename!(i, [:trial, :time, :slr_damages_domestic]) |>
+                    i -> insertcols!(i, 1, :trialnum => 1:n) |> 
+                    i -> stack(i, Not(:trialnum)) |>
+                    i -> rename!(i, [:trialnum, :time, :slr_damages_domestic]) |>
                     save("$output_dir/results/model_1/slr_damages_domestic.csv")
 
                 df = DataFrame(slr_damages[:modified_domestic], :auto) |> 
                     i -> rename!(i, Symbol.(_damages_years)) |> 
-                    i -> insertcols!(i, 1, :trial => 1:n) |> 
-                    i -> stack(i, Not(:trial)) |>
-                    i -> rename!(i, [:trial, :time, :slr_damages_domestic]) |>
+                    i -> insertcols!(i, 1, :trialnum => 1:n) |> 
+                    i -> stack(i, Not(:trialnum)) |>
+                    i -> rename!(i, [:trialnum, :time, :slr_damages_domestic]) |>
                     save("$output_dir/results/model_2/slr_damages_domestic.csv")
         end
 
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
 
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
-        df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
+        df = DataFrame(:trialnum => [], :time => [], :country => [], :capped_flag => [])
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:base_lim_cnt][trial,:,:], :auto) |>
                 i -> rename!(i, ciam_country_names) |>
                 i -> insertcols!(i, 1, :time => _damages_years) |> 
                 i -> stack(i, Not(:time)) |>
-                i -> insertcols!(i, 1, :trial => fill(trial, length(_damages_years) * 145)) |>
-                i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
+                i -> insertcols!(i, 1, :trialnum => fill(trial, length(_damages_years) * 145)) |>
+                i -> rename!(i, [:trialnum, :time, :country, :capped_flag]) |>
                 i -> @filter(i, _.capped_flag == 1) |>
                 DataFrame
             append!(df, trial_df)
         end
         df |> save("$output_dir/results/slr_damages_base_lim_counts.csv")
 
-        df = DataFrame(:trial => [], :time => [], :country => [], :capped_flag => [])
+        df = DataFrame(:trialnum => [], :time => [], :country => [], :capped_flag => [])
         ciam_country_names = Symbol.(dim_keys(ciam_base, :ciam_country))
         for trial in 1:n # loop over trials
             trial_df = DataFrame(slr_damages[:modified_lim_cnt][trial,:,:], :auto) |>
                 i -> rename!(i, ciam_country_names) |>
                 i -> insertcols!(i, 1, :time => _damages_years) |> 
                 i -> stack(i, Not(:time)) |>
-                i -> insertcols!(i, 1, :trial => fill(trial, length(_damages_years) * 145)) |>
-                i -> rename!(i, [:trial, :time, :country, :capped_flag]) |>
+                i -> insertcols!(i, 1, :trialnum => fill(trial, length(_damages_years) * 145)) |>
+                i -> rename!(i, [:trialnum, :time, :country, :capped_flag]) |>
                 i -> @filter(i, _.capped_flag == 1) |>
                 DataFrame
             append!(df, trial_df)
@@ -1207,7 +1207,8 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
             damages_modified_domestic = [fill(0., 2020 - _model_years[1]); damages_modified_domestic], # billion USD $2005
             base_lim_cnt        = base_lim_cnt, # 2020:2300 x countries
             modified_lim_cnt    = modified_lim_cnt, # 2020:2300 x countries
-            damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005 # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
+            damages_base_segments_2100   = OptimalCost_base[9, :] .* pricelevel_2010_to_2005, # billion USD $2005, 2100 is index 9 in 2020:10:2300, this is uncapped segment-level baseline damages in 2100
+            damages_base_country = OptimalCost_base_country .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
     )
 end
 
