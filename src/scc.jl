@@ -1193,8 +1193,7 @@ function _compute_ciam_marginal_damages(base, modified, gas, ciam_base, ciam_mod
     damages_marginal = damages_marginal .* 1e9 # Unit at this point is billion USD $2005, we convert to USD here
 
     # country
-    damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 # Unit of CIAM is billion USD $2010, convert to billion USD $2005
-    damages_marginal_country = damages_marginal_country .* gas_units_multiplier # adjust for the (1) molecular mass and (2) pulse size
+    damages_marginal_country = (OptimalCost_modified_country .- OptimalCost_base_country) .* pricelevel_2010_to_2005 .* gas_units_multiplier # Adjust for the (1) price level (2) molecular mass and (3) pulse size
     damages_marginal_country = damages_marginal_country .* 1e9 # Unit at this point is billion USD $2005, we convert to USD here
 
     # CIAM starts in 2020 so pad with zeros at the beginning
