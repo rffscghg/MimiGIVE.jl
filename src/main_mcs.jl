@@ -9,7 +9,8 @@ import Mimi: SampleStore, add_RV!, add_transform!, add_save!
             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
             rffsp_sampling::Symbol = :random,
             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-            save_list::Vector = []   
+            save_list::Vector = [],
+            Agriculture_gtap::String = "midDF"
         )
 
 Return a Monte Carlo Simulation definition of type Mimi.SimulationDefinition that
@@ -32,6 +33,9 @@ pairs, that will be used in a Monte Carlo Simulation.
         set to `nothing` and ignored.
 - `save_list` (default []) - which parameters and varaibles to save for each trial,
         entered as a vector of Tuples (:component_name, :variable_name)
+- Agriculture_gtap (default midDF) - specify the `Agriculture_gtap` input parameter as one of 
+        `["AgMIP_AllDF", "AgMIP_NoNDF", "highDF", "lowDF", "midDF"]`, indicating which 
+        gtap damage function the component should use. 
 """
 function get_mcs(trials; 
                     socioeconomics_source::Symbol = :RFF, 
@@ -40,7 +44,8 @@ function get_mcs(trials;
                     fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
                     rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                    save_list::Vector = []           
+                    save_list::Vector = [],
+                    Agriculture_gtap::String = "midDF"         
         )
 
     # check some argument conditions
@@ -181,12 +186,18 @@ function get_mcs(trials;
     end
 
     # add Agriculture mcs over gtap region damage function parameterizations
-    ag_sample_stores = MimiMooreEtAlAgricultureImpacts.get_probdists_gtap_df(trials)
-    for coef in [1,2,3] # three coefficients defined with an anonymous dimension
-        for (i, region) in enumerate(["USA","CAN","WEU","JPK","ANZ","EEU","FSU","MDE","CAM","LAM","SAS","SEA","CHI","MAF","SSA","SIS"]) # fund regions for ag
-            rv_name = Symbol("rv_gtap_coef$(coef)_$region")
-            add_RV!(mcs, rv_name, ag_sample_stores[i, coef])
-            add_transform!(mcs, :Agriculture, :gtap_df, :(=), rv_name, [region, coef])
+    ag_sample_stores = MimiMooreEtAlAgricultureImpacts.get_probdists_gtap_df(Agriculture_gtap, trials)
+
+    # If ag sample stores are available for a given Agriculture_gtap damage function 
+    # then ag_sample_stores will be a Vector, and otherwise will return a 
+    # warning and `nothing`. 
+    if !isnothing(ag_sample_stores)
+        for coef in [1,2,3] # three coefficients defined with an anonymous dimension
+            for (i, region) in enumerate(["USA","CAN","WEU","JPK","ANZ","EEU","FSU","MDE","CAM","LAM","SAS","SEA","CHI","MAF","SSA","SIS"]) # fund regions for ag
+                rv_name = Symbol("rv_gtap_coef$(coef)_$region")
+                add_RV!(mcs, rv_name, ag_sample_stores[i, coef])
+                add_transform!(mcs, :Agriculture, :gtap_df, :(=), rv_name, [region, coef])
+            end
         end
     end
 
@@ -345,6 +356,8 @@ function run_mcs(;trials::Int64 = 10000,
         socioeconomics_source = :RFF
     end
 
+    Agriculture_gtap = _get_mooreag_gtap(m)
+
     # Get an instance of the mcs
     mcs = get_mcs(trials; 
                     socioeconomics_source = socioeconomics_source, 
@@ -354,6 +367,7 @@ function run_mcs(;trials::Int64 = 10000,
                     rffsp_sampling = rffsp_sampling,
                     rffsp_sampling_ids = rffsp_sampling_ids,
                     save_list = save_list,
+                    Agriculture_gtap = Agriculture_gtap
                 )
 
     # run monte carlo trials
