@@ -1,12 +1,11 @@
 using Mimi
 
 @defcomp NewSectorDamages begin
-    country     = Index()
-
+    
     temperature = Parameter(index=[time], unit="degC")
     gdp         = Parameter(index=[time, country], unit="billion US\$2005/yr")
     
-    a          = Parameter(default=0.005)
+    a           = Parameter(default=0.005)
 
     damfrac     = Variable(index=[time, country])
     damages     = Variable(index=[time, country], unit="billion US\$2005/yr")

@@ -10,8 +10,6 @@ using DataFrames
 using Query
 using VegaLite
 
-include("new_sector_damages.jl")
-include("DamageAggregator_NewSectorDamages.jl")
 include("main_model.jl")
 include("mcs.jl")
 include("scc.jl")
@@ -23,6 +21,7 @@ run(m)
 # Explore the results in graphic form via the explorer and the plot functions
 explore(m)
 Mimi.plot(m, :NewSectorDamages, :damages)
+Mimi.plot(m, :Damages_RegionAggregatorSum, :damage_new_sector_regions)
 
 # Examine results in tabular form, or plot them yourself with Vegalite
 df = getdataframe(m, :NewSectorDamages, :damages) |> @filter(_.time >= 2020) |> DataFrame

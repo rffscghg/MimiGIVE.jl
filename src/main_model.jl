@@ -221,7 +221,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, MimiMooreEtAlAgricultureImpacts.Agriculture, :Agriculture, first = damages_first, after = :Agriculture_aggregator_gdp);
     add_comp!(m, AgricultureDamagesDisaggregator, :AgricultureDamagesDisaggregator, first = damages_first, after = :Agriculture)
 
-    # add aggregators for 1990 population and GDP if we are using the GIVE model
+    # add aggregators for 1990 population and GDP if we are using the RFFSPs
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_pop90, first = damages_first, after = :Agriculture_aggregator_gdp) : nothing
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_gdp90, first = damages_first, after = :Agriculture_aggregator_pop90) : nothing
 
