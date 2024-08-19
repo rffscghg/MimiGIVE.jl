@@ -103,7 +103,7 @@ end
 df1 = df1 |> @groupby({_.time, _.trialnum}) |> @map({key(_)..., damages = sum(_.damages)}) |> DataFrame
 sort!(df1, [:trialnum, :time])
 df2 = load(joinpath(output_dir, "results", "model_1", "slr_damages.csv")) |> @filter(_.time >= 2020) |> DataFrame
-sort!(df2, [:trial, :time])
+sort!(df2, [:trialnum, :time])
 @test (df1.damages ./ 1e9) ≈ df2.slr_damages # convert disaggregated data into billions of USD
 
 ##
@@ -142,9 +142,9 @@ end
 
 md_ag_domestic = DataFrame(results[:mds][(region = :domestic, sector = :agriculture)], Symbol.(2020:2300))
 md_ag_domestic = md_ag_domestic |>
-                    i -> insertcols!(i, 1, :trial => 1:3) |>
-                    i -> stack(i, Not(:trial)) |>
-                    i -> sort!(i, :trial) |>
+                    i -> insertcols!(i, 1, :trialnum => 1:3) |>
+                    i -> stack(i, Not(:trialnum)) |>
+                    i -> sort!(i, :trialnum) |>
                     DataFrame
 md_usa = load(joinpath(output_dir, "results", "disaggregated_values", "mds_region_ag_only", "USA.csv")) |> DataFrame
 @test md_usa.md ≈ md_ag_domestic.value
@@ -155,9 +155,9 @@ md_usa = load(joinpath(output_dir, "results", "disaggregated_values", "mds_regio
 md_nonag_domestic = DataFrame(results[:mds][(region = :domestic, sector = :cromar_mortality)] .+ results[:mds][(region = :domestic, sector = :energy)] .+ results[:mds][(region = :domestic, sector = :slr)], 
                                 Symbol.(2020:2300))
 md_nonag_domestic = md_nonag_domestic |>
-                i -> insertcols!(i, 1, :trial => 1:3) |>
-                i -> stack(i, Not(:trial)) |>
-                i -> sort!(i, :trial) |>
+                i -> insertcols!(i, 1, :trialnum => 1:3) |>
+                i -> stack(i, Not(:trialnum)) |>
+                i -> sort!(i, :trialnum) |>
                 DataFrame
 
 md_usa = load(joinpath(output_dir, "results", "disaggregated_values", "mds_country_no_ag", "USA.csv")) |> DataFrame
@@ -167,4 +167,3 @@ md_usa_pri.md = md_usa.md .+ md_pri.md
 @test md_usa_pri.md ≈ md_nonag_domestic.value
 
 end # module
-

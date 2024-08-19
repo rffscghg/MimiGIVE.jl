@@ -2,7 +2,7 @@ using Distributions, Dates, Mimi, CSVFiles, DataFrames, MimiMooreEtAlAgriculture
 import Mimi: SampleStore, add_RV!, add_transform!, add_save!
 
 """
-    get_mcs(trials;
+    get_mcs(trials; 
             socioeconomics_source::Symbol = :RFF, 
             mcs_years = 1750:2300, 
             fair_parameter_set::Symbol = :random,
@@ -45,7 +45,7 @@ function get_mcs(trials;
                     rffsp_sampling::Symbol = :random,
                     rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
                     save_list::Vector = [],
-                    Agriculture_gtap::String = "midDF"        
+                    Agriculture_gtap::String = "midDF"         
         )
 
     # check some argument conditions

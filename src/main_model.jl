@@ -219,13 +219,17 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_gdp, first = damages_first, after = :Agriculture_aggregator_population);
     add_comp!(m, MimiMooreEtAlAgricultureImpacts.Agriculture, :Agriculture, first = damages_first, after = :Agriculture_aggregator_gdp);
+    add_comp!(m, AgricultureDamagesDisaggregator, :AgricultureDamagesDisaggregator, first = damages_first, after = :Agriculture)
 
     # add aggregators for 1990 population and GDP if we are using the GIVE model
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_pop90, first = damages_first, after = :Agriculture_aggregator_gdp) : nothing
     socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_gdp90, first = damages_first, after = :Agriculture_aggregator_pop90) : nothing
 
+    # Add a Regional Per Capita GDP component that takes inputs from the Agiculture aggregator components
+    add_comp!(m, RegionalPerCapitaGDP, :RegionalPerCapitaGDP, first=damages_first, after = :AgricultureDamagesDisaggregator);
+
     # Add Energy components
-    add_comp!(m, energy_damages, :energy_damages, first = damages_first, after = :Agriculture);
+    add_comp!(m, energy_damages, :energy_damages, first = damages_first, after = :RegionalPerCapitaGDP);
 
     # Add DICE2016R2 damage component
     add_comp!(m, dice2016R2_damage, :dice2016R2_damage, first = damages_first, after = :energy_damages);
@@ -233,11 +237,14 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Add Howard and Sterner damage components
     add_comp!(m, hs_damage, :hs_damage, first = damages_first, after = :dice2016R2_damage);
        
-    # Add DamageAggregator component
+    # Add DamageAggregator component and regional damages aggregator helper function
+    add_comp!(m, Damages_RegionAggregatorSum, first = damages_first);
     add_comp!(m, DamageAggregator, first = damages_first);
 
-    # Add net consumption component
+    # Add net consumption components (global and regional)
     add_comp!(m, GlobalNetConsumption, :global_netconsumption, first = damages_first, after=:DamageAggregator)
+    add_comp!(m, RegionalNetConsumption, :regional_netconsumption, first = damages_first, after=:global_netconsumption)
+    add_comp!(m, CountryNetConsumption, :country_netconsumption, first = damages_first, after = :regional_netconsumption)
 
     # --------------------------------------------------------------------------
 	# Shared Model Parameters
@@ -449,6 +456,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     elseif vsl==:epa
 	    update_param!(m, :VSL, :α,  7.73514707e6)                                   # 2020 EPA VSL in 2005$. See DataExplainer.ipynb for information
         update_param!(m, :VSL, :y₀, 48_726.60)                                      # 2020 U.S. income per capita in 2005$; See DataExplainer.ipynb for information  
+    elseif vsl==:uba
+	    update_param!(m, :VSL, :α,  5_920_000. / pricelevel_2005_to_2020)           # 2020 UBA VSL in 2005$
+        update_param!(m, :VSL, :y₀, 44_646.78)                                      # 2020 German income per capita in 2005$
     else
         error("Invalid vsl argument of $vsl.")
     end
@@ -585,6 +595,25 @@ function get_model(; Agriculture_gtap::String = "midDF",
 	connect_param!(m, :Agriculture => :temp, :TempNorm_1995to2005 => :global_temperature_norm)
 
     # --------------------------------------------------------------------------
+	# Regional Per Capita GDP
+    # --------------------------------------------------------------------------
+
+    connect_param!(m, :RegionalPerCapitaGDP => :population, :Agriculture_aggregator_population => :output)
+    connect_param!(m, :RegionalPerCapitaGDP => :gdp, :Agriculture_aggregator_gdp => :output)
+
+    # --------------------------------------------------------------------------
+	# Agriculture Damages Disaggregator
+    # --------------------------------------------------------------------------
+    
+    connect_param!(m, :AgricultureDamagesDisaggregator, :mapping, :model_ag_mapping)
+    connect_param!(m, :AgricultureDamagesDisaggregator, :fund_region_names, :model_ag_mapping_output_regions)
+    
+    connect_param!(m, :AgricultureDamagesDisaggregator => :gdp_fund_region, :Agriculture_aggregator_gdp => :output)
+    connect_param!(m, :AgricultureDamagesDisaggregator => :gdp_country, :Socioeconomic => :gdp)
+
+    connect_param!(m, :AgricultureDamagesDisaggregator => :damages_ag_fund_region, :Agriculture => :agcost)
+
+    # --------------------------------------------------------------------------
     # Energy
     # --------------------------------------------------------------------------
 
@@ -629,13 +658,25 @@ function get_model(; Agriculture_gtap::String = "midDF",
 	# Damage Aggregation
     # --------------------------------------------------------------------------
 
+    # small regional damage aggregator helper component
+    connect_param!(m, :Damages_RegionAggregatorSum, :input_region_names, :model_ag_mapping_input_regions)
+    connect_param!(m, :Damages_RegionAggregatorSum, :output_region_names, :model_ag_mapping_output_regions)
+    connect_param!(m, :Damages_RegionAggregatorSum, :input_output_mapping, :model_ag_mapping)
+    connect_param!(m, :Damages_RegionAggregatorSum => :damage_cromar_mortality, :CromarMortality => :mortality_costs)
+    connect_param!(m, :Damages_RegionAggregatorSum => :damage_energy, :energy_damages => :energy_costs_dollar)
+
+    # main damage aggregator
     connect_param!(m, :DamageAggregator => :damage_ag, :Agriculture => :agcost)
+    connect_param!(m, :DamageAggregator => :damage_ag_countries, :AgricultureDamagesDisaggregator => :damages_ag_country)
     connect_param!(m, :DamageAggregator => :damage_cromar_mortality, :CromarMortality => :mortality_costs)
     connect_param!(m, :DamageAggregator => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :DamageAggregator => :damage_energy, :energy_damages => :energy_costs_dollar)
     connect_param!(m, :DamageAggregator => :damage_dice2016R2, :dice2016R2_damage => :damages)
     connect_param!(m, :DamageAggregator => :damage_hs, :hs_damage => :damages)
 
+    connect_param!(m, :DamageAggregator => :damage_cromar_mortality_regions, :Damages_RegionAggregatorSum => :damage_cromar_mortality_regions)
+    connect_param!(m, :DamageAggregator => :damage_energy_regions, :Damages_RegionAggregatorSum => :damage_energy_regions)
+    
     domestic_idxs_country_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)))  
     update_param!(m, :DamageAggregator, :domestic_idxs_country_dim, domestic_idxs_country_dim)
 
@@ -646,9 +687,20 @@ function get_model(; Agriculture_gtap::String = "midDF",
 	# Net Consumption
     # --------------------------------------------------------------------------
     
+    # global
     connect_param!(m, :global_netconsumption => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :global_netconsumption => :population, :Socioeconomic => :population)
     connect_param!(m, :global_netconsumption => :total_damage, :DamageAggregator => :total_damage)
     
+    # regional
+    connect_param!(m, :regional_netconsumption => :population, :Agriculture_aggregator_population => :output)
+    connect_param!(m, :regional_netconsumption => :gdp, :Agriculture_aggregator_gdp => :output)
+    connect_param!(m, :regional_netconsumption => :total_damage, :DamageAggregator => :total_damage_regions)
+
+    # country
+    connect_param!(m, :country_netconsumption => :gdp, :Socioeconomic => :gdp)
+    connect_param!(m, :country_netconsumption => :population, :Socioeconomic => :population)
+    connect_param!(m, :country_netconsumption => :total_damage, :DamageAggregator => :total_damage_countries)
+
     return m
 end

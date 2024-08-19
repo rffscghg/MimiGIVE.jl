@@ -23,3 +23,21 @@ using Mimi
         end
     end
 end
+
+@defcomp RegionalPerCapitaGDP begin
+
+    fund_regions = Index()
+
+    gdp         = Parameter(index=[time, fund_regions], unit="billion US\$2005/yr")
+    population  = Parameter(index=[time, fund_regions], unit="million")
+
+    pc_gdp      = Variable(index=[time, fund_regions], unit = "US\$2005/yr/person") # Region-level per capita GDP ($/person).
+
+    function run_timestep(p, v, d, t)
+
+        # calculate region level per capita gdp
+        for r in d.fund_regions
+            v.pc_gdp[t, r] = (p.gdp[t, r]) ./ (p.population[t, r]) * 1e3 
+        end
+    end
+end

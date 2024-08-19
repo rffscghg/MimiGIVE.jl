@@ -9,10 +9,16 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
     @info("test_compute_scc.jl")
     @time include("test_compute_scc.jl")
 
-    @info("test_regression.jl")
-    @time include("test_regression.jl")
+    @info("test_regression_deterministic.jl")
+    @time include("test_regression_deterministic.jl")
+
+    if VERSION == v"1.10" # random number generator not alwasy stable between versions
+        @info("test_regression_mcs.jl")
+        @time include("test_regression_mcs.jl")
+    end 
 
     @info("test_disaggregated_values.jl")
     @time include("test_save_disaggregated_values.jl")
-
+    
 end
+
