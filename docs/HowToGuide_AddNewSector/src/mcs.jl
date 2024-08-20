@@ -18,6 +18,7 @@ function get_modified_mcs(trials; args...)
     mcs = MimiGIVE.get_mcs(trials; args...) # get the original MCS
 
     # add new sector uncertainty
+    rv_name = :rv_new_sector_a
     Mimi.add_RV!(mcs, rv_name, Normal(0.005, 0.005/2)) # add random variable
     Mimi.add_transform!(mcs, :NewSectorDamages, :a, :(=), rv_name) # connect random variable to parameter
 

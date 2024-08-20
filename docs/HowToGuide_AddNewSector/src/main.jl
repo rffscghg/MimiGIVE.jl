@@ -21,7 +21,6 @@ run(m)
 # Explore the results in graphic form via the explorer and the plot functions
 explore(m)
 Mimi.plot(m, :NewSectorDamages, :damages)
-Mimi.plot(m, :Damages_RegionAggregatorSum, :damage_new_sector_regions)
 
 # Examine results in tabular form, or plot them yourself with Vegalite
 df = getdataframe(m, :NewSectorDamages, :damages) |> @filter(_.time >= 2020) |> DataFrame
