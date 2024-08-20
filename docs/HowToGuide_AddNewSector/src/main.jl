@@ -83,6 +83,8 @@ for (k,v) in results_scc
     append!(scc_df, DataFrame(
                         :region => k.region, 
                         :sector => k.sector, 
+                        :ew => k.ew,
+                        :ew_norm_region => k.ew_norm_region,
                         :discount_rate_label => k.dr_label, 
                         :expected_scc => v[:expected_scc], 
                         :se_expected_scc => v[:se_expected_scc]

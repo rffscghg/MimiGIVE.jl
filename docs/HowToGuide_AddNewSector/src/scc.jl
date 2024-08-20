@@ -1,7 +1,10 @@
 using Dates, CSVFiles, DataFrames, FileIO, Mimi, Query
 
-# import constants
+# import constants from MimiGIVE
 import MimiGIVE: _model_years, _damages_years, _damages_idxs, scc_gas_molecular_conversions, scc_gas_pulse_size_conversions
+
+# import some functions from MimiGIVE, could also use MimiGIVE. prefix when calling these functions
+import MimiGIVE: get_marginal_model, _get_module_name, _get_mooreag_gtap, get_ciam, _compute_ciam_marginal_damages
 
 include("utils/scc_streaming.jl")
 
