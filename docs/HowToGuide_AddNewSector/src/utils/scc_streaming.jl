@@ -108,7 +108,7 @@ function _modified_stream_disagg_md(m_base::Mimi.Model, m_modified::Mimi.Model, 
         md_ciam_all_countries[:, country_idxs] = md_ciam[_damages_idxs,:]	
     end	
 
-    md_country_df = DataFrame(md_cromar_mortality .+ md_energy .+ md.new_sector .+ md_ciam_all_countries, dim_keys(m_base, :country)) |>	
+    md_country_df = DataFrame(md_cromar_mortality .+ md_energy .+ md_new_sector .+ md_ciam_all_countries, dim_keys(m_base, :country)) |>	
                     i -> insertcols!(i, 1, :time => _damages_years) |>	
                     i -> stack(i, Not(:time)) |>	
                     @rename(:variable => :country, :value => :md) |>	

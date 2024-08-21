@@ -3,9 +3,7 @@ using Dates, CSVFiles, DataFrames, FileIO, Mimi, Query
 # import constants from MimiGIVE
 import MimiGIVE: _model_years, _damages_years, _damages_idxs, scc_gas_molecular_conversions, scc_gas_pulse_size_conversions
 
-# import some functions from MimiGIVE, could also use MimiGIVE. prefix when calling these functions
-import MimiGIVE: get_marginal_model, _get_module_name, _get_mooreag_gtap, get_ciam, _compute_ciam_marginal_damages
-
+# note we could import functions from MimiGIVE instead of using "MimiGIVE." prefix, but leaving prefix for clarity 
 include("utils/scc_streaming.jl")
 
 # Primary compute scc function
@@ -68,7 +66,7 @@ function compute_modified_scc(m::Model = get_modified_model();
 
     end
 
-    mm = get_marginal_model(m; year = year, gas = gas, pulse_size = pulse_size)
+    mm = MimiGIVE.get_marginal_model(m; year = year, gas = gas, pulse_size = pulse_size)
 
     if n==0
         return _compute_modified_scc(mm, 
@@ -139,9 +137,9 @@ function _compute_modified_scc(mm::MarginalModel;
     run(mm)
 
     # at this point create identical copies ciam_base and ciam_modified, they will 
-    # be updated in _compute_ciam_marginal_damages with update_ciam!
-    ciam_base, segment_fingerprints = get_ciam(mm.base)
-    ciam_modified, _ = get_ciam(mm.base) 
+    # be updated in MimiGIVE._compute_ciam_marginal_damages with update_ciam!
+    ciam_base, segment_fingerprints = MimiGIVE.get_ciam(mm.base)
+    ciam_modified, _ = MimiGIVE.get_ciam(mm.base) 
 
     ciam_base = Mimi.build(ciam_base)
     ciam_modified = Mimi.build(ciam_modified)
@@ -150,7 +148,7 @@ function _compute_modified_scc(mm::MarginalModel;
     # we are including slr
     if mm.base[:DamageAggregator, :include_slr]
 
-        all_ciam_marginal_damages = _compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,  pulse_size=pulse_size)
+        all_ciam_marginal_damages = MimiGIVE._compute_ciam_marginal_damages(mm.base, mm.modified, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=CIAM_foresight, CIAM_GDPcap=CIAM_GDPcap,  pulse_size=pulse_size)
     
         # zero out the CIAM marginal damages from start year (2020) through emissions
         # year - they will be non-zero due to foresight but saved marginal damages
@@ -162,7 +160,7 @@ function _compute_modified_scc(mm::MarginalModel;
     
     # Units Note:
     #   main_marginal_damages: the marginal model will handle pulse size, we handle molecular mass conversion explicilty
-    #   ciam_marginal_damages: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
+    #   ciam_marginal_damages: within the MimiGIVE._compute_ciam_marginal_damages function we handle both pulse size and molecular mass
     if domestic
         main_marginal_damages = mm[:DamageAggregator, :total_damage_domestic] .* scc_gas_molecular_conversions[gas] 
         ciam_marginal_damages = mm.base[:DamageAggregator, :include_slr] ? all_ciam_marginal_damages.domestic : fill(0., length(_model_years)) 
@@ -328,7 +326,7 @@ function modified_post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimes
     # Compute marginal damages
     # Units Note:
     #   main_mds and non-ciam sectoral damages: we explicitly need to handle both pulse size and molecular mass so we use gas_units_multiplier
-    #   slr_mds: within the _compute_ciam_marginal_damages function we handle both pulse size and molecular mass
+    #   slr_mds: within the MimiGIVE._compute_ciam_marginal_damages function we handle both pulse size and molecular mass
 
     # Create a marginal model to use for computation of the marginal damages from
     # non-slr sectors, and IMPORTANTLY include the gas_units_multiplier as the 
@@ -340,7 +338,7 @@ function modified_post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimes
     include_slr = base[:DamageAggregator, :include_slr]
     if include_slr
         # return a NamedTuple with globe and domestic and country as well as other helper values
-        ciam_mds = _compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) 
+        ciam_mds = MimiGIVE._compute_ciam_marginal_damages(base, marginal, gas, ciam_base, ciam_modified, segment_fingerprints; CIAM_foresight=options.CIAM_foresight, CIAM_GDPcap=options.CIAM_GDPcap, pulse_size=options.pulse_size) 
         
         # zero out the CIAM marginal damages from start year (2020) through emissions
         # year - they will be non-zero due to foresight but saved marginal damages
@@ -377,9 +375,9 @@ function modified_post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimes
     # stream out sectoral damages disaggregated by country along with the socioeconomics	
     if options.compute_disaggregated_values
         _modified_stream_disagg_damages(base, streams["output_dir"], trialnum, streams)
-        _stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)
+        MimiGIVE._stream_disagg_socioeconomics(base, streams["output_dir"], trialnum, streams)
         if include_slr
-            _modified_stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)
+            MimiGIVE._stream_disagg_damages_slr(ciam_base, ciam_mds.damages_base_country, streams["output_dir"], trialnum, streams)
             _modified_stream_disagg_md(base, marginal, ciam_base, ciam_mds.country, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
         else
             _modified_stream_disagg_md(base, marginal, nothing, nothing, streams["output_dir"], trialnum, streams; gas_units_multiplier=gas_units_multiplier)
@@ -418,7 +416,7 @@ function modified_post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimes
         # get a dummy ciam model to be sure to accurately assign segment names to 
         # segment level damages
         m = MimiGIVE.get_modified_model()
-        m_ciam, ~ = MimiGIVE.get_ciam(m)
+        m_ciam, ~ = MimiGIVE.MimiGIVE.get_ciam(m)
 
         if include_slr
 
@@ -854,14 +852,14 @@ function _compute_modified_scc_mcs(mm::MarginalModel,
 
     models = [mm.base, mm.modified]
 
-    socioeconomics_module = _get_module_name(mm.base, :Socioeconomic)
+    socioeconomics_module = MimiGIVE._get_module_name(mm.base, :Socioeconomic)
     if socioeconomics_module == :MimiSSPs
         socioeconomics_source = :SSP
     elseif socioeconomics_module == :MimiRFFSPs
         socioeconomics_source = :RFF
     end
 
-    Agriculture_gtap = _get_mooreag_gtap(mm.base)
+    Agriculture_gtap = MimiGIVE._get_mooreag_gtap(mm.base)
 
     mcs = get_modified_mcs(n; 
                     socioeconomics_source=socioeconomics_source, 
@@ -942,8 +940,8 @@ function _compute_modified_scc_mcs(mm::MarginalModel,
         slr_damages = nothing
     end
 
-    ciam_base, segment_fingerprints = get_ciam(mm.base)
-    ciam_modified, _ = get_ciam(mm.base)
+    ciam_base, segment_fingerprints = MimiGIVE.get_ciam(mm.base)
+    ciam_modified, _ = MimiGIVE.get_ciam(mm.base)
 
     ciam_base = Mimi.build(ciam_base)
     ciam_modified = Mimi.build(ciam_modified)

@@ -65,7 +65,10 @@ mkpath(output_dir)
 results = compute_modified_scc(
                 year=2020, 
                 n=10, 
-                discount_rates = [(label = "DICE discount rate", prtp = 0.015, eta = 1.45), (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999)],
+                discount_rates = [
+                                    (label = "DICE discount rate", prtp = 0.015, eta = 1.45),
+                                    (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999)
+                                ],
                 output_dir=output_dir, 
                 save_list=save_list,
                 compute_sectoral_values = true,
