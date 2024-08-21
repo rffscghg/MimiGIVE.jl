@@ -73,7 +73,7 @@ results = compute_modified_scc(
             );
 
 # Access the computed SCC values
-scc_df = DataFrame(:region => [], :sector => [], :discount_rate_label => [], :expected_scc => [], :se_expected_scc => [])
+scc_df = DataFrame(:region => [], :sector => [], :discount_rate_label => [], :expected_scc => [], :se_expected_scc => [], :ew => [], :ew_norm_region => [])
 results_scc = results[:scc] # results is a dictionary, :scc is a key to this dictionary
 
 for (k,v) in results_scc 
@@ -104,4 +104,3 @@ mds_df = stack(mds_df, Not(:trial))
 rename!(mds_df, [:trial, :time, :value])
 
 mds_df |> @vlplot(:line, x = "time:t", y = :value, color = "trial:n")
-

@@ -49,9 +49,9 @@ function run_modified_mcs(;trials::Int64 = 10000,
 
     socioeconomics_module = MimiGIVE._get_module_name(m, :Socioeconomic)
     if socioeconomics_module == :MimiSSPs
-    socioeconomics_source = :SSP
+        socioeconomics_source = :SSP
     elseif socioeconomics_module == :MimiRFFSPs
-    socioeconomics_source = :RFF
+        socioeconomics_source = :RFF
     end
 
     # Get an instance of the mcs
