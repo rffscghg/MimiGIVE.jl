@@ -11,7 +11,7 @@ using Query
 using VegaLite
 
 include("main_model.jl")
-include("mcs.jl")
+include("main_mcs.jl")
 include("scc.jl")
 
 # Run the model
