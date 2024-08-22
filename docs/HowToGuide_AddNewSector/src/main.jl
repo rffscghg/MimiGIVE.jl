@@ -10,10 +10,8 @@ using DataFrames
 using Query
 using VegaLite
 
-include("new_sector_damages.jl")
-include("DamageAggregator_NewSectorDamages.jl")
 include("main_model.jl")
-include("mcs.jl")
+include("main_mcs.jl")
 include("scc.jl")
 
 # Run the model
@@ -67,7 +65,10 @@ mkpath(output_dir)
 results = compute_modified_scc(
                 year=2020, 
                 n=10, 
-                discount_rates = [(label = "DICE discount rate", prtp = 0.015, eta = 1.45), (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999)],
+                discount_rates = [
+                                    (label = "DICE discount rate", prtp = 0.015, eta = 1.45),
+                                    (label = "2.0%", prtp = exp(0.001972641) - 1, eta = 1.244458999)
+                                ],
                 output_dir=output_dir, 
                 save_list=save_list,
                 compute_sectoral_values = true,
@@ -75,7 +76,7 @@ results = compute_modified_scc(
             );
 
 # Access the computed SCC values
-scc_df = DataFrame(:region => [], :sector => [], :discount_rate_label => [], :expected_scc => [], :se_expected_scc => [])
+scc_df = DataFrame(:region => [], :sector => [], :discount_rate_label => [], :expected_scc => [], :se_expected_scc => [], :ew => [], :ew_norm_region => [])
 results_scc = results[:scc] # results is a dictionary, :scc is a key to this dictionary
 
 for (k,v) in results_scc 
@@ -85,6 +86,8 @@ for (k,v) in results_scc
     append!(scc_df, DataFrame(
                         :region => k.region, 
                         :sector => k.sector, 
+                        :ew => k.ew,
+                        :ew_norm_region => k.ew_norm_region,
                         :discount_rate_label => k.dr_label, 
                         :expected_scc => v[:expected_scc], 
                         :se_expected_scc => v[:se_expected_scc]
@@ -104,4 +107,3 @@ mds_df = stack(mds_df, Not(:trial))
 rename!(mds_df, [:trial, :time, :value])
 
 mds_df |> @vlplot(:line, x = "time:t", y = :value, color = "trial:n")
-

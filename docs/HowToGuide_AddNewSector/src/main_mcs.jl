@@ -3,12 +3,24 @@ using MimiGIVE
 using Distributions
 using Dates
 
+# used for Option 1 in Advanced Topic: Uncertainty and Intermediate Outputs
+function update_mcs!(mcs)
+
+    # add new sector uncertainty
+    rv_name = :rv_new_sector_a
+    Mimi.add_RV!(mcs, rv_name, Normal(0.005, 0.005/2)) # add random variable
+    Mimi.add_transform!(mcs, :NewSectorDamages, :a, :(=), rv_name) # connect random variable to parameter
+
+end
+
+# used for Option 2 in Advanced Topic: Uncertainty and Intermediate Outputs
 function get_modified_mcs(trials; args...)
     mcs = MimiGIVE.get_mcs(trials; args...) # get the original MCS
 
     # add new sector uncertainty
-    Mimi.add_RV!(mcs, :rv_new_sector_a, Normal(0.005, 0.005/2)) # add random variable
-    Mimi.add_transform!(mcs, :NewSectorDamages, :a, :(=), :rv_new_sector_a) # connect random variable to parameter
+    rv_name = :rv_new_sector_a
+    Mimi.add_RV!(mcs, rv_name, Normal(0.005, 0.005/2)) # add random variable
+    Mimi.add_transform!(mcs, :NewSectorDamages, :a, :(=), rv_name) # connect random variable to parameter
 
     return mcs
 end
@@ -20,7 +32,7 @@ function run_modified_mcs(;trials::Int64 = 10000,
                             fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                             rffsp_sampling::Symbol = :random,
                             rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                            m::Mimi.Model = get_modified_model(), 
+                            m::Mimi.Model = get_modified_model(), # <-- using a different default model
                             save_list::Vector = [],
                             results_in_memory::Bool = true,
                         )
@@ -37,13 +49,13 @@ function run_modified_mcs(;trials::Int64 = 10000,
 
     socioeconomics_module = MimiGIVE._get_module_name(m, :Socioeconomic)
     if socioeconomics_module == :MimiSSPs
-    socioeconomics_source = :SSP
+        socioeconomics_source = :SSP
     elseif socioeconomics_module == :MimiRFFSPs
-    socioeconomics_source = :RFF
+        socioeconomics_source = :RFF
     end
 
     # Get an instance of the mcs
-    mcs = get_modified_mcs(trials; 
+    mcs = get_modified_mcs(trials;  # <-- using a different function to obtain the mcs
         socioeconomics_source = socioeconomics_source, 
         mcs_years = Mimi.time_labels(m), 
         fair_parameter_set = fair_parameter_set, 
