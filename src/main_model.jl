@@ -60,14 +60,14 @@ Get a GIVE Model with the given argument Settings
 - vsl (default :epa) - specify the soruce of the value of statistical life (VSL) being used in the model
 
 """
-function get_model(; Agriculture_gtap::String = "midDF",
-                    socioeconomics_source::Symbol = :RFF,
-                    SSP_scenario::Union{Nothing, String} = nothing,       
-                    RFFSPsample::Union{Nothing, Int} = nothing,
-                    Agriculture_floor_on_damages::Bool = true,
-                    Agriculture_ceiling_on_benefits::Bool = false,
-                    vsl::Symbol= :epa
-                )
+function get_model(; Agriculture_gtap::String="midDF",
+    socioeconomics_source::Symbol=:RFF,
+    SSP_scenario::Union{Nothing,String}=nothing,
+    RFFSPsample::Union{Nothing,Int}=nothing,
+    Agriculture_floor_on_damages::Bool=true,
+    Agriculture_ceiling_on_benefits::Bool=false,
+    vsl::Symbol=:epa
+)
 
     # --------------------------------------------------------------------------
     # MODEL - Check Arguments
@@ -75,8 +75,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     if socioeconomics_source == :SSP && isnothing(SSP_scenario)
         error("The socioeconomics_source argument :SSP requires setting a SSP_scenario")
-    end    
-    
+    end
+
     if socioeconomics_source == :RFF && !isnothing(SSP_scenario)
         @warn("You have set a SSP_scenario to a non-nothing value, but note that setting the socioeconomics_source argument to :RFF means that this will have no effect on the model.")
     end
@@ -94,12 +94,12 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # --------------------------------------------------------------------------    
 
     # dimensions and countries/regions lists
-    countries           = (load(joinpath(@__DIR__, "..", "data", "Dimension_countries.csv")) |> @select(:CountryISO) |> DataFrame |> Matrix)[:]
-    ciam_countries      = (load(joinpath(@__DIR__, "..", "data", "Dimension_ciam_countries.csv")) |> @select(:CountryISO) |> DataFrame |> Matrix)[:]
-    fund_regions        = (load(joinpath(@__DIR__, "..", "data", "Dimension_fund_regions.csv")) |> @select(:fund_region) |> DataFrame |> Matrix)[:]
-    gcam_regions        = (load(joinpath(@__DIR__, "..", "data", "Dimension_gcam_energy_regions.csv")) |> @select(:gcam_energy_region) |> DataFrame |> Matrix)[:] # not currently a dimension in model
-    cromar_regions      = (load(joinpath(@__DIR__, "..", "data", "Dimension_cromar_mortality_regions.csv")) |> @select(:cromar_mortality_region) |> DataFrame |> Matrix)[:] # not currently a dimension in model
-    domestic_countries  = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
+    countries = (load(joinpath(@__DIR__, "..", "data", "Dimension_countries.csv"))|>@select(:CountryISO)|>DataFrame|>Matrix)[:]
+    ciam_countries = (load(joinpath(@__DIR__, "..", "data", "Dimension_ciam_countries.csv"))|>@select(:CountryISO)|>DataFrame|>Matrix)[:]
+    fund_regions = (load(joinpath(@__DIR__, "..", "data", "Dimension_fund_regions.csv"))|>@select(:fund_region)|>DataFrame|>Matrix)[:]
+    gcam_regions = (load(joinpath(@__DIR__, "..", "data", "Dimension_gcam_energy_regions.csv"))|>@select(:gcam_energy_region)|>DataFrame|>Matrix)[:] # not currently a dimension in model
+    cromar_regions = (load(joinpath(@__DIR__, "..", "data", "Dimension_cromar_mortality_regions.csv"))|>@select(:cromar_mortality_region)|>DataFrame|>Matrix)[:] # not currently a dimension in model
+    domestic_countries = ["USA", "PRI"] # Country ISO3 codes to be accumulated for domestic
 
     # Create country-region (FUND derived) mapping for Agriculture damage function
     ag_mapping = load(joinpath(@__DIR__, "..", "data", "Mapping_countries_to_fund_regions.csv")) |> DataFrame
@@ -120,10 +120,10 @@ function get_model(; Agriculture_gtap::String = "midDF",
     cromar_mapping = cromar_mapping.cromar_region
 
     # BRICK Fingerprinting
-    segment_fingerprints = load(joinpath(@__DIR__, "../data/CIAM/segment_fingerprints.csv"))  |>
-        DataFrame |>
-        @filter(_.rgn in ciam_countries) |> # reduce to the segments in the coastal countries we are using
-        DataFrame
+    segment_fingerprints = load(joinpath(@__DIR__, "../data/CIAM/segment_fingerprints.csv")) |>
+                           DataFrame |>
+                           @filter(_.rgn in ciam_countries) |> # reduce to the segments in the coastal countries we are using
+                           DataFrame
 
     # get the ar6 forcing scenario to be used for the FAIR model and Mortality component
     if socioeconomics_source == :RFF
@@ -137,7 +137,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
 
     # Grab the SSP name from the full scenario ie. SSP2 from SSP245
-    if socioeconomics_source == :SSP 
+    if socioeconomics_source == :SSP
         SSP = SSP_scenario[1:4]
     else
         SSP = nothing
@@ -153,8 +153,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     damages_first = 2020
     model_last = 2300
 
-	# Start with an instance of the FAIR model.
-	m = MimiFAIRv1_6_2.get_model(start_year=model_first, end_year=model_last, ar6_scenario = ar6_scenario)
+    # Start with an instance of the FAIR model.
+    m = MimiFAIRv1_6_2.get_model(start_year=model_first, end_year=model_last, ar6_scenario=ar6_scenario)
 
     # Set Dimensions
     set_dimension!(m, :time, model_first:model_last) # used in all components - already set in FAIR but reset for clarity
@@ -170,118 +170,118 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     # Add Socioeconomics component BEFORE the FAIR model to allow for emissions feedbacks after damages_first year
     if socioeconomics_source == :RFF
-        add_comp!(m, MimiRFFSPs.SPs, :Socioeconomic, first = damages_first, before = :ch4_cycle);
+        add_comp!(m, MimiRFFSPs.SPs, :Socioeconomic, first=damages_first, before=:ch4_cycle)
     elseif socioeconomics_source == :SSP
-        add_comp!(m, MimiSSPs.SSPs, :Socioeconomic, first = damages_first, before = :ch4_cycle);
+        add_comp!(m, MimiSSPs.SSPs, :Socioeconomic, first=damages_first, before=:ch4_cycle)
     end
 
     # Add PerCapitaGDP component
-	add_comp!(m, PerCapitaGDP, :PerCapitaGDP, first=damages_first, after = :Socioeconomic);
+    add_comp!(m, PerCapitaGDP, :PerCapitaGDP, first=damages_first, after=:Socioeconomic)
 
     # Add VSL component
-	add_comp!(m, VSL, :VSL, first=damages_first, after = :PerCapitaGDP);
+    add_comp!(m, VSL, :VSL, first=damages_first, after=:PerCapitaGDP)
 
     # We add an identity component that simply passes values through here
     # This makes it easier to later insert the marginal emission modification component
     # between two components that don't use backup data
-    add_comp!(m, IdentityComponent_co2, :co2_emissions_identity, before = :co2_cycle);
-    add_comp!(m, IdentityComponent_ch4, :ch4_emissions_identity, before = :ch4_cycle);
-    add_comp!(m, IdentityComponent_n2o, :n2o_emissions_identity, before = :n2o_cycle);
+    add_comp!(m, IdentityComponent_co2, :co2_emissions_identity, before=:co2_cycle)
+    add_comp!(m, IdentityComponent_ch4, :ch4_emissions_identity, before=:ch4_cycle)
+    add_comp!(m, IdentityComponent_n2o, :n2o_emissions_identity, before=:n2o_cycle)
 
     # Add Temperature Normalization Components
-    add_comp!(m, GlobalTempNorm, :TempNorm_1880, after = :temperature); # Howard and Sterner
-    add_comp!(m, GlobalTempNorm, :TempNorm_1900, after = :TempNorm_1880); # DICE
-    add_comp!(m, GlobalTempNorm, :TempNorm_1850to1900, after = :TempNorm_1900); # Useful Reference to IPCC
-    add_comp!(m, GlobalTempNorm, :TempNorm_1995to2005, after = :TempNorm_1850to1900); # Agriculture
+    add_comp!(m, GlobalTempNorm, :TempNorm_1880, after=:temperature) # Howard and Sterner
+    add_comp!(m, GlobalTempNorm, :TempNorm_1900, after=:TempNorm_1880) # DICE
+    add_comp!(m, GlobalTempNorm, :TempNorm_1850to1900, after=:TempNorm_1900) # Useful Reference to IPCC
+    add_comp!(m, GlobalTempNorm, :TempNorm_1995to2005, after=:TempNorm_1850to1900) # Agriculture
 
     # Add Ocean Heat Accumulator to Link FAIR and BRICK
-    add_comp!(m, OceanHeatAccumulator, after = :TempNorm_1995to2005);
+    add_comp!(m, OceanHeatAccumulator, after=:TempNorm_1995to2005)
 
     # Add BRICK components
-    add_comp!(m, MimiBRICK.antarctic_ocean, first = brick_first, after = :OceanHeatAccumulator);
-    add_comp!(m, MimiBRICK.antarctic_icesheet, first = brick_first, after = :antarctic_ocean);
-    add_comp!(m, MimiBRICK.glaciers_small_icecaps, first = brick_first, after = :antarctic_icesheet);
-    add_comp!(m, MimiBRICK.greenland_icesheet, first = brick_first, after = :glaciers_small_icecaps);
-    add_comp!(m, MimiBRICK.thermal_expansion, first = brick_first, after = :greenland_icesheet);
-    add_comp!(m, MimiBRICK.landwater_storage, first = brick_first, after = :thermal_expansion);
-    add_comp!(m, MimiBRICK.global_sea_level, first = brick_first, after = :landwater_storage);
+    add_comp!(m, MimiBRICK.antarctic_ocean, first=brick_first, after=:OceanHeatAccumulator)
+    add_comp!(m, MimiBRICK.antarctic_icesheet, first=brick_first, after=:antarctic_ocean)
+    add_comp!(m, MimiBRICK.glaciers_small_icecaps, first=brick_first, after=:antarctic_icesheet)
+    add_comp!(m, MimiBRICK.greenland_icesheet, first=brick_first, after=:glaciers_small_icecaps)
+    add_comp!(m, MimiBRICK.thermal_expansion, first=brick_first, after=:greenland_icesheet)
+    add_comp!(m, MimiBRICK.landwater_storage, first=brick_first, after=:thermal_expansion)
+    add_comp!(m, MimiBRICK.global_sea_level, first=brick_first, after=:landwater_storage)
 
     # Add SLR Normalization components
-    add_comp!(m, GlobalSLRNorm, :GlobalSLRNorm_1900, first = brick_first, after = :global_sea_level)
+    add_comp!(m, GlobalSLRNorm, :GlobalSLRNorm_1900, first=brick_first, after=:global_sea_level)
 
     # Add OceanPH components
-    add_comp!(m, Mimi_NAS_pH.ocean_pH, :OceanPH, after = :GlobalSLRNorm_1900);
+    add_comp!(m, Mimi_NAS_pH.ocean_pH, :OceanPH, after=:GlobalSLRNorm_1900)
 
     # Add CromarMortality component
-    add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
+    add_comp!(m, cromar_mortality_damages, :CromarMortality, first=damages_first, after=:OceanPH)
 
     # Add Agriculture components
-    add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
-    add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_gdp, first = damages_first, after = :Agriculture_aggregator_population);
-    add_comp!(m, MimiMooreEtAlAgricultureImpacts.Agriculture, :Agriculture, first = damages_first, after = :Agriculture_aggregator_gdp);
-    add_comp!(m, AgricultureDamagesDisaggregator, :AgricultureDamagesDisaggregator, first = damages_first, after = :Agriculture)
+    add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first=damages_first, after=:CromarMortality)
+    add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_gdp, first=damages_first, after=:Agriculture_aggregator_population)
+    add_comp!(m, MimiMooreEtAlAgricultureImpacts.Agriculture, :Agriculture, first=damages_first, after=:Agriculture_aggregator_gdp)
+    add_comp!(m, AgricultureDamagesDisaggregator, :AgricultureDamagesDisaggregator, first=damages_first, after=:Agriculture)
 
     # add aggregators for 1990 population and GDP if we are using the RFFSPs
-    socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_pop90, first = damages_first, after = :Agriculture_aggregator_gdp) : nothing
-    socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_gdp90, first = damages_first, after = :Agriculture_aggregator_pop90) : nothing
+    socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_pop90, first=damages_first, after=:Agriculture_aggregator_gdp) : nothing
+    socioeconomics_source == :RFF ? add_comp!(m, Agriculture_RegionAggregatorSum_NoTime, :Agriculture_aggregator_gdp90, first=damages_first, after=:Agriculture_aggregator_pop90) : nothing
 
     # Add a Regional Per Capita GDP component that takes inputs from the Agiculture aggregator components
-    add_comp!(m, RegionalPerCapitaGDP, :RegionalPerCapitaGDP, first=damages_first, after = :AgricultureDamagesDisaggregator);
+    add_comp!(m, RegionalPerCapitaGDP, :RegionalPerCapitaGDP, first=damages_first, after=:AgricultureDamagesDisaggregator)
 
     # Add Energy components
-    add_comp!(m, energy_damages, :energy_damages, first = damages_first, after = :RegionalPerCapitaGDP);
+    add_comp!(m, energy_damages, :energy_damages, first=damages_first, after=:RegionalPerCapitaGDP)
 
     # Add DICE2016R2 damage component
-    add_comp!(m, dice2016R2_damage, :dice2016R2_damage, first = damages_first, after = :energy_damages);
+    add_comp!(m, dice2016R2_damage, :dice2016R2_damage, first=damages_first, after=:energy_damages)
 
     # Add Howard and Sterner damage components
-    add_comp!(m, hs_damage, :hs_damage, first = damages_first, after = :dice2016R2_damage);
-       
+    add_comp!(m, hs_damage, :hs_damage, first=damages_first, after=:dice2016R2_damage)
+
     # Add DamageAggregator component and regional damages aggregator helper function
-    add_comp!(m, Damages_RegionAggregatorSum, first = damages_first);
-    add_comp!(m, DamageAggregator, first = damages_first);
+    add_comp!(m, Damages_RegionAggregatorSum, first=damages_first)
+    add_comp!(m, DamageAggregator, first=damages_first)
 
     # Add net consumption components (global and regional)
-    add_comp!(m, GlobalNetConsumption, :global_netconsumption, first = damages_first, after=:DamageAggregator)
-    add_comp!(m, RegionalNetConsumption, :regional_netconsumption, first = damages_first, after=:global_netconsumption)
-    add_comp!(m, CountryNetConsumption, :country_netconsumption, first = damages_first, after = :regional_netconsumption)
+    add_comp!(m, GlobalNetConsumption, :global_netconsumption, first=damages_first, after=:DamageAggregator)
+    add_comp!(m, RegionalNetConsumption, :regional_netconsumption, first=damages_first, after=:global_netconsumption)
+    add_comp!(m, CountryNetConsumption, :country_netconsumption, first=damages_first, after=:regional_netconsumption)
 
     # --------------------------------------------------------------------------
-	# Shared Model Parameters
+    # Shared Model Parameters
     # --------------------------------------------------------------------------
 
-    add_shared_param!(m, :model_country_names, countries, dims = [:country])
-    add_shared_param!(m, :model_fund_regions, fund_regions, dims = [:fund_regions])
+    add_shared_param!(m, :model_country_names, countries, dims=[:country])
+    add_shared_param!(m, :model_fund_regions, fund_regions, dims=[:fund_regions])
 
     # Agriculture
-    add_shared_param!(m, :model_ag_mapping_input_regions, countries, dims = [:ag_mapping_input_regions])
-    add_shared_param!(m, :model_ag_mapping_output_regions, fund_regions, dims = [:ag_mapping_output_regions])
-    add_shared_param!(m, :model_ag_mapping,  ag_mapping, dims = [:ag_mapping_input_regions])
+    add_shared_param!(m, :model_ag_mapping_input_regions, countries, dims=[:ag_mapping_input_regions])
+    add_shared_param!(m, :model_ag_mapping_output_regions, fund_regions, dims=[:ag_mapping_output_regions])
+    add_shared_param!(m, :model_ag_mapping, ag_mapping, dims=[:ag_mapping_input_regions])
 
     # BRICK
     add_shared_param!(m, :model_brick_seawater_freeze, -1.8)
 
     # Mortality
     if socioeconomics_source == :SSP
-        mortality_data  = load(joinpath(@__DIR__, "..", "data", "Mortality_cdr_spp_country_extensions_annual.csv")) |>
-            DataFrame |>
-            @filter(_.year in damages_first:model_last && _.scenario == mortality_SSP_map[SSP]) |>
-            DataFrame |>
-            @select(:year, :ISO, :cdf) |>
-            DataFrame |>
-            @orderby(:ISO) |>
-            DataFrame |>
-            i -> unstack(i, :year, :ISO, :cdf) |>
-            DataFrame |>
-            i -> select!(i, Not(:year))
+        mortality_data = load(joinpath(@__DIR__, "..", "data", "Mortality_cdr_spp_country_extensions_annual.csv")) |>
+                         DataFrame |>
+                         @filter(_.year in damages_first:model_last && _.scenario == mortality_SSP_map[SSP]) |>
+                         DataFrame |>
+                         @select(:year, :ISO, :cdf) |>
+                         DataFrame |>
+                         @orderby(:ISO) |>
+                         DataFrame |>
+                         i -> unstack(i, :year, :ISO, :cdf) |>
+                              DataFrame |>
+                              i -> select!(i, Not(:year))
 
         # make sure the columns match the mortality countries
         names(mortality_data) == countries ? nothing : "Countries in mortality data must match model countries."
-        add_shared_param!(m, :model_ssp_baseline_mortality_rate, vcat(fill(NaN, (length(model_first:damages_first-1), size(mortality_data)[2])), mortality_data |> Matrix), dims = [:time, :country]) # Pad with NaN b/c starting component in later year.
+        add_shared_param!(m, :model_ssp_baseline_mortality_rate, vcat(fill(NaN, (length(model_first:damages_first-1), size(mortality_data)[2])), mortality_data |> Matrix), dims=[:time, :country]) # Pad with NaN b/c starting component in later year.
     end
 
     # --------------------------------------------------------------------------
-	# Component-Specific Parameters and Connections
+    # Component-Specific Parameters and Connections
     # --------------------------------------------------------------------------
 
     # --------------------------------------------------------------------------    
@@ -355,7 +355,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     update_param!(m, :landwater_storage, :lws₀, 0.0)
     update_param!(m, :landwater_storage, :first_projection_year, 2018)
-    update_param!(m, :landwater_storage, :lws_random_sample, fill(0.0003, model_last-model_first+1))
+    update_param!(m, :landwater_storage, :lws_random_sample, fill(0.0003, model_last - model_first + 1))
 
     # ----- Set Parameters With Common Values Across Components ----- #
 
@@ -369,30 +369,30 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Create Component Connections
 
     connect_param!(m, :global_sea_level => :slr_glaciers_small_ice_caps, :glaciers_small_icecaps => :gsic_sea_level)
-    connect_param!(m, :global_sea_level => :slr_greeland_icesheet,       :greenland_icesheet     => :greenland_sea_level)
-    connect_param!(m, :global_sea_level => :slr_antartic_icesheet,       :antarctic_icesheet     => :ais_sea_level)
-    connect_param!(m, :global_sea_level => :slr_thermal_expansion,       :thermal_expansion      => :te_sea_level)
-    connect_param!(m, :global_sea_level => :slr_landwater_storage,       :landwater_storage      => :lws_sea_level)
+    connect_param!(m, :global_sea_level => :slr_greeland_icesheet, :greenland_icesheet => :greenland_sea_level)
+    connect_param!(m, :global_sea_level => :slr_antartic_icesheet, :antarctic_icesheet => :ais_sea_level)
+    connect_param!(m, :global_sea_level => :slr_thermal_expansion, :thermal_expansion => :te_sea_level)
+    connect_param!(m, :global_sea_level => :slr_landwater_storage, :landwater_storage => :lws_sea_level)
 
-    connect_param!(m, :antarctic_icesheet => :antarctic_ocean_temperature, :antarctic_ocean  => :anto_temperature)
-    connect_param!(m, :antarctic_icesheet => :global_sea_level,            :global_sea_level => :sea_level_rise)
+    connect_param!(m, :antarctic_icesheet => :antarctic_ocean_temperature, :antarctic_ocean => :anto_temperature)
+    connect_param!(m, :antarctic_icesheet => :global_sea_level, :global_sea_level => :sea_level_rise)
 
     connect_param!(m, :antarctic_icesheet => :global_surface_temperature, :temperature => :T)
     connect_param!(m, :antarctic_ocean => :global_surface_temperature, :temperature => :T)
     connect_param!(m, :glaciers_small_icecaps => :global_surface_temperature, :temperature => :T)
     connect_param!(m, :greenland_icesheet => :global_surface_temperature, :temperature => :T)
-    
+
     connect_param!(m, :GlobalSLRNorm_1900 => :global_slr, :global_sea_level => :sea_level_rise)
-    
+
     # --------------------------------------------------------------------------    
     # OceanPH
     # --------------------------------------------------------------------------
 
     update_param!(m, :OceanPH, :β1, -0.3671)
-	update_param!(m, :OceanPH, :β2, 10.2328)
-	update_param!(m, :OceanPH, :pH_0, 8.123)
+    update_param!(m, :OceanPH, :β2, 10.2328)
+    update_param!(m, :OceanPH, :pH_0, 8.123)
 
-	connect_param!(m, :OceanPH => :atm_co2_conc, :co2_cycle => :co2)
+    connect_param!(m, :OceanPH => :atm_co2_conc, :co2_cycle => :co2)
 
     # --------------------------------------------------------------------------    
     # Socioeconomic
@@ -412,8 +412,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Feedback of Socioeconomic Emissions back to FAIR
 
     # Load IPCC AR6 emissions scenario used for FAIRv1.6.2 ensemble runs (options = "ssp119", "ssp126", "ssp245", "ssp370", "ssp460", "ssp585").
-    ar6_emissions_raw = DataFrame(load(joinpath(@__DIR__, "..", "data", "FAIR_ar6", "AR6_emissions_"*ar6_scenario*"_1750_2300.csv")))
-    
+    ar6_emissions_raw = DataFrame(load(joinpath(@__DIR__, "..", "data", "FAIR_ar6", "AR6_emissions_" * ar6_scenario * "_1750_2300.csv")))
+
     # Subset AR6 emissions to proper years.
     emission_indices = indexin(collect(model_first:model_last), ar6_emissions_raw.Year)
     ar6_emissions = ar6_emissions_raw[emission_indices, :]
@@ -450,26 +450,26 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # VSL
     # --------------------------------------------------------------------------
 
-    if vsl==:fund
-	    update_param!(m, :VSL, :α,  4.99252262888626e6 * pricelevel_1995_to_2005)   # convert from FUND USD $1995 to USD $2005
-        update_param!(m, :VSL, :y₀, 24_962.6131444313  * pricelevel_1995_to_2005)   # convert from FUND USD $1995 to USD $2005
-    elseif vsl==:epa
-	    update_param!(m, :VSL, :α,  7.73514707e6)                                   # 2020 EPA VSL in 2005$. See DataExplainer.ipynb for information
+    if vsl == :fund
+        update_param!(m, :VSL, :α, 4.99252262888626e6 * pricelevel_1995_to_2005)   # convert from FUND USD $1995 to USD $2005
+        update_param!(m, :VSL, :y₀, 24_962.6131444313 * pricelevel_1995_to_2005)   # convert from FUND USD $1995 to USD $2005
+    elseif vsl == :epa
+        update_param!(m, :VSL, :α, 7.73514707e6)                                   # 2020 EPA VSL in 2005$. See DataExplainer.ipynb for information
         update_param!(m, :VSL, :y₀, 48_726.60)                                      # 2020 U.S. income per capita in 2005$; See DataExplainer.ipynb for information  
-    elseif vsl==:uba
-	    update_param!(m, :VSL, :α,  5_920_000. / pricelevel_2005_to_2020)           # 2020 UBA VSL in 2005$
+    elseif vsl == :uba
+        update_param!(m, :VSL, :α, 5_920_000. / pricelevel_2005_to_2020)           # 2020 UBA VSL in 2005$
         update_param!(m, :VSL, :y₀, 44_646.78)                                      # 2020 German income per capita in 2005$
     else
         error("Invalid vsl argument of $vsl.")
     end
 
-	update_param!(m,  :VSL, :ϵ, 1.0)
-	connect_param!(m, :VSL => :pc_gdp, :PerCapitaGDP => :pc_gdp)
+    update_param!(m, :VSL, :ϵ, 1.0)
+    connect_param!(m, :VSL => :pc_gdp, :PerCapitaGDP => :pc_gdp)
 
     # --------------------------------------------------------------------------    
     # Temperature Normlization Components
     # --------------------------------------------------------------------------
-    
+
     # TempNorm_1880 - Normalize temperature to deviation from 1880 for Howard and Sterner damage function
     update_param!(m, :TempNorm_1880, :norm_range_start, 1880)
     update_param!(m, :TempNorm_1880, :norm_range_end, 1880)
@@ -485,7 +485,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :TempNorm_1850to1900, :norm_range_end, 1900)
     connect_param!(m, :TempNorm_1850to1900 => :global_temperature, :temperature => :T)
 
-	# TempNorm_1995to2005 - Normalize temperature to deviation from 1995 to 2005 for Agriculture Component
+    # TempNorm_1995to2005 - Normalize temperature to deviation from 1995 to 2005 for Agriculture Component
     update_param!(m, :TempNorm_1995to2005, :norm_range_start, 1995)
     update_param!(m, :TempNorm_1995to2005, :norm_range_end, 2005)
     connect_param!(m, :TempNorm_1995to2005 => :global_temperature, :temperature => :T)
@@ -497,8 +497,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Assign Cromar et al. regional temperature mortality coefficients to appropriate countries.
 
     # Load raw data.
-    cromar_coeffs       = load(joinpath(@__DIR__, "..", "data", "CromarMortality_damages_coefficients.csv")) |> DataFrame
-    cromar_mapping_raw  = load(joinpath(@__DIR__, "..", "data", "Mapping_countries_to_cromar_mortality_regions.csv")) |> DataFrame
+    cromar_coeffs = load(joinpath(@__DIR__, "..", "data", "CromarMortality_damages_coefficients.csv")) |> DataFrame
+    cromar_mapping_raw = load(joinpath(@__DIR__, "..", "data", "Mapping_countries_to_cromar_mortality_regions.csv")) |> DataFrame
 
     # Initialize an array to store country-level coefficients
     country_β_mortality = zeros(length(cromar_mapping_raw.ISO3))
@@ -506,9 +506,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Loop through the regions and assign regional coefficients to proper sets of countries.
     for r = 1:length(cromar_regions)
         # Find country indices for region "r"
-        r_index = findall(x->x==cromar_regions[r], cromar_mapping_raw.cromar_region)
+        r_index = findall(x -> x == cromar_regions[r], cromar_mapping_raw.cromar_region)
         # Find index for region "r" coefficient.
-        β_index = findfirst(x->x==cromar_regions[r], cromar_coeffs[!, "Cromar Region Name"])
+        β_index = findfirst(x -> x == cromar_regions[r], cromar_coeffs[!, "Cromar Region Name"])
         # Assign all countries in that region proper coefficient.
         country_β_mortality[r_index] .= cromar_coeffs[β_index, "Pooled Beta"]
     end
@@ -525,12 +525,12 @@ function get_model(; Agriculture_gtap::String = "midDF",
         connect_param!(m, :CromarMortality => :baseline_mortality_rate, :Socioeconomic => :deathrate)
     end
 
-    connect_param!(m, :CromarMortality => :population,  :Socioeconomic => :population)
+    connect_param!(m, :CromarMortality => :population, :Socioeconomic => :population)
     connect_param!(m, :CromarMortality => :temperature, :temperature => :T)
     connect_param!(m, :CromarMortality => :vsl, :VSL => :vsl)
 
     # --------------------------------------------------------------------------
-	# Agriculture Aggregators
+    # Agriculture Aggregators
     # --------------------------------------------------------------------------
 
     connect_param!(m, :Agriculture_aggregator_population, :input_region_names, :model_ag_mapping_input_regions)
@@ -556,7 +556,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     end
 
     # --------------------------------------------------------------------------
-	# Agriculture
+    # Agriculture
     # --------------------------------------------------------------------------
 
     fund_regions != MimiMooreEtAlAgricultureImpacts.fund_regions && error("FUND regions for RFF Model do not match FUND regions for Agriculture.")
@@ -564,13 +564,13 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Handle in pop and gdp 1990 baseline values
     if socioeconomics_source == :SSP
 
-        data1990 = load(joinpath(@__DIR__, "..", "data", "Benveniste_SSPs", "Agriculture_1990vals.csv")) |> 
-                    DataFrame |>
-                    @filter(_.SSP == SSP) |>
-                    DataFrame    
+        data1990 = load(joinpath(@__DIR__, "..", "data", "Benveniste_SSPs", "Agriculture_1990vals.csv")) |>
+                   DataFrame |>
+                   @filter(_.SSP == SSP) |>
+                   DataFrame
         idxs = indexin(data1990.fund_region, fund_regions) # get the ordering of 1990 regions matched to fund regions in model
         !isnothing(findfirst(i -> isnothing(i), idxs)) ? error("FUND regions for RFF Model do not match FUND regions for Agriculture 1990 values.") : nothing
-        data1990 = data1990[idxs,:] # reorder based on idxs
+        data1990 = data1990[idxs, :] # reorder based on idxs
 
         update_param!(m, :Agriculture, :pop90, data1990.pop)
         update_param!(m, :Agriculture, :gdp90, data1990.gdp)
@@ -578,7 +578,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     elseif socioeconomics_source == :RFF
         connect_param!(m, :Agriculture => :pop90, :Agriculture_aggregator_pop90 => :output)
         connect_param!(m, :Agriculture => :gdp90, :Agriculture_aggregator_gdp90 => :output)
-    end  
+    end
 
     # Access which of the 5 possible DFs to use for the damage function
     gtap_idx = findfirst(isequal(Agriculture_gtap), MimiMooreEtAlAgricultureImpacts.gtaps)
@@ -588,26 +588,26 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :Agriculture, :gtap_name, Agriculture_gtap)
     update_param!(m, :Agriculture, :floor_on_damages, Agriculture_floor_on_damages)
     update_param!(m, :Agriculture, :ceiling_on_benefits, Agriculture_ceiling_on_benefits)
-    update_param!(m, :Agriculture, :agrish0, Array{Float64, 1}(readdlm(joinpath(MimiMooreEtAlAgricultureImpacts.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:,2]))
+    update_param!(m, :Agriculture, :agrish0, Array{Float64,1}(readdlm(joinpath(MimiMooreEtAlAgricultureImpacts.fund_datadir, "agrish0.csv"), ',', skipstart=1)[:, 2]))
 
     connect_param!(m, :Agriculture => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :Agriculture => :income, :Agriculture_aggregator_gdp => :output)
-	connect_param!(m, :Agriculture => :temp, :TempNorm_1995to2005 => :global_temperature_norm)
+    connect_param!(m, :Agriculture => :temp, :TempNorm_1995to2005 => :global_temperature_norm)
 
     # --------------------------------------------------------------------------
-	# Regional Per Capita GDP
+    # Regional Per Capita GDP
     # --------------------------------------------------------------------------
 
     connect_param!(m, :RegionalPerCapitaGDP => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :RegionalPerCapitaGDP => :gdp, :Agriculture_aggregator_gdp => :output)
 
     # --------------------------------------------------------------------------
-	# Agriculture Damages Disaggregator
+    # Agriculture Damages Disaggregator
     # --------------------------------------------------------------------------
-    
+
     connect_param!(m, :AgricultureDamagesDisaggregator, :mapping, :model_ag_mapping)
     connect_param!(m, :AgricultureDamagesDisaggregator, :fund_region_names, :model_ag_mapping_output_regions)
-    
+
     connect_param!(m, :AgricultureDamagesDisaggregator => :gdp_fund_region, :Agriculture_aggregator_gdp => :output)
     connect_param!(m, :AgricultureDamagesDisaggregator => :gdp_country, :Socioeconomic => :gdp)
 
@@ -629,15 +629,15 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Loop through the regions and assign regional coefficients to proper subset of countries.
     for r = 1:length(gcam_regions)
         # Find country indices for region "r"
-        r_index = findall(x->x==gcam_regions[r], gcam_mapping_raw.gcamregion)
+        r_index = findall(x -> x == gcam_regions[r], gcam_mapping_raw.gcamregion)
         # Find index for region "r" coefficient.
-        β_index = findfirst(x->x==gcam_regions[r], energy_coeffs.gcam_region)
+        β_index = findfirst(x -> x == gcam_regions[r], energy_coeffs.gcam_region)
         # Assign all countries in that region proper coefficient.
         country_β_energy[r_index] .= energy_coeffs[β_index, "coefficient"]
     end
 
     set_param!(m, :energy_damages, :β_energy, country_β_energy)
-    connect_param!(m, :energy_damages => :gdp,         :Socioeconomic => :gdp)
+    connect_param!(m, :energy_damages => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :energy_damages => :temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------
@@ -652,10 +652,10 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # --------------------------------------------------------------------------
 
     connect_param!(m, :hs_damage => :temperature, :TempNorm_1880 => :global_temperature_norm)
-    connect_param!(m, :hs_damage => :gdp,  :Socioeconomic => :gdp)
+    connect_param!(m, :hs_damage => :gdp, :Socioeconomic => :gdp)
 
     # --------------------------------------------------------------------------
-	# Damage Aggregation
+    # Damage Aggregation
     # --------------------------------------------------------------------------
 
     # small regional damage aggregator helper component
@@ -676,22 +676,22 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     connect_param!(m, :DamageAggregator => :damage_cromar_mortality_regions, :Damages_RegionAggregatorSum => :damage_cromar_mortality_regions)
     connect_param!(m, :DamageAggregator => :damage_energy_regions, :Damages_RegionAggregatorSum => :damage_energy_regions)
-    
-    domestic_idxs_country_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)))  
+
+    domestic_idxs_country_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :country)))
     update_param!(m, :DamageAggregator, :domestic_idxs_country_dim, domestic_idxs_country_dim)
 
     domestic_idxs_energy_countries_dim = Int.(indexin(dim_keys(m, :domestic_countries), dim_keys(m, :energy_countries)))
     update_param!(m, :DamageAggregator, :domestic_idxs_energy_countries_dim, domestic_idxs_energy_countries_dim)
 
     # --------------------------------------------------------------------------
-	# Net Consumption
+    # Net Consumption
     # --------------------------------------------------------------------------
-    
+
     # global
     connect_param!(m, :global_netconsumption => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :global_netconsumption => :population, :Socioeconomic => :population)
     connect_param!(m, :global_netconsumption => :total_damage, :DamageAggregator => :total_damage)
-    
+
     # regional
     connect_param!(m, :regional_netconsumption => :population, :Agriculture_aggregator_population => :output)
     connect_param!(m, :regional_netconsumption => :gdp, :Agriculture_aggregator_gdp => :output)
