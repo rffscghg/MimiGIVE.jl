@@ -373,7 +373,9 @@ If all four of these are set to true one would runs something like:
 discount_rates = [(label="Ramsey", prtp=0.015, eta=1.45, ew=nothing, ew_norm_region=nothing), (label="Constant 2%", prtp=0.02, eta=0., ew=nothing, ew_norm_region=nothing)]
 result = MimiGIVE.compute_scc(year = 2020, discount_rates = discount_rates, n = 5, compute_sectoral_values = true, compute_domestic_values = true, save_md = true, save_cpc = true)
 ```
-**Spatially and Sectorally Disaggregated Baseline Damages**
+**Spatially and Sectorally Disaggregated Baseline Damages (BETA)**
+
+*This is a fairly untested flag in a beta version, and has not been used in publications, so use with caution and qa/qc your results.*
 
 One can additionally set the `compute_disaggregated_values` flag to `true` to get country (or regional for agricultural) values streamed out to file including baseline run sectoral damages, marginal damages, and socioeconomic variables. These will be output to a `disaggregated_values` folder along with a small README file detailing units and important notes. Output variables include:
 - damages for all four damage functions at the lowest spatial resolution available (FUND region for agriculture, country for all others)
