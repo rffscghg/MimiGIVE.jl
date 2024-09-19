@@ -917,10 +917,10 @@ function _compute_scc_mcs(mm::MarginalModel,
 
     scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Union{Float64, Missing}}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
-    norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
-    
+    norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => fill(100., n) for dr in discount_rates, r in regions, s in [:total]) : nothing
+
     if save_slr_damages
 
         # global
@@ -1065,14 +1065,17 @@ function _compute_scc_mcs(mm::MarginalModel,
     # Construct the returned result object
     result = Dict()
 
-    # add an :scc dictionary, where key value pairs (k,v) are NamedTuples with keys(prtp, eta, region, sector) => values are 281 element vectors (2020:2300)
+    # add an :scc dictionary, where key value pairs (k,v) are NamedTuples with keys(region, sector, dr_label, prtp, eta, ew, ew_norm_region) => values are 281 element vectors (2020:2300)
     result[:scc] = Dict()
     for (k,v) in scc_values
         if certainty_equivalent
             # In this case the normalization from utils to $ hasn't happened in the post trial function
             # and instead we now do this here, based on expected per capita consumption in the year
             # of the marginal emission pulse
-            cpc_in_year_of_emission = norm_cpc_values_ce[k]
+            
+            # new key using all the same fields except making sector total
+            k_sector_total = (region=k.region, sector=:total, dr_label=k.dr_label, prtp=k.prtp, eta=k.eta, ew=k.ew, ew_norm_region=k.ew_norm_region)
+            cpc_in_year_of_emission = norm_cpc_values_ce[k_sector_total]
             
             expected_mu_in_year_of_emission = mean(1 ./ (cpc_in_year_of_emission .^ k.eta))
 
