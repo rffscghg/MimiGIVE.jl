@@ -664,7 +664,15 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
             )
 
-            # do this regardless of regional choice # TODO review how this impacts country vs. region approach to equity weighting
+            # ag damages --> utils at regional level regardless of choice between
+            # gdp_country and gdp_region
+
+            # Thus equity weighting by gdp per capita is free from any need for 
+            # additional assumptions about the distribution of ag damages across
+            # countires within a region. This differs from the equity weighting
+            # using consumption per capita approach, which must disaggregate ag 
+            # damages in both the damages --> utils and utils --> dollars steps.
+
             ag_marginal_damages = post_trial_mm[:Agriculture, :agcost] .* 1e9 # fund regions
             pc_gdp_for_ag = base[:Agriculture, :income] ./ base[:Agriculture, :population] .* 1000.0
             n_regions_for_ag = size(pc_gdp_for_ag, 2)
