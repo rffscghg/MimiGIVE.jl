@@ -830,7 +830,7 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
 
                 if options.certainty_equivalent
                     intermediate_ce_scc_values[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = total_utils
-                    norm_cpc_values_ce[(region=:globe, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = base[net_cpc_component_name, :net_cpc][year_index,normalization_region_index]
+                    norm_cpc_values_ce[(region=:globe, sector=:total, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = base[net_cpc_component_name, :net_cpc][year_index,normalization_region_index]
                 end
                 
                 # sectoral
