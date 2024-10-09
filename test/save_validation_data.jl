@@ -114,10 +114,7 @@ for gas in [:CO2, :CH4, :N2O]
     outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_MCS_SCC_2020", "$gas")
     isdir(outdir) || mkpath(outdir)
     m = MimiGIVE.get_model()
-    save_scc_mcs_data(seed, outdir, n; 
-                    m = m, year = 2020, discount_rates = discount_rates, gas = gas,
-                    save_list = save_list, save_md = true, save_cpc = true, save_slr_damages = true,
-                    compute_sectoral_values = true, compute_domestic_values = true)
+    save_scc_mcs_data(seed, outdir, n; m = m, year = 2020, discount_rates = discount_rates, gas = gas, save_list = save_list)
 end
 
 # SSP245, SC-CO2 and SC-CH4 and SC-N2O in year 2020
@@ -125,8 +122,5 @@ for gas in [:CO2, :CH4, :N2O]
     outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_MCS_SCC_2020", "$gas")
     isdir(outdir) || mkpath(outdir)
     m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
-    save_scc_mcs_data(seed, outdir, n; 
-                    m = m, year = 2020, discount_rates = discount_rates, gas = gas,
-                    save_list = save_list, save_md = true, save_cpc = true, save_slr_damages = true,
-                    compute_sectoral_values = true, compute_domestic_values = true)
+    save_scc_mcs_data(seed, outdir, n; m = m, year = 2020, discount_rates = discount_rates, gas = gas, save_list = save_list)
 end

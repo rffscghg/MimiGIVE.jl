@@ -91,7 +91,23 @@ function save_scc_data(outdir::String;
 end
 
 """
-    save_scc_mcs_data()
+    save_scc_mcs_data(seed::Int, outdir::String, n::Int;
+                            m::Model=MimiGIVE.get_model(), 
+                            year::Union{Int, Nothing} = nothing, 
+                            last_year::Int = MimiGIVE._model_years[end], 
+                            discount_rates=nothing,
+                            certainty_equivalent=true,
+                            gas::Symbol = :CO2,
+                            save_list::Vector = [],
+                            save_md::Bool = true,
+                            save_cpc::Bool = true,
+                            save_slr_damages::Bool = true,
+                            compute_sectoral_values::Bool = true,
+                            compute_domestic_values::Bool = true,
+                            CIAM_foresight::Symbol = :perfect,
+                            CIAM_GDPcap::Bool = false,
+                            pulse_size::Float64 = 1.,
+                        )
 
 Save the data from the user-specifified  SCC Monte Carlo Simulation computation 
 using model `m` into output folder `outdir`.
@@ -101,17 +117,17 @@ function save_scc_mcs_data(seed::Int, outdir::String, n::Int;
                             year::Union{Int, Nothing} = nothing, 
                             last_year::Int = MimiGIVE._model_years[end], 
                             discount_rates=nothing,
-                            certainty_equivalent=false,
+                            certainty_equivalent=true,
                             gas::Symbol = :CO2,
                             save_list::Vector = [],
-                            save_md::Bool = false,
-                            save_cpc::Bool = false,
-                            save_slr_damages::Bool = false,
-                            compute_sectoral_values::Bool = false,
-                            compute_domestic_values::Bool = false,
+                            save_md::Bool = true,
+                            save_cpc::Bool = true,
+                            save_slr_damages::Bool = true,
+                            compute_sectoral_values::Bool = true,
+                            compute_domestic_values::Bool = true,
                             CIAM_foresight::Symbol = :perfect,
                             CIAM_GDPcap::Bool = false,
-                            pulse_size::Float64 = 1.
+                            pulse_size::Float64 = 1.,
                         )
 
     Random.seed!(seed)
@@ -148,16 +164,22 @@ function save_scc_mcs_data(seed::Int, outdir::String, n::Int;
     df_expected_scc =       DataFrame(:region => [], :sector => [], :dr_label => [], :prtp => [], :eta => [], :scc => [])
     df_se_expected_scc =    DataFrame(:region => [], :sector => [], :dr_label => [], :prtp => [], :eta => [], :se => [])
     df_sccs =               DataFrame(:region => [], :sector => [], :dr_label => [], :prtp => [], :eta => [], :scc => [],  :trial => [])
+    df_ce_scc =             DataFrame(:region => [], :sector => [], :dr_label => [], :prtp => [], :eta => [], :scc => [])
+    df_ce_sccs =            DataFrame(:region => [], :sector => [], :dr_label => [], :prtp => [], :eta => [], :scc => [],  :trial => [])
 
     for (k,v) in results[:scc]
         append!(df_expected_scc, DataFrame(:region => k.region, :sector => k.sector, :dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :scc => v.expected_scc))
         append!(df_se_expected_scc, DataFrame(:region => k.region, :sector => k.sector, :dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :se => v.se_expected_scc))
         append!(df_sccs, DataFrame(:region => k.region, :sector => k.sector, :dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :scc => v.sccs, :trial => collect(1:length(v.sccs))))
+        append!(df_ce_scc, DataFrame(:region => k.region, :sector => k.sector, :dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :scc => v.ce_scc))
+        append!(df_ce_sccs, DataFrame(:region => k.region, :sector => k.sector, :dr_label => k.dr_label, :prtp => k.prtp, :eta => k.eta, :scc => v.ce_sccs, :trial => collect(1:length(v.ce_sccs))))
     end
 
     df_expected_scc|> save(joinpath(scc_outdir, "expected_scc.csv"))
     df_se_expected_scc|> save(joinpath(scc_outdir, "se_expected_scc.csv"))
     df_sccs|> save(joinpath(scc_outdir, "sccs.csv"))
+    df_ce_scc|> save(joinpath(scc_outdir, "ce_scc.csv"))
+    df_ce_sccs|> save(joinpath(scc_outdir, "ce_sccs.csv"))
 
     # marginal damages
     mds_outdir = joinpath(outdir, "mds")
@@ -307,14 +329,14 @@ end
                             year::Union{Int, Nothing} = nothing, 
                             last_year::Int = MimiGIVE._model_years[end], 
                             discount_rates=nothing,
-                            certainty_equivalent=false,
+                            certainty_equivalent::Bool=true,
                             gas::Symbol = :CO2,
                             save_list::Vector = [],
-                            save_md::Bool = false,
-                            save_cpc::Bool = false,
-                            save_slr_damages::Bool = false,
-                            compute_sectoral_values::Bool = false,
-                            compute_domestic_values::Bool = false,
+                            save_md::Bool = true,
+                            save_cpc::Bool = true,
+                            save_slr_damages::Bool = true,
+                            compute_sectoral_values::Bool = true,
+                            compute_domestic_values::Bool = true,
                             CIAM_foresight::Symbol = :perfect,
                             CIAM_GDPcap::Bool = false,
                             pulse_size::Float64 = 1.
@@ -329,14 +351,14 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
                                 year::Union{Int, Nothing} = nothing, 
                                 last_year::Int = MimiGIVE._model_years[end], 
                                 discount_rates=nothing,
-                                certainty_equivalent=false,
+                                certainty_equivalent::Bool=true,
                                 gas::Symbol = :CO2,
                                 save_list::Vector = [],
-                                save_md::Bool = false,
-                                save_cpc::Bool = false,
-                                save_slr_damages::Bool = false,
-                                compute_sectoral_values::Bool = false,
-                                compute_domestic_values::Bool = false,
+                                save_md::Bool = true,
+                                save_cpc::Bool = true,
+                                save_slr_damages::Bool = true,
+                                compute_sectoral_values::Bool = true,
+                                compute_domestic_values::Bool = true,
                                 CIAM_foresight::Symbol = :perfect,
                                 CIAM_GDPcap::Bool = false,
                                 pulse_size::Float64 = 1.
@@ -373,7 +395,7 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
                         pulse_size = pulse_size
                     )
 
-    # save list - just compare model_1 for now, model1 is sufficiently tested
+    # save list - just compare model_1 for now, model_2 is sufficiently tested
     # by testing the scc values
     for el in save_list
         validation_df = load(joinpath(validationdir, "results", "model_1", "$(el[1])_$(el[2]).csv")) |> DataFrame
@@ -388,6 +410,8 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
     validation_df_expected_scc = load(joinpath(validationdir, "scc", "expected_scc.csv")) |> DataFrame
     validation_df_se_expected_scc = load(joinpath(validationdir, "scc", "se_expected_scc.csv")) |> DataFrame
     validation_df_sccs = load(joinpath(validationdir, "scc", "sccs.csv")) |> DataFrame
+    validation_df_ce_scc = load(joinpath(validationdir, "scc", "ce_scc.csv")) |> DataFrame
+    validation_df_ce_sccs = load(joinpath(validationdir, "scc", "ce_sccs.csv")) |> DataFrame
 
     for (k,v) in results[:scc]
         validation_vals = validation_df_expected_scc |> 
@@ -407,6 +431,18 @@ function validate_scc_mcs_data(seed::Int, validationdir::String, n::Int;
             DataFrame
         validation_vals = validation_vals.scc
         @test validation_vals ≈ v.sccs atol = atol
+
+        validation_vals = validation_df_ce_scc |> 
+            @filter(_.dr_label == k.dr_label && _.region == String.(k.region) && _.sector == String.(k.sector)) |> 
+            DataFrame
+        validation_vals = (validation_vals.scc)[1]
+        @test validation_vals ≈ v.ce_scc atol = atol
+        
+        validation_vals = validation_df_ce_sccs |> 
+            @filter(_.dr_label == k.dr_label && _.region == String.(k.region) && _.sector == String.(k.sector)) |> 
+            DataFrame
+        validation_vals = validation_vals.scc
+        @test validation_vals ≈ v.ce_sccs atol = atol
     end
 
     # marginal damages

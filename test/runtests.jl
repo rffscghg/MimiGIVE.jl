@@ -12,7 +12,7 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
     @info("test_regression_deterministic.jl")
     @time include("test_regression_deterministic.jl")
 
-    if VERSION == v"1.10" # random number generator not alwasy stable between versions
+    if VERSION == v"1.10" # random number generator not always stable between versions
         @info("test_regression_mcs.jl")
         @time include("test_regression_mcs.jl")
     end 

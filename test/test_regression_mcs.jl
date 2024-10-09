@@ -6,35 +6,6 @@ include("utils.jl")
 # label of validation data to compare AGAINST
 validation_label = "current"
 
-##------------------------------------------------------------------------------
-## Validate Model Data
-##------------------------------------------------------------------------------
-
-savevars = [
-    (compname = :DamageAggregator, varname = :total_damage),
-    (compname = :DamageAggregator, varname = :total_damage_share),
-    (compname = :DamageAggregator, varname = :total_damage_domestic),
-    (compname = :DamageAggregator, varname = :cromar_mortality_damage),
-    (compname = :DamageAggregator, varname = :agriculture_damage),
-    (compname = :DamageAggregator, varname = :energy_damage),
-    (compname = :DamageAggregator, varname = :cromar_mortality_damage_domestic),
-    (compname = :DamageAggregator, varname = :agriculture_damage_domestic),
-    (compname = :DamageAggregator, varname = :energy_damage_domestic),
-    (compname = :global_netconsumption, varname = :net_consumption),
-    (compname = :global_netconsumption, varname = :net_cpc),
-    (compname = :global_netconsumption, varname = :global_gdp),
-    (compname = :global_netconsumption, varname = :global_population),
-    (compname = :temperature, varname = :T),
-    (compname = :glaciers_small_icecaps, varname = :gsic_sea_level) ,
-    (compname = :antarctic_icesheet, varname = :ais_sea_level),
-    (compname = :greenland_icesheet, varname = :greenland_sea_level),
-    (compname = :thermal_expansion, varname = :te_sea_level),
-    (compname = :landwater_storage, varname = :lws_sea_level)
-]
-
-##------------------------------------------------------------------------------
-## Validate SCC MCS Data
-##------------------------------------------------------------------------------
 discount_rates = [
                     # Constant discount rates
                     (label = "CR 1%", prtp = 0.01, eta = 0.0), (label = "CR 2%", prtp = 0.02, eta = 0.0), (label = "CR 2.5%", prtp = 0.025, eta = 0.0), (label = "CR 3%", prtp = 0.03, eta = 0.0), (label = "CR 5%", prtp = 0.05, eta = 0.0),
