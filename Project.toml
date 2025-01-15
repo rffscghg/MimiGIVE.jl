@@ -1,6 +1,6 @@
 name = "MimiGIVE"
 uuid = "08b927d4-7a58-4cf8-85d0-bad32a16dfbc"
-version = "2.1.1-DEV"
+version = "2.1.1"
 
 [deps]
 PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
