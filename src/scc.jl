@@ -944,7 +944,7 @@ function _compute_scc_mcs(mm::MarginalModel,
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
-    norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in [:total]) : nothing
+    norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in [:globe], s in [:total]) : nothing
 
     if save_slr_damages
 
@@ -1098,8 +1098,8 @@ function _compute_scc_mcs(mm::MarginalModel,
             # and instead we now do this here, based on expected per capita consumption in the year
             # of the marginal emission pulse
             
-            # new key using all the same fields except making sector total
-            k_sector_total = (region=k.region, sector=:total, ew=k.ew, ew_norm_region=k.ew_norm_region)
+            # new key using all the same fields except making sector total and region global
+            k_sector_total = (region=:globe, sector=:total, ew=k.ew, ew_norm_region=k.ew_norm_region)
             cpc_in_year_of_emission = norm_cpc_values_ce[k_sector_total]
             
             expected_mu_in_year_of_emission = mean(1 ./ (cpc_in_year_of_emission .^ k.eta))

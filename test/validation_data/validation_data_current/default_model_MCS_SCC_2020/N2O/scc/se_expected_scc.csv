@@ -1,71 +1,71 @@
 "region","sector","dr_label","prtp","eta","se"
-globe,agriculture,"CR 5%",0.05,0.0,3905.973684401244
+globe,agriculture,"CR 5%",0.05,0.0,3905.973684401245
 domestic,energy,"OtherRamsey",0.01,1.0,12.99823631535471
 domestic,total,"CR 2.5%",0.025,0.0,531.8307463483056
 domestic,total,"OtherRamsey",0.01,1.0,570.6507041885276
-globe,cromar_mortality,"CR 3%",0.03,0.0,3288.039440557281
+globe,cromar_mortality,"CR 3%",0.03,0.0,3288.0394405572815
 globe,energy,"CR 5%",0.05,0.0,78.9946955082741
 domestic,slr,"OtherRamsey",0.01,1.0,2.7056777021424585
 domestic,energy,"CR 1%",0.01,0.0,48.58107717483511
 domestic,total,"DICE2016",0.015,1.45,284.9508684699727
-domestic,slr,"CR 1%",0.01,0.0,13.56431332675671
+domestic,slr,"CR 1%",0.01,0.0,13.564313326756713
 globe,total,"OtherRamsey",0.01,1.0,15632.47322860594
 globe,slr,"CR 2.5%",0.025,0.0,17.76180996570738
-globe,energy,"CR 3%",0.03,0.0,157.3031822677453
+globe,energy,"CR 3%",0.03,0.0,157.30318226774526
 domestic,cromar_mortality,"CR 2.5%",0.025,0.0,424.648743458734
 domestic,total,"CR 5%",0.05,0.0,199.48058146934227
-domestic,agriculture,"CR 2%",0.02,0.0,146.79755416976164
-domestic,agriculture,"CR 2.5%",0.025,0.0,96.24935177341015
-domestic,cromar_mortality,"CR 3%",0.03,0.0,334.1827726317131
-domestic,slr,"CR 2.5%",0.025,0.0,3.3423565968391293
-globe,total,"CR 3%",0.03,0.0,11147.1934763874
+domestic,agriculture,"CR 2%",0.02,0.0,146.7975541697616
+domestic,agriculture,"CR 2.5%",0.025,0.0,96.24935177341017
+domestic,cromar_mortality,"CR 3%",0.03,0.0,334.182772631713
+domestic,slr,"CR 2.5%",0.025,0.0,3.342356596839128
+globe,total,"CR 3%",0.03,0.0,11147.193476387401
 globe,energy,"CR 2.5%",0.025,0.0,199.5699179518661
-domestic,cromar_mortality,"CR 5%",0.05,0.0,170.08985037532682
+domestic,cromar_mortality,"CR 5%",0.05,0.0,170.08985037532676
 globe,cromar_mortality,"CR 1%",0.01,0.0,13241.438402004107
 globe,total,"DICE2016",0.015,1.45,9168.640170095347
 globe,cromar_mortality,"CR 5%",0.05,0.0,1582.9355395967818
-globe,cromar_mortality,"OtherRamsey",0.01,1.0,4315.461980018638
+globe,cromar_mortality,"OtherRamsey",0.01,1.0,4315.461980018639
 domestic,cromar_mortality,"DICE2016",0.015,1.45,228.72894453813575
 globe,cromar_mortality,"CR 2.5%",0.025,0.0,4204.948766579695
 domestic,agriculture,"OtherRamsey",0.01,1.0,152.2307905142152
-domestic,total,"CR 2%",0.02,0.0,732.8431190854758
+domestic,total,"CR 2%",0.02,0.0,732.8431190854756
 globe,cromar_mortality,"DICE2016",0.015,1.45,2346.276344203917
-globe,energy,"CR 2%",0.02,0.0,267.86505451313445
+globe,energy,"CR 2%",0.02,0.0,267.8650545131344
 globe,agriculture,"CR 1%",0.01,0.0,25645.83940629417
 globe,agriculture,"CR 2%",0.02,0.0,12522.83825714056
 globe,total,"CR 1%",0.01,0.0,39614.099725719956
-globe,total,"CR 2%",0.02,0.0,18456.891772831168
-domestic,energy,"DICE2016",0.015,1.45,6.991596674253938
-domestic,slr,"DICE2016",0.015,1.45,1.900560249123039
+globe,total,"CR 2%",0.02,0.0,18456.89177283117
+domestic,energy,"DICE2016",0.015,1.45,6.9915966742539375
+domestic,slr,"DICE2016",0.015,1.45,1.9005602491230391
 domestic,agriculture,"CR 3%",0.03,0.0,67.26932581439289
 domestic,energy,"CR 2.5%",0.025,0.0,15.175847276037153
-domestic,slr,"CR 2%",0.02,0.0,4.514786829714632
+domestic,slr,"CR 2%",0.02,0.0,4.514786829714635
 domestic,agriculture,"CR 5%",0.05,0.0,25.050434510205196
 globe,agriculture,"OtherRamsey",0.01,1.0,11192.96157440448
-domestic,agriculture,"DICE2016",0.015,1.45,71.16786690069551
+domestic,agriculture,"DICE2016",0.015,1.45,71.16786690069553
 globe,agriculture,"CR 3%",0.03,0.0,7694.147478519039
-domestic,energy,"CR 5%",0.05,0.0,6.167958981263866
-domestic,cromar_mortality,"CR 1%",0.01,0.0,1365.1763949178026
+domestic,energy,"CR 5%",0.05,0.0,6.167958981263867
+domestic,cromar_mortality,"CR 1%",0.01,0.0,1365.176394917803
 domestic,cromar_mortality,"CR 2%",0.02,0.0,570.2523220898742
-domestic,total,"CR 3%",0.03,0.0,409.8240055075463
-globe,energy,"CR 1%",0.01,0.0,657.3712998854535
-domestic,slr,"CR 3%",0.03,0.0,2.723825995183987
-globe,slr,"CR 1%",0.01,0.0,78.88478041803961
-domestic,cromar_mortality,"OtherRamsey",0.01,1.0,431.09326296632946
+domestic,total,"CR 3%",0.03,0.0,409.8240055075464
+globe,energy,"CR 1%",0.01,0.0,657.3712998854533
+domestic,slr,"CR 3%",0.03,0.0,2.723825995183986
+globe,slr,"CR 1%",0.01,0.0,78.88478041803964
+domestic,cromar_mortality,"OtherRamsey",0.01,1.0,431.0932629663296
 globe,total,"CR 5%",0.05,0.0,5571.49122139188
 domestic,energy,"CR 3%",0.03,0.0,11.993196253743374
-globe,slr,"CR 5%",0.05,0.0,9.79323306214988
+globe,slr,"CR 5%",0.05,0.0,9.793233062149877
 globe,slr,"OtherRamsey",0.01,1.0,30.312708688224014
 globe,total,"CR 2.5%",0.025,0.0,14043.751242946144
 domestic,slr,"CR 5%",0.05,0.0,1.7031243188635676
-domestic,agriculture,"CR 1%",0.01,0.0,433.7620907269391
+domestic,agriculture,"CR 1%",0.01,0.0,433.76209072693916
 domestic,energy,"CR 2%",0.02,0.0,20.302918111240178
-globe,energy,"OtherRamsey",0.01,1.0,152.1885309364613
+globe,energy,"OtherRamsey",0.01,1.0,152.18853093646132
 globe,agriculture,"CR 2.5%",0.025,0.0,9628.552521703732
 globe,slr,"DICE2016",0.015,1.45,17.10655679354482
-globe,slr,"CR 2%",0.02,0.0,24.132207342831446
+globe,slr,"CR 2%",0.02,0.0,24.132207342831457
 domestic,total,"CR 1%",0.01,0.0,1849.59327169366
-globe,slr,"CR 3%",0.03,0.0,14.631861853526347
-globe,agriculture,"DICE2016",0.015,1.45,6764.782861899858
-globe,energy,"DICE2016",0.015,1.45,77.81735572774059
-globe,cromar_mortality,"CR 2%",0.02,0.0,5649.421990391715
+globe,slr,"CR 3%",0.03,0.0,14.631861853526354
+globe,agriculture,"DICE2016",0.015,1.45,6764.78286189986
+globe,energy,"DICE2016",0.015,1.45,77.81735572774063
+globe,cromar_mortality,"CR 2%",0.02,0.0,5649.421990391716
