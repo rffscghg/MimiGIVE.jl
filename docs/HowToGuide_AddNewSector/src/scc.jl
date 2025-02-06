@@ -427,8 +427,8 @@ function modified_post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimes
 
         # get a dummy ciam model to be sure to accurately assign segment names to 
         # segment level damages
-        m = MimiGIVE.get_modified_model()
-        m_ciam, ~ = MimiGIVE.MimiGIVE.get_ciam(m)
+        m = get_modified_model()
+        m_ciam, ~ = MimiGIVE.get_ciam(m)
 
         if include_slr
 
