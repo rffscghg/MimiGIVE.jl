@@ -1088,6 +1088,7 @@ function _compute_modified_scc_mcs(mm::MarginalModel,
     result = Dict()
 
     # add an :scc dictionary, where key value pairs (k,v) are NamedTuples with keys(region, sector, dr_label, prtp, eta, ew, ew_norm_region) => values are 281 element vectors (2020:2300)    result[:scc] = Dict()
+    result[:scc] = Dict()
     for (k,v) in scc_values
         if certainty_equivalent
             # In this case the normalization from utils to $ hasn't happened in the post trial function
