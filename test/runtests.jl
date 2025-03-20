@@ -15,10 +15,9 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
     if VERSION == v"1.10.5" # random number generator not always stable between versions
         @info("test_regression_mcs.jl")
         @time include("test_regression_mcs.jl")
-    end 
+    end
 
     @info("test_disaggregated_values.jl")
     @time include("test_save_disaggregated_values.jl")
-    
-end
 
+end

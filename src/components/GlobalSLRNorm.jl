@@ -5,12 +5,12 @@ using Mimi
 
 @defcomp GlobalSLRNorm begin
 
-    global_slr = Parameter(index=[time], unit = "m")  # total sea level rise from all components (includes landwater storage for projection periods).
+    global_slr = Parameter(index=[time], unit="m")  # total sea level rise from all components (includes landwater storage for projection periods).
 
     norm_range_start = Parameter() # the first year of the range of years to normalize to
     norm_range_end = Parameter() # the last year of the range of years to normalize to
 
-    global_slr_norm = Variable(index=[time], unit = "degC") # Global sea level rise deviation normalized to the new baseline (m).
+    global_slr_norm = Variable(index=[time], unit="degC") # Global sea level rise deviation normalized to the new baseline (m).
     global_slr_norm_range_mean = Variable(unit="m")
 
     function run_timestep(p, v, d, t)
