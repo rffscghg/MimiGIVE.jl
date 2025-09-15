@@ -35,6 +35,7 @@ using Mimi
 
         for i in d.ag_mapping_input_regions
             v.damage_cromar_mortality_regions[t, v.input_output_mapping_int[i]] += p.damage_cromar_mortality[t,i]
+            v.damage_energy_regions[t, v.input_output_mapping_int[i]] += p.damage_energy[t,i]
             v.damage_new_sector_regions[t, v.input_output_mapping_int[i]] += p.damage_new_sector[t,i]
         end
     end
