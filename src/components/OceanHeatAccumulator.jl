@@ -5,8 +5,8 @@ using Mimi
 
 @defcomp OceanHeatAccumulator begin
 
-    del_ohc         = Parameter(index=[time], unit="J") # year over year Ocean heat content anomaly
-    del_ohc_accum   = Variable(index=[time], unit="1e22 J") # accumulated Ocean heat content anomaly
+    del_ohc = Parameter(index=[time], unit="J") # year over year Ocean heat content anomaly
+    del_ohc_accum = Variable(index=[time], unit="1e22 J") # accumulated Ocean heat content anomaly
 
     function run_timestep(p, v, d, t)
 

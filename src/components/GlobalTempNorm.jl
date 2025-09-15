@@ -5,12 +5,12 @@ using Mimi
 
 @defcomp GlobalTempNorm begin
 
-    global_temperature = Parameter(index=[time], unit = "degC") # Global temperature deviation (°C).
+    global_temperature = Parameter(index=[time], unit="degC") # Global temperature deviation (°C).
 
     norm_range_start = Parameter() # the first year of the range of years to normalize to
     norm_range_end = Parameter() # the last year of the range of years to normalize to
 
-    global_temperature_norm = Variable(index=[time], unit = "degC") # Global temperature deviation normalized to the new baseline (°C).
+    global_temperature_norm = Variable(index=[time], unit="degC") # Global temperature deviation normalized to the new baseline (°C).
     global_temperature_norm_range_mean = Variable(unit="degC")
 
     function run_timestep(p, v, d, t)
