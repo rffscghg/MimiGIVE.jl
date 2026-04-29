@@ -13,9 +13,9 @@ segments/regions
 function prep_ciam_xsc(xsc_params_path::String)
 
     xsc_params = load(xsc_params_path) |> DataFrame
-    
+
     # Read in csv and convert to dictionary format
-    xsc_char = Dict{Any,Any}(xsc_params.seg[i] => (xsc_params.rgn[i],xsc_params.greenland[i], xsc_params.island[i]) for i in 1:length(xsc_params.seg))
+    xsc_char = Dict{Any,Any}(xsc_params.seg[i] => (xsc_params.rgn[i], xsc_params.greenland[i], xsc_params.island[i]) for i in 1:length(xsc_params.seg))
 
     # Create region and segment indices
     rgns = sort(unique([i[1] for i in collect(values(xsc_char))]))
@@ -54,27 +54,27 @@ end
 Obtain the CIAM parameters for the ciam_countries using the key in xsc_params_path
 for a model with time dimension first:tstep:last and adaptation starting in `adaptation_firsts`.
 """
-function get_ciam_params(;tstep::Int64, first::Int64, last::Int64, ciam_countries::Vector, xsc_params_path::String, adaptation_firsts::Array)
+function get_ciam_params(; tstep::Int64, first::Int64, last::Int64, ciam_countries::Vector, xsc_params_path::String, adaptation_firsts::Array)
 
     # --------------------------------------------------------------------------
     # Get CIAM Default Parameters
     # Pull in main parameters and select just our countries
     ciam_params = MimiCIAM.load_ciam_params()
-    for (k,v) in ciam_params 
+    for (k, v) in ciam_params
         if "country" in names(v)
             filter!(row -> row.country in ciam_countries, ciam_params[k])
         end
     end
 
     # Process XSC (segment-country mapping dictionary)
-    xsc_ind, rgns, segs, xsc_rgnmap  = prep_ciam_xsc(xsc_params_path)
-    rgns != ciam_countries && error("The provided ciam_countries in the get_ciam_params function must match those in the provided xsc_params_path File.") : nothing
+    xsc_ind, rgns, segs, xsc_rgnmap = prep_ciam_xsc(xsc_params_path)
+    rgns != ciam_countries && error("The provided ciam_countries in the get_ciam_params function must match those in the provided xsc_params_path File."):nothing
 
     # Process params using xsc
     MimiCIAM.parse_ciam_params!(ciam_params, rgns, segs, 0)
 
     # --------------------------------------------------------------------------
-	# Adjust, Delete, and Add Parameters
+    # Adjust, Delete, and Add Parameters
 
     # --> Delete Parameters that never get used
     for p in ["s1000", "s100", "s10", "smax", "land_appr_canada", "ypc_usa", "gtapland_canada", "wbvm", "fundland_canada", "refpopdens_usa"]
@@ -104,10 +104,10 @@ function get_ciam_params(;tstep::Int64, first::Int64, last::Int64, ciam_countrie
     # If the lengths are 0, then assume those segments are not used. Note that
     # if including Greenland, need Canada too as a reference for land appreciation
 
-    rgn_ind_canada = [k for (k,v) in xsc_rgnmap if v=="CAN"]
+    rgn_ind_canada = [k for (k, v) in xsc_rgnmap if v == "CAN"]
     rgn_ind_canada = (length(rgn_ind_canada) > 0) ? rgn_ind_canada[1] : 0
 
-    rgn_ind_usa = [k for (k,v) in xsc_rgnmap if v=="USA"]
+    rgn_ind_usa = [k for (k, v) in xsc_rgnmap if v == "USA"]
     rgn_ind_usa = (length(rgn_ind_usa) > 0) ? rgn_ind_usa[1] : 0
 
     segID = MimiCIAM.segStr_to_segID(segs)
@@ -127,6 +127,6 @@ function get_ciam_params(;tstep::Int64, first::Int64, last::Int64, ciam_countrie
     # main_ciam.jl))
     delete!(ciam_params, "vslel")
     delete!(ciam_params, "vslmult")
-    
+
     return (rgns, segs, ciam_params)
 end
