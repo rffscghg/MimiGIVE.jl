@@ -327,16 +327,17 @@ returned by get_model().
         into memory problems, data will be streamed out to disk but not saved in memory 
         to the mcs object
 """
-function run_mcs(;trials::Int64 = 10000, 
-                    output_dir::Union{String, Nothing} = nothing, 
+function run_mcs(;trials::Int64 = 10000,
+                    output_dir::Union{String, Nothing} = nothing,
                     save_trials::Bool = false,
                     fair_parameter_set::Symbol = :random,
                     fair_parameter_set_ids::Union{Vector{Int}, Nothing} = nothing,
                     rffsp_sampling::Symbol = :random,
                     rffsp_sampling_ids::Union{Vector{Int}, Nothing} = nothing,
-                    m::Mimi.Model = get_model(), 
+                    m::Mimi.Model = get_model(),
                     save_list::Vector = [],
                     results_in_memory::Bool = true,
+                    post_mcs_creation_function = nothing,
                 )
 
     m = deepcopy(m) # in the case that an `m` was provided, be careful that we don't modify the original
@@ -359,16 +360,20 @@ function run_mcs(;trials::Int64 = 10000,
     Agriculture_gtap = _get_mooreag_gtap(m)
 
     # Get an instance of the mcs
-    mcs = get_mcs(trials; 
-                    socioeconomics_source = socioeconomics_source, 
-                    mcs_years = Mimi.time_labels(m), 
-                    fair_parameter_set = fair_parameter_set, 
+    mcs = get_mcs(trials;
+                    socioeconomics_source = socioeconomics_source,
+                    mcs_years = Mimi.time_labels(m),
+                    fair_parameter_set = fair_parameter_set,
                     fair_parameter_set_ids = fair_parameter_set_ids,
                     rffsp_sampling = rffsp_sampling,
                     rffsp_sampling_ids = rffsp_sampling_ids,
                     save_list = save_list,
                     Agriculture_gtap = Agriculture_gtap
                 )
+
+    if post_mcs_creation_function !== nothing
+        post_mcs_creation_function(mcs)
+    end
 
     # run monte carlo trials
     results = run(mcs,
