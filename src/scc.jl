@@ -81,6 +81,7 @@ function compute_scc(m::Model = get_model();
             compute_sectoral_values::Bool = false,
             compute_disaggregated_values::Bool = false,
             compute_domestic_values::Bool = false,
+            compute_country_sccs::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
             post_mcs_creation_function = nothing,
@@ -160,6 +161,7 @@ function compute_scc(m::Model = get_model();
                                 compute_sectoral_values = compute_sectoral_values,
                                 compute_disaggregated_values = compute_disaggregated_values,
                                 compute_domestic_values = compute_domestic_values,
+                                compute_country_sccs=compute_country_sccs,
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
                                 post_mcs_creation_function = post_mcs_creation_function,
@@ -537,6 +539,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 norm_cpc_values_ce[(region=:globe, sector=:total, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum] = cpc[year_index]
             end
 
+            if options.compute_country_sccs
+                total_damage_countries = post_trial_mm[:DamageAggregator, :total_damage_countries][year_index:last_year_index, :]
+                discounted_country_damages = total_damage_countries .* reshape(df, last_year_index - year_index + 1, 1)
+                country_sccs = vec(sum(discounted_country_damages, dims=1))
+                scc_values[(region=:countries, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum, :] = country_sccs
+            end
+
             # domestic totals (sector=:total)
             if options.compute_domestic_values
                 scc = sum(df .* total_mds_domestic[year_index:last_year_index])
@@ -697,6 +706,26 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 (base[:DamageAggregator, :include_ag]               ? ag_scc_in_utils : 0.) +
                 (base[:DamageAggregator, :include_energy]           ? en_scc_in_utils : 0.) +
                 (base[:DamageAggregator, :include_slr]              ? slr_scc_in_utils : 0.)
+
+            if haskey(base.md.namespace[:DamageAggregator].namespace, :include_PM25_mortality) && base[:DamageAggregator, :include_PM25_mortality]
+                pm25_mortality_mds = post_trial_mm[:DamageAggregator, :damage_PM25_mortality]
+                pm25_mortality_scc_in_utils = sum(
+                    pm25_mortality_mds[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                    for (i,t) in enumerate(_model_years), r in 1:n_regions if year<=t<=last_year
+                )
+                total_utils += pm25_mortality_scc_in_utils
+
+                if compute_country_sccs
+
+                    discounted_country_damages = pm25_mortality_mds[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year) 
+                    country_sccs = vec(sum(discounted_country_damages, dims=1))
+
+                    scc = pc_gdp[year_index,normalization_region_index]^dr.eta * pm25_mortality_scc_in_utils
+
+                    scc_values[(region=:countries, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum, :] = scc
+                end
+
+            end
 
             normalization_region_index = findfirst(isequal(dr.ew_norm_region), dim_keys(base, spatial_key_name))
             scc = base[pc_gdp_component_name, :pc_gdp][year_index,normalization_region_index]^dr.eta * total_utils
@@ -872,6 +901,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             compute_sectoral_values::Bool,
                             compute_disaggregated_values::Bool,
                             compute_domestic_values::Bool,
+                            compute_country_sccs::Bool,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
                             post_mcs_creation_function,
@@ -940,11 +970,17 @@ function _compute_scc_mcs(mm::MarginalModel,
                 ) |> save(joinpath(top_path, "disaggregated_values_README.csv"))	
     end
 
-    scc_values = Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Union{Float64, Missing}}(undef, n) for dr in discount_rates, r in regions, s in sectors)
+    scc_values = Dict{Any, Any}((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Union{Float64, Missing}}(undef, n) for dr in discount_rates, r in regions, s in sectors)
     intermediate_ce_scc_values = certainty_equivalent ? Dict((region=r, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in regions, s in sectors) : nothing
     md_values = save_md ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in regions, s in sectors) : nothing
     cpc_values = save_cpc ? Dict((region=r, sector=s) => Array{Float64}(undef, n, length(_damages_years)) for r in [:globe], s in [:total]) : nothing # just global and total for now
     norm_cpc_values_ce = certainty_equivalent ? Dict((region=r, sector=s, ew=dr.ew, ew_norm_region=dr.ew_norm_region) => Vector{Float64}(undef, n) for dr in discount_rates, r in [:globe], s in [:total]) : nothing
+
+    if compute_country_sccs 
+        for dr in discount_rates
+            scc_values[(region=:countries, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)] = Matrix{Union{Float64, Missing}}(undef, n, 184) 
+        end
+    end
 
     if save_slr_damages
 
@@ -978,6 +1014,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                 compute_sectoral_values=compute_sectoral_values,
                 compute_disaggregated_values=compute_disaggregated_values,
                 compute_domestic_values=compute_domestic_values,
+                compute_country_sccs=compute_country_sccs,
                 save_md=save_md,
                 save_cpc=save_cpc,
                 save_slr_damages=save_slr_damages,
