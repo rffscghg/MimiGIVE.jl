@@ -705,5 +705,42 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :country_netconsumption => :population, :Socioeconomic => :population)
     connect_param!(m, :country_netconsumption => :total_damage, :DamageAggregator => :total_damage_countries)
 
+
+    #--------------------------------------------------------------------------
+    # Add temperature pattern scaling
+    #--------------------------------------------------------------------------
+
+    cmip6_gcm_ids       = unique((load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_pattern_scaling_by_country.csv")) |> DataFrame).source_id)
+
+    add_comp!(m, MimiGIVE.GlobalTempNorm, :TempNorm_2001to2020, after = :temperature)
+    add_comp!(m, TempMortality_PatternScaling, :TempMortality_PatternScaling, first = damages_first, after = :OceanPH)
+    
+    # add dimensions
+    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids);  # TempMortality Pattern Scaling component
+
+	# Normalize temperature to deviation from 2001 to 2020 for Bressler Mortality Component
+    update_param!(m, :TempNorm_2001to2020, :norm_range_start, 2001)
+    update_param!(m, :TempNorm_2001to2020, :norm_range_end, 2020)
+    connect_param!(m, :TempNorm_2001to2020 => :global_temperature, :temperature => :T)
+
+    # Baseline mortality use SSP2 as a proxy for SSP4 and SSP1 as a proxy for 
+    # SSP5 per instructions from the literature
+    mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
+
+    # Grab the SSP name from the full scenario ie. SSP2 from SSP245
+    SSP = socioeconomics_source == :SSP ? SSP_scenario[1:4] : nothing
+
+    if socioeconomics_source == :SSP_scenario # use the mortality SSP map to get the right pattern
+        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_$(mortality_SSP_map[SSP]).csv")) |> DataFrame   
+    else # use SSP2 for RFF
+        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_SSP2.csv")) |> DataFrame   
+    end
+
+    model_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in mortality components and subset pattern.
+    isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.") # make sure all countries are found
+          
+    update_param!(m, :TempMortality_PatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
+	connect_param!(m, :TempMortality_PatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
+
     return m
 end
