@@ -727,10 +727,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # SSP5 per instructions from the literature
     mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
 
-    # Grab the SSP name from the full scenario ie. SSP2 from SSP245
-    SSP = socioeconomics_source == :SSP ? SSP_scenario[1:4] : nothing
-
-    if socioeconomics_source == :SSP_scenario # use the mortality SSP map to get the right pattern
+    if socioeconomics_source == :SSP # use the mortality SSP map to get the right pattern
+        # Grab the SSP name from the full scenario ie. SSP2 from SSP245
+        SSP = SSP_scenario[1:4]
         pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_$(mortality_SSP_map[SSP]).csv")) |> DataFrame   
     else # use SSP2 for RFF
         pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_SSP2.csv")) |> DataFrame   
