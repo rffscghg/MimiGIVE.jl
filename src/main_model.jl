@@ -221,7 +221,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
 
     # Add TempMortality Pattern Scaling component
-    add_comp!(m, TempMortality_PatternScaling, :TempMortality_PatternScaling, first = damages_first, after = :CromarMortality)
+    add_comp!(m, CountryTemperaturePatternScaling, :CountryTemperaturePatternScaling, first = damages_first, after = :CromarMortality)
 
     # Add Agriculture components
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
@@ -558,8 +558,8 @@ function get_model(; Agriculture_gtap::String = "midDF",
     model_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in model and subset pattern.
     isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
 
-    update_param!(m, :TempMortality_PatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
-    connect_param!(m, :TempMortality_PatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
+    update_param!(m, :CountryTemperaturePatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
+    connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
 
     # --------------------------------------------------------------------------
 	# Agriculture Aggregators

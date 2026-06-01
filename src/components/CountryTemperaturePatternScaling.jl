@@ -4,7 +4,7 @@ using Mimi
 # Calculate population-weighted, country-level temperatures which are provided relative to 2001-2020 mean
 # ------------------------------------------------------------------------------
 
-@defcomp TempMortality_PatternScaling begin
+@defcomp CountryTemperaturePatternScaling begin
 
     country = Index()
     cmip6_gcms = Index()
