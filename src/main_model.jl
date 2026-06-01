@@ -119,6 +119,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     sort(unique(cromar_mapping.cromar_region)) != sort(cromar_regions) && error("Cromar mortality mapping file gcam_regions column must match model gcamregions vector exactly (when both are sorted).")
     cromar_mapping = cromar_mapping.cromar_region
 
+    # CMIP6 GCM IDs for temperature pattern scaling
+    cmip6_gcm_ids = unique((load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_pattern_scaling_by_country.csv")) |> DataFrame).source_id)
+
     # BRICK Fingerprinting
     segment_fingerprints = load(joinpath(@__DIR__, "../data/CIAM/segment_fingerprints.csv"))  |>
         DataFrame |>
@@ -167,6 +170,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
+    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids) # TempMortality Pattern Scaling component
 
     # Add Socioeconomics component BEFORE the FAIR model to allow for emissions feedbacks after damages_first year
     if socioeconomics_source == :RFF
@@ -193,6 +197,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, GlobalTempNorm, :TempNorm_1900, after = :TempNorm_1880); # DICE
     add_comp!(m, GlobalTempNorm, :TempNorm_1850to1900, after = :TempNorm_1900); # Useful Reference to IPCC
     add_comp!(m, GlobalTempNorm, :TempNorm_1995to2005, after = :TempNorm_1850to1900); # Agriculture
+    add_comp!(m, GlobalTempNorm, :TempNorm_2001to2020, after = :TempNorm_1995to2005); # TempMortality Pattern Scaling
 
     # Add Ocean Heat Accumulator to Link FAIR and BRICK
     add_comp!(m, OceanHeatAccumulator, after = :TempNorm_1995to2005);
@@ -214,6 +219,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     # Add CromarMortality component
     add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
+
+    # Add TempMortality Pattern Scaling component
+    add_comp!(m, TempMortality_PatternScaling, :TempMortality_PatternScaling, first = damages_first, after = :CromarMortality)
 
     # Add Agriculture components
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
@@ -493,6 +501,11 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :TempNorm_1995to2005, :norm_range_end, 2005)
     connect_param!(m, :TempNorm_1995to2005 => :global_temperature, :temperature => :T)
 
+    # TempNorm_2001to2020 - Normalize temperature to deviation from 2001 to 2020 for TempMortality Pattern Scaling Component
+    update_param!(m, :TempNorm_2001to2020, :norm_range_start, 2001)
+    update_param!(m, :TempNorm_2001to2020, :norm_range_end, 2020)
+    connect_param!(m, :TempNorm_2001to2020 => :global_temperature, :temperature => :T)
+
     # --------------------------------------------------------------------------
     # Cromar et al. Temperature-Mortality Damages
     # --------------------------------------------------------------------------
@@ -531,6 +544,22 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :CromarMortality => :population,  :Socioeconomic => :population)
     connect_param!(m, :CromarMortality => :temperature, :temperature => :T)
     connect_param!(m, :CromarMortality => :vsl, :VSL => :vsl)
+
+    # --------------------------------------------------------------------------
+    # TempMortality Pattern Scaling
+    # --------------------------------------------------------------------------
+
+    if socioeconomics_source == :SSP
+        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_$(mortality_SSP_map[SSP]).csv")) |> DataFrame
+    else # use SSP2 for RFF
+        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_SSP2.csv")) |> DataFrame
+    end
+
+    model_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in model and subset pattern.
+    isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
+
+    update_param!(m, :TempMortality_PatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
+    connect_param!(m, :TempMortality_PatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
 
     # --------------------------------------------------------------------------
 	# Agriculture Aggregators
@@ -705,41 +734,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :country_netconsumption => :population, :Socioeconomic => :population)
     connect_param!(m, :country_netconsumption => :total_damage, :DamageAggregator => :total_damage_countries)
 
-
-    #--------------------------------------------------------------------------
-    # Add temperature pattern scaling
-    #--------------------------------------------------------------------------
-
-    cmip6_gcm_ids       = unique((load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_pattern_scaling_by_country.csv")) |> DataFrame).source_id)
-
-    add_comp!(m, MimiGIVE.GlobalTempNorm, :TempNorm_2001to2020, after = :temperature)
-    add_comp!(m, TempMortality_PatternScaling, :TempMortality_PatternScaling, first = damages_first, after = :OceanPH)
-    
-    # add dimensions
-    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids);  # TempMortality Pattern Scaling component
-
-	# Normalize temperature to deviation from 2001 to 2020 for Bressler Mortality Component
-    update_param!(m, :TempNorm_2001to2020, :norm_range_start, 2001)
-    update_param!(m, :TempNorm_2001to2020, :norm_range_end, 2020)
-    connect_param!(m, :TempNorm_2001to2020 => :global_temperature, :temperature => :T)
-
-    # Baseline mortality use SSP2 as a proxy for SSP4 and SSP1 as a proxy for 
-    # SSP5 per instructions from the literature
-    mortality_SSP_map = Dict("SSP1" => "SSP1", "SSP2" => "SSP2", "SSP3" => "SSP3", "SSP4" => "SSP2", "SSP5" => "SSP1")
-
-    if socioeconomics_source == :SSP # use the mortality SSP map to get the right pattern
-        # Grab the SSP name from the full scenario ie. SSP2 from SSP245
-        SSP = SSP_scenario[1:4]
-        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_$(mortality_SSP_map[SSP]).csv")) |> DataFrame   
-    else # use SSP2 for RFF
-        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_SSP2.csv")) |> DataFrame   
-    end
-
-    model_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in mortality components and subset pattern.
-    isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.") # make sure all countries are found
-          
-    update_param!(m, :TempMortality_PatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
-	connect_param!(m, :TempMortality_PatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
 
     return m
 end
