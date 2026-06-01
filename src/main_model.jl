@@ -170,7 +170,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
-    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids) # TempMortality Pattern Scaling component
+    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids) # for the Country Temperature Pattern Scaling component
 
     # Add Socioeconomics component BEFORE the FAIR model to allow for emissions feedbacks after damages_first year
     if socioeconomics_source == :RFF
@@ -197,7 +197,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, GlobalTempNorm, :TempNorm_1900, after = :TempNorm_1880); # DICE
     add_comp!(m, GlobalTempNorm, :TempNorm_1850to1900, after = :TempNorm_1900); # Useful Reference to IPCC
     add_comp!(m, GlobalTempNorm, :TempNorm_1995to2005, after = :TempNorm_1850to1900); # Agriculture
-    add_comp!(m, GlobalTempNorm, :TempNorm_2001to2020, after = :TempNorm_1995to2005); # TempMortality Pattern Scaling
+    add_comp!(m, GlobalTempNorm, :TempNorm_2001to2020, after = :TempNorm_1995to2005); # for the Country Temperature Pattern Scaling
 
     # Add Ocean Heat Accumulator to Link FAIR and BRICK
     add_comp!(m, OceanHeatAccumulator, after = :TempNorm_1995to2005);
@@ -220,7 +220,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Add CromarMortality component
     add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
 
-    # Add TempMortality Pattern Scaling component
+    # Add Country Temperature Pattern Scaling component
     add_comp!(m, CountryTemperaturePatternScaling, :CountryTemperaturePatternScaling, first = damages_first, after = :CromarMortality)
 
     # Add Agriculture components
@@ -501,7 +501,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :TempNorm_1995to2005, :norm_range_end, 2005)
     connect_param!(m, :TempNorm_1995to2005 => :global_temperature, :temperature => :T)
 
-    # TempNorm_2001to2020 - Normalize temperature to deviation from 2001 to 2020 for TempMortality Pattern Scaling Component
+    # TempNorm_2001to2020 - Normalize temperature to deviation from 2001 to 2020 for Country Temperature Pattern Scaling Component
     update_param!(m, :TempNorm_2001to2020, :norm_range_start, 2001)
     update_param!(m, :TempNorm_2001to2020, :norm_range_end, 2020)
     connect_param!(m, :TempNorm_2001to2020 => :global_temperature, :temperature => :T)
@@ -546,7 +546,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :CromarMortality => :vsl, :VSL => :vsl)
 
     # --------------------------------------------------------------------------
-    # TempMortality Pattern Scaling
+    # Country Temperature Pattern Scaling
     # --------------------------------------------------------------------------
 
     if socioeconomics_source == :SSP
