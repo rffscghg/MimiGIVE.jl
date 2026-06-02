@@ -1,3 +1,7 @@
+using Pkg
+
+Pkg.add("DataDeps")
+
 using DataDeps
 
 register(DataDep(
