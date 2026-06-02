@@ -18,6 +18,8 @@ jobs:
     with:
         include-linux-x86: false
         include-windows-x86: false
+        github_job_prep_script: test/github_job_prep.jl
+        env: '{"DATADEPS_ALWAYS_ACCEPT": ":true"}'
     permissions: write-all
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
