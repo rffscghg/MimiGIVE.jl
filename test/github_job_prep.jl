@@ -4,6 +4,8 @@ Pkg.add("DataDeps")
 
 using DataDeps
 
+ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+
 register(DataDep(
     "rffsps_v5",
     "RFF SPs version v5",
