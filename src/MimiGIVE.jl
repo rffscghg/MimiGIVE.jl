@@ -36,6 +36,7 @@ include("components/OceanHeatAccumulator.jl")
 include("components/GlobalSLRNorm.jl")
 include("components/Damages_RegionAggregatorSum.jl")
 include("components/CountryTemperaturePatternScaling.jl")
+include("components/CountryTempNorm.jl")
 
 # Local Damage Components
 include("components/energy_damages.jl")

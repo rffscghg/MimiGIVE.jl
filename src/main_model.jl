@@ -197,7 +197,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, GlobalTempNorm, :TempNorm_1900, after = :TempNorm_1880); # DICE
     add_comp!(m, GlobalTempNorm, :TempNorm_1850to1900, after = :TempNorm_1900); # Useful Reference to IPCC
     add_comp!(m, GlobalTempNorm, :TempNorm_1995to2005, after = :TempNorm_1850to1900); # Agriculture
-    add_comp!(m, GlobalTempNorm, :TempNorm_2001to2020, after = :TempNorm_1995to2005); # for the Country Temperature Pattern Scaling
 
     # Add Ocean Heat Accumulator to Link FAIR and BRICK
     add_comp!(m, OceanHeatAccumulator, after = :TempNorm_1995to2005);
@@ -501,11 +500,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
     update_param!(m, :TempNorm_1995to2005, :norm_range_end, 2005)
     connect_param!(m, :TempNorm_1995to2005 => :global_temperature, :temperature => :T)
 
-    # TempNorm_2001to2020 - Normalize temperature to deviation from 2001 to 2020 for Country Temperature Pattern Scaling Component
-    update_param!(m, :TempNorm_2001to2020, :norm_range_start, 2001)
-    update_param!(m, :TempNorm_2001to2020, :norm_range_end, 2020)
-    connect_param!(m, :TempNorm_2001to2020 => :global_temperature, :temperature => :T)
-
     # --------------------------------------------------------------------------
     # Cromar et al. Temperature-Mortality Damages
     # --------------------------------------------------------------------------
@@ -559,7 +553,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
 
     update_param!(m, :CountryTemperaturePatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
-    connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
+    connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------
 	# Agriculture Aggregators
