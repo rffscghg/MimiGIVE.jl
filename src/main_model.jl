@@ -170,7 +170,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
-    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids) # TempMortality Pattern Scaling component
+    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids) # for the Country Temperature Pattern Scaling component
 
     # Add Socioeconomics component BEFORE the FAIR model to allow for emissions feedbacks after damages_first year
     if socioeconomics_source == :RFF
@@ -220,7 +220,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     # Add CromarMortality component
     add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
 
-    # Add TempMortality Pattern Scaling component
+    # Add Country Temperature Pattern Scaling component
     add_comp!(m, CountryTemperaturePatternScaling, :CountryTemperaturePatternScaling, first = damages_first, after = :CromarMortality)
 
     # Add Agriculture components
@@ -546,7 +546,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :CromarMortality => :vsl, :VSL => :vsl)
 
     # --------------------------------------------------------------------------
-    # TempMortality Pattern Scaling
+    # Country Temperature Pattern Scaling
     # --------------------------------------------------------------------------
 
     if socioeconomics_source == :SSP
@@ -559,7 +559,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
 
     update_param!(m, :CountryTemperaturePatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
-    connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :TempNorm_2001to2020 => :global_temperature_norm)
+    connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------
 	# Agriculture Aggregators
