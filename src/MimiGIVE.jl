@@ -48,4 +48,6 @@ include("main_mcs.jl")
 include("main_ciam.jl")
 include("scc.jl")
 
+include("precompile.jl")
+
 end
