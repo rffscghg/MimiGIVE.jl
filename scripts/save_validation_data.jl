@@ -1,7 +1,9 @@
+ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+
 using MimiGIVE
 using Random
 
-include("utils.jl")
+include("validation_helpers.jl")
 
 # This script saves a set of validation data in a post-fixed validation_label 
 # subfolder of the validation_data folder.
@@ -36,13 +38,13 @@ savevars = [
 ]
 
 # default model
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model")
+outdir = joinpath(@__DIR__, "..", "test", "validation_data", "validation_data_$validation_label", "default_model")
 isdir(outdir) || mkpath(outdir)
 m = MimiGIVE.get_model()
 save_model_data(m, savevars::Vector, outdir::String)
 
 # SSP245
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model")
+outdir = joinpath(@__DIR__, "..", "test", "validation_data", "validation_data_$validation_label", "SSP245_model")
 isdir(outdir) || mkpath(outdir)
 m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
 save_model_data(m, savevars::Vector, outdir::String)
@@ -58,7 +60,7 @@ discount_rates = [
                 ]
 
 # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_SCC_2020")
+outdir = joinpath(@__DIR__, "..", "test", "validation_data", "validation_data_$validation_label", "default_model_SCC_2020")
 isdir(outdir) || mkpath(outdir)
 
 save_scc_data(outdir; m = MimiGIVE.get_model(), year = 2020, discount_rates = discount_rates, gas = :CO2)
@@ -66,7 +68,7 @@ save_scc_data(outdir; m = MimiGIVE.get_model(), year = 2020, discount_rates = di
 save_scc_data(outdir; m = MimiGIVE.get_model(), year = 2020, discount_rates = discount_rates, gas = :N2O)
 
 # SSP245, SC-CO2 and SC-CH4 and SC-N2O in year 2020
-outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_SCC_2020")
+outdir = joinpath(@__DIR__, "..", "test", "validation_data", "validation_data_$validation_label", "SSP245_model_SCC_2020")
 isdir(outdir) || mkpath(outdir)
 
 save_scc_data(outdir; m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245"), year = 2020, discount_rates = discount_rates, gas = :CO2)
@@ -111,7 +113,7 @@ seed = 999
 
 # default model, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 for gas in [:CO2, :CH4, :N2O]
-    outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "default_model_MCS_SCC_2020", "$gas")
+    outdir = joinpath(@__DIR__, "..", "test", "validation_data", "validation_data_$validation_label", "default_model_MCS_SCC_2020", "$gas")
     isdir(outdir) || mkpath(outdir)
     m = MimiGIVE.get_model()
     save_scc_mcs_data(seed, outdir, n; m = m, year = 2020, discount_rates = discount_rates, gas = gas, save_list = save_list)
@@ -119,7 +121,7 @@ end
 
 # SSP245, SC-CO2 and SC-CH4 and SC-N2O in year 2020
 for gas in [:CO2, :CH4, :N2O]
-    outdir = joinpath(@__DIR__, "validation_data", "validation_data_$validation_label", "SSP245_model_MCS_SCC_2020", "$gas")
+    outdir = joinpath(@__DIR__, "..", "test", "validation_data", "validation_data_$validation_label", "SSP245_model_MCS_SCC_2020", "$gas")
     isdir(outdir) || mkpath(outdir)
     m = MimiGIVE.get_model(; socioeconomics_source = :SSP, SSP_scenario = "SSP245")
     save_scc_mcs_data(seed, outdir, n; m = m, year = 2020, discount_rates = discount_rates, gas = gas, save_list = save_list)
