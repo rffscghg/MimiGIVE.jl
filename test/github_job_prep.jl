@@ -14,12 +14,24 @@ register(DataDep(
     post_fetch_method=unpack
 ))
 
-# How many files each directory of the unpacked archive has. `datadep"..."` is satisfied
-# by the directory merely existing, so a depot cache holding a half-written copy of it --
-# a restore or a save that did not finish -- is never noticed here, and is then carried
-# forward into the next run's cache. What a test item sees instead is a bare
-# `SystemError: opening file .../pop_income/rffsp_pop_income_run_6546.feather`, thousands
-# of lines into an activation that reported success.
+# How many files each directory of the unpacked archive has.
+#
+# DataDeps checksums the archive between `fetch_method` and `post_fetch_method`, and that is
+# the whole of its integrity checking: nothing validates the tree `unpack` leaves behind, and
+# nothing re-validates it on later loads (oxinabox/DataDeps.jl#6, open since 2017). `resolve`
+# does check that an inner path is readable -- `datadep"name/some/file"` aborts under `CI`
+# when it is not -- but only for the one file named, and it does not re-fetch.
+#
+# So a depot cache holding a half-written copy of the deposit (a restore or a save that did
+# not finish, or a job killed mid-unpack) leaves `datadep"rffsps_v5"` perfectly satisfied by
+# the directory existing, and the truncated tree is then carried forward into the next run's
+# cache. What a test item sees instead is a bare `SystemError: opening file
+# .../pop_income/rffsp_pop_income_run_6546.feather`, thousands of lines into an activation
+# that reported success.
+#
+# Hence this check, on the file counts of the one pinned Zenodo record the sha256 above
+# admits. Deleting and re-resolving is the same remedy DataDeps offers interactively when
+# `resolve` finds a file it cannot read; it just cannot reach that prompt from here.
 const RFFSPS_V5_CONTENTS = Dict(
     "pop_income" => 10000,
     "death_rates" => 1000,
