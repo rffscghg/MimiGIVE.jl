@@ -119,6 +119,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     sort(unique(cromar_mapping.cromar_region)) != sort(cromar_regions) && error("Cromar mortality mapping file gcam_regions column must match model gcamregions vector exactly (when both are sorted).")
     cromar_mapping = cromar_mapping.cromar_region
 
+    # CMIP6 GCM IDs for temperature pattern scaling
+    cmip6_gcm_ids = unique((load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_pattern_scaling_by_country.csv")) |> DataFrame).source_id)
+
     # BRICK Fingerprinting
     segment_fingerprints = load(joinpath(@__DIR__, "../data/CIAM/segment_fingerprints.csv"))  |>
         DataFrame |>
@@ -167,6 +170,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     set_dimension!(m, :energy_countries, countries) # Countries used in energy damage function
 
     set_dimension!(m, :domestic_countries, domestic_countries) # Country ISO3 codes to be accumulated for domestic
+    set_dimension!(m, :cmip6_gcms, cmip6_gcm_ids) # for the Country Temperature Pattern Scaling component
 
     # Add Socioeconomics component BEFORE the FAIR model to allow for emissions feedbacks after damages_first year
     if socioeconomics_source == :RFF
@@ -214,6 +218,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     # Add CromarMortality component
     add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
+
+    # Add Country Temperature Pattern Scaling component
+    add_comp!(m, CountryTemperaturePatternScaling, :CountryTemperaturePatternScaling, first = damages_first, after = :CromarMortality)
 
     # Add Agriculture components
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
@@ -533,6 +540,22 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :CromarMortality => :vsl, :VSL => :vsl)
 
     # --------------------------------------------------------------------------
+    # Country Temperature Pattern Scaling
+    # --------------------------------------------------------------------------
+
+    if socioeconomics_source == :SSP
+        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_$(mortality_SSP_map[SSP]).csv")) |> DataFrame
+    else # use SSP2 for RFF
+        pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_SSP2.csv")) |> DataFrame
+    end
+
+    model_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in model and subset pattern.
+    isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
+
+    update_param!(m, :CountryTemperaturePatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
+    connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :temperature => :T)
+
+    # --------------------------------------------------------------------------
 	# Agriculture Aggregators
     # --------------------------------------------------------------------------
 
@@ -704,6 +727,7 @@ function get_model(; Agriculture_gtap::String = "midDF",
     connect_param!(m, :country_netconsumption => :gdp, :Socioeconomic => :gdp)
     connect_param!(m, :country_netconsumption => :population, :Socioeconomic => :population)
     connect_param!(m, :country_netconsumption => :total_damage, :DamageAggregator => :total_damage_countries)
+
 
     return m
 end
