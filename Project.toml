@@ -34,6 +34,7 @@ TestItemRunner = "f8b46487-2199-4994-9208-9a1283c18c0a"
 
 [compat]
 Dates = "1.10"
+LinearAlgebra = "1.10"
 PDMats = "0.11"
 PrecompileTools = "1"
 Distributions = "0.24, 0.25"
