@@ -3,3 +3,4 @@ Manifest.toml
 .vscode/settings.json
 **/.DS_Store
 wip/*
+!scripts/Manifest.toml

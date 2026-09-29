@@ -1,0 +1,10 @@
+[deps]
+CSVFiles = "5d742f6a-9f54-50ce-8119-2520741973ca"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+Mimi = "e4e893b0-ee5e-52ea-8111-44b3bdec128c"
+MimiGIVE = "08b927d4-7a58-4cf8-85d0-bad32a16dfbc"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[sources]
+MimiGIVE = {path = ".."}
