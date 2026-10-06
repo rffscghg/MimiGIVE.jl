@@ -192,6 +192,9 @@ function get_model(; Agriculture_gtap::String = "midDF",
     add_comp!(m, IdentityComponent_ch4, :ch4_emissions_identity, before = :ch4_cycle);
     add_comp!(m, IdentityComponent_n2o, :n2o_emissions_identity, before = :n2o_cycle);
 
+    # Add Country Temperature Pattern Scaling component
+    add_comp!(m, CountryTemperaturePatternScaling, :CountryTemperaturePatternScaling, first = damages_first, after = :temperature)
+
     # Add Temperature Normalization Components
     add_comp!(m, GlobalTempNorm, :TempNorm_1880, after = :temperature); # Howard and Sterner
     add_comp!(m, GlobalTempNorm, :TempNorm_1900, after = :TempNorm_1880); # DICE
@@ -218,9 +221,6 @@ function get_model(; Agriculture_gtap::String = "midDF",
 
     # Add CromarMortality component
     add_comp!(m, cromar_mortality_damages, :CromarMortality, first = damages_first, after = :OceanPH)
-
-    # Add Country Temperature Pattern Scaling component
-    add_comp!(m, CountryTemperaturePatternScaling, :CountryTemperaturePatternScaling, first = damages_first, after = :CromarMortality)
 
     # Add Agriculture components
     add_comp!(m, Agriculture_RegionAggregatorSum, :Agriculture_aggregator_population, first = damages_first, after = :CromarMortality);
@@ -549,10 +549,10 @@ function get_model(; Agriculture_gtap::String = "midDF",
         pattern = load(joinpath(@__DIR__, "..", "data", "PatternScaling_cmip6", "PatternScaling_cmip6_patterns_pop_2000_SSP2.csv")) |> DataFrame
     end
 
-    model_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in model and subset pattern.
-    isempty(findall(i -> isnothing(i), model_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
+    model_country_indices = indexin(dim_keys(m, :country), pattern.iso3) # Find pattern-scaling indices corresponding to countries in model and subset pattern.
+    isempty(findall(i -> isnothing(i), model_country_indices)) ? nothing : error("Not every country was found in the pattern scaling file.")
 
-    update_param!(m, :CountryTemperaturePatternScaling, :pattern, pattern[model_indices, 2:end] |> Matrix)
+    update_param!(m, :CountryTemperaturePatternScaling, :pattern, pattern[model_country_indices, 2:end] |> Matrix)
     connect_param!(m, :CountryTemperaturePatternScaling => :global_temperature, :temperature => :T)
 
     # --------------------------------------------------------------------------
