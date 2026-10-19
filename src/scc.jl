@@ -55,6 +55,7 @@ that will be run, otherwise it is set to `nothing` and ignored.
 - `compute_sectoral_values` (default is false) - compute and return sectoral values as well as total
 - `compute_disaggregated_values` (default is false) - compute spatially disaggregated marginal damages, sectoral damages, and socioeconomic variables
 - `compute_domestic_values` (default is false) - compute and return domestic values in addition to global
+- `compute_country_sectoral_values` (default is false) - compute and return country-level SCCs for each sector (requires `compute_sectoral_values`, Monte Carlo only, no equity weighting), returned in `:scc` with keys `(region=:countries, sector=s, ...)`, along with baseline 2100 country-level sectoral damages and gdp in `:country_levels_2100`
 - `CIAM_foresight`(default is :perfect) - Use limited foresight (:limited) or perfect foresight (:perfect) for MimiCIAM cost calculations
 - `CIAM_GDPcap` (default is false) - Limit SLR damages to country-level annual GDP
 - `pulse_size` (default 1.) - This determines the size of the additional pulse of emissions. Default of `1.` implies the standard pulse size of 1Gt of C for CO2, 1Mt of CH4, and 1Mt of N2O. 
@@ -82,6 +83,7 @@ function compute_scc(m::Model = get_model();
             compute_disaggregated_values::Bool = false,
             compute_domestic_values::Bool = false,
             compute_country_sccs::Bool = false,
+            compute_country_sectoral_values::Bool = false,
             CIAM_foresight::Symbol = :perfect,
             CIAM_GDPcap::Bool = false,
             post_mcs_creation_function = nothing,
@@ -117,8 +119,12 @@ function compute_scc(m::Model = get_model();
 
         ew_calcs = sum([!isnothing(dr.ew)==true for dr in discount_rates]) > 0
         (compute_domestic_values && ew_calcs) ? error("Equity weighting cannot be used when calculating domestic values. More specifically, the `compute_domestic_values` cannot be set to `true` if the `ew` field of the discount rate Named Tuple is not nothing.") : nothing
+        (compute_country_sectoral_values && ew_calcs) ? error("Equity weighting cannot be used when calculating country-level sectoral values. More specifically, the `compute_country_sectoral_values` cannot be set to `true` if the `ew` field of the discount rate Named Tuple is not nothing.") : nothing
 
     end
+
+    (compute_country_sectoral_values && !compute_sectoral_values) ? error("`compute_country_sectoral_values` requires `compute_sectoral_values` to be `true`.") : nothing
+    (compute_country_sectoral_values && n==0) ? error("`compute_country_sectoral_values` is only available for the Monte Carlo compute_scc function (n != 0).") : nothing
 
     mm = get_marginal_model(m; year = year, gas = gas, pulse_size = pulse_size)
 
@@ -162,6 +168,7 @@ function compute_scc(m::Model = get_model();
                                 compute_disaggregated_values = compute_disaggregated_values,
                                 compute_domestic_values = compute_domestic_values,
                                 compute_country_sccs=compute_country_sccs,
+                                compute_country_sectoral_values = compute_country_sectoral_values,
                                 CIAM_foresight = CIAM_foresight,
                                 CIAM_GDPcap = CIAM_GDPcap,
                                 post_mcs_creation_function = post_mcs_creation_function,
@@ -515,6 +522,38 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
         cpc_values[(region=:globe, sector=:total)][trialnum, :] = cpc[_damages_idxs]
     end
 
+    # Country-level sectoral marginal damages (USD $2005, _model_years x country) and
+    # baseline 2100 country-level sectoral damages and gdp (USD $2005)
+    if options.compute_country_sectoral_values
+        country_keys = dim_keys(base, :country)
+        n_countries = length(country_keys)
+        energy_idxs = Int.(indexin(country_keys, dim_keys(base, :energy_countries)))
+        slr_idxs = include_slr ? Int.(indexin(dim_keys(ciam_base, :ciam_country), country_keys)) : nothing # ciam coastal countries --> country dimension
+
+        country_sector_mds = Dict{Symbol, Any}(
+            :cromar_mortality   => post_trial_mm[:DamageAggregator, :damage_cromar_mortality],
+            :agriculture        => post_trial_mm[:DamageAggregator, :damage_ag_countries] .* 1e9, # billions of USD to USD
+            :energy             => post_trial_mm[:DamageAggregator, :damage_energy][:, energy_idxs] .* 1e9, # billions of USD to USD
+            :slr                => zeros(length(_model_years), n_countries) # non-coastal countries (and all countries if not including slr) have 0 marginal damages
+        )
+        include_slr && (country_sector_mds[:slr][:, slr_idxs] = ciam_mds.country)
+        if :PM25_mortality in options.country_sectors
+            country_sector_mds[:PM25_mortality] = post_trial_mm[:DamageAggregator, :damage_PM25_mortality]
+        end
+
+        idx_2100 = findfirst(isequal(2100), _model_years)
+        levels = options.country_levels_2100
+        levels[:cromar_mortality][trialnum, :] = base[:DamageAggregator, :damage_cromar_mortality][idx_2100, :]
+        levels[:agriculture][trialnum, :] = base[:DamageAggregator, :damage_ag_countries][idx_2100, :] .* 1e9
+        levels[:energy][trialnum, :] = base[:DamageAggregator, :damage_energy][idx_2100, energy_idxs] .* 1e9
+        levels[:slr][trialnum, :] .= 0.
+        include_slr && (levels[:slr][trialnum, slr_idxs] = ciam_mds.damages_base_country[findfirst(isequal(2100), _damages_years), :] .* 1e9) # billions of USD to USD
+        if :PM25_mortality in options.country_sectors
+            levels[:PM25_mortality][trialnum, :] = base[:DamageAggregator, :damage_PM25_mortality][idx_2100, :]
+        end
+        levels[:gdp][trialnum, :] = base[:Socioeconomic, :gdp][idx_2100, :] .* 1e9 # billions of USD to USD
+    end
+
     # Calculate the SCC for each discount rate
     for dr in discount_rates
 
@@ -544,6 +583,13 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 discounted_country_damages = total_damage_countries .* reshape(df, last_year_index - year_index + 1, 1)
                 country_sccs = vec(sum(discounted_country_damages, dims=1))
                 scc_values[(region=:countries, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum, :] = country_sccs
+            end
+
+            if options.compute_country_sectoral_values
+                for s in options.country_sectors
+                    discounted_country_damages = country_sector_mds[s][year_index:last_year_index, :] .* df
+                    scc_values[(region=:countries, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum, :] = vec(sum(discounted_country_damages, dims=1))
+                end
             end
 
             # domestic totals (sector=:total)
@@ -902,6 +948,7 @@ function _compute_scc_mcs(mm::MarginalModel,
                             compute_disaggregated_values::Bool,
                             compute_domestic_values::Bool,
                             compute_country_sccs::Bool,
+                            compute_country_sectoral_values::Bool,
                             CIAM_foresight::Symbol,
                             CIAM_GDPcap::Bool,
                             post_mcs_creation_function,
@@ -982,6 +1029,22 @@ function _compute_scc_mcs(mm::MarginalModel,
         end
     end
 
+    # country-level SCCs for each sector, plus baseline 2100 country-level sectoral
+    # damages and gdp (both USD $2005) for computing damages as a share of gdp
+    country_sectors = Symbol[]
+    country_levels_2100 = nothing
+    if compute_country_sectoral_values
+        country_sectors = [:cromar_mortality, :agriculture, :energy, :slr]
+        if haskey(mm.base.md.namespace[:DamageAggregator].namespace, :include_PM25_mortality)
+            push!(country_sectors, :PM25_mortality)
+        end
+        n_countries = length(dim_keys(mm.base, :country))
+        for dr in discount_rates, s in country_sectors
+            scc_values[(region=:countries, sector=s, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)] = Matrix{Union{Float64, Missing}}(undef, n, n_countries)
+        end
+        country_levels_2100 = Dict(s => Matrix{Union{Float64, Missing}}(undef, n, n_countries) for s in [country_sectors..., :gdp])
+    end
+
     if save_slr_damages
 
         # global
@@ -1015,6 +1078,9 @@ function _compute_scc_mcs(mm::MarginalModel,
                 compute_disaggregated_values=compute_disaggregated_values,
                 compute_domestic_values=compute_domestic_values,
                 compute_country_sccs=compute_country_sccs,
+                compute_country_sectoral_values=compute_country_sectoral_values,
+                country_sectors=country_sectors,
+                country_levels_2100=country_levels_2100,
                 save_md=save_md,
                 save_cpc=save_cpc,
                 save_slr_damages=save_slr_damages,
@@ -1171,6 +1237,11 @@ function _compute_scc_mcs(mm::MarginalModel,
         for (k,v) in cpc_values
             result[:cpc][k] = v
         end
+    end
+
+    # add a :country_levels_2100 dictionary, where key value pairs (k,v) are sector (or :gdp) => (n x 184) matrices of baseline 2100 levels in USD $2005
+    if compute_country_sectoral_values
+        result[:country_levels_2100] = options.country_levels_2100
     end
 
     return result
