@@ -761,14 +761,21 @@ function post_trial_func(mcs::SimulationInstance, trialnum::Int, ntimesteps::Int
                 )
                 total_utils += pm25_mortality_scc_in_utils
 
-                if compute_country_sccs
+                if options.compute_country_sccs
+                    dr.ew == :gdp_country || error("Country-level equity-weighted SCCs are only implemented for ew = :gdp_country.")
 
-                    discounted_country_damages = pm25_mortality_mds[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year) 
-                    country_sccs = vec(sum(discounted_country_damages, dims=1))
+                    # country-level PM2.5 mortality SCCs: utils per country, normalized to $ with the normalization region's pc gdp
+                    norm_idx = findfirst(isequal(dr.ew_norm_region), dim_keys(base, spatial_key_name))
+                    norm_factor = pc_gdp[year_index, norm_idx]^dr.eta
+                    country_sccs = [
+                        norm_factor * sum(
+                            pm25_mortality_mds[i,r] / pc_gdp[i,r]^dr.eta * 1/(1+dr.prtp)^(t-year)
+                            for (i,t) in enumerate(_model_years) if year<=t<=last_year
+                        )
+                        for r in 1:n_regions
+                    ]
 
-                    scc = pc_gdp[year_index,normalization_region_index]^dr.eta * pm25_mortality_scc_in_utils
-
-                    scc_values[(region=:countries, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum, :] = scc
+                    scc_values[(region=:countries, sector=:total, dr_label=dr.label, prtp=dr.prtp, eta=dr.eta, ew=dr.ew, ew_norm_region=dr.ew_norm_region)][trialnum, :] = country_sccs
                 end
 
             end
